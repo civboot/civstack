@@ -64,7 +64,7 @@ function M.span(l, c, l2, c2) --> (l, c?, l2, c2?)
 end
 local span = M.span
 
---- sort the span
+--- Sort the span
 function M.sort(...) --> l1, c1, l2, c2
   local l, c, l2, c2 = span(...)
   if l > l2 then l, c, l2, c2 = l2, c2, l, c

@@ -1,5 +1,6 @@
 Ele:
-* working...
+* auto-backup what buffers were open an re-load them.
+* auto-backup files and re-load them.
 
 General
 * I need io.open/etc to respect G.PWD

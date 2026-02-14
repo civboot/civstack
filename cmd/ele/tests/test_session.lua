@@ -299,7 +299,7 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq(SS..'\n'..NAV_3, fmt(ed.display))
     T.eq({4,8}, {e.l,e.c})
 
-  s:play'2 k l j g' -- go to thing1.txt
+  s:play'2 k l j enter' -- go to thing1.txt
   e = tst.s.ed.edit
     T.matches('data/seuss/thing1%.txt$', e:path())
     T.eq('command', ed.mode)
@@ -307,7 +307,7 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   s:play'g b'
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
     T.eq('system', ed.mode)
-  s:play'4 j g'
+  s:play'4 j enter'
     T.matches('data/small.lua$', ed.edit:path())
   s:play'g b' -- should be same as before
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))

@@ -1061,14 +1061,15 @@ end
 ---------------------
 -- Deq Buffer
 
---- [$Deq() -> Deq], a deque
---- Use as a first in/out with [$deq:push(v)/deq()]
+--- [$Deq() -> Deq], a deque datastructure.
+--- Use as a first in/out (fifo) with [$deq:push(v)] and [$deq()] (pop).
 ---
---- Main methods: [$$
----   pushLeft()  pushRight()
----   popLeft()   popRight()
+--- Main methods: [{$$ lang=lua}
+---   pushLeft()                  -- push on left side
+---   pushRight() push()          -- push on right side
+---   popRight()                  -- pop on right side
+---   popLeft()   pop()  __call() -- pop on left side
 --- ]$
---- Calling it is the same as popLeft (use as iterator)
 M.Deq = mty'Deq'{
   'right [number]',
   'left  [number]'

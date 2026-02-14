@@ -243,6 +243,28 @@ function M.changeEol(keySt, evsend)
   return ev
 end
 
+function M.yank(keySt)
+  local ev = keySt.event or {}; keySt.event = ev
+  if ev.action == 'yank' then
+    ev.lines = 0
+    return ev
+  end
+  ev.action = 'yank'
+  keySt.keep = true
+end
+function M.yankEol(keySt)
+  M.yank(keySt)
+  local ev = ds.popk(keySt, 'event')
+  ev.move, keySt.keep = 'eol', nil
+  return ev
+end
+
+function M.paste(keySt)
+  -- TODO: allow P to 'walk up' the indexes.
+  --   see M.searchBuf for how.
+  return {action='paste', index=1}
+end
+
 --- used for setting the number of times to do an action.
 --- 1 0 d t x: delete till the 10th x
 function M.times(keys)
@@ -305,6 +327,7 @@ end
 
 ---------------------------
 -- SYSTEM Mode
+M.goEnter     = {action='path', go='enter',  mode='command'}
 M.goPath      = {action='path', go='path',   mode='command'}
 M.createPath  = {action='path', go='create', mode='command'}
 
@@ -316,7 +339,7 @@ M.pathBackExpand = {action='chain',
   M.pathFocus, M.pathBack, M.pathExpand,
 }
 
-M.save = {action='edit', save=true}
+M.save = {action='edit', save=true, mode='insert'}
 M.undo = {action='edit', undo=true}
 M.redo = {action='edit', redo=true}
 
@@ -380,7 +403,12 @@ end
 -- BINDINGS
 
 --- Basic movement and times (used in multiple)
-M.movement = {
+M.common = {
+  fallback = M.unboundChord,
+  esc      = M.commandMode,
+  ['^q ^q'] = M.exit,
+
+  -- Movement
   h   =M.left, j   =M.down, k =M.up, l     = M.right,
   left=M.left, down=M.down, up=M.up, right = M.right,
 
@@ -390,21 +418,42 @@ M.movement = {
 
   ['^d'] = M.downScreen, ['^u'] = M.upScreen,
 
+  -- Insert
+  i = M.insertMode, I=M.insertsot, A=M.inserteol,
+  o = M.insertBelow, O = M.insertAbove,
+
+  d = M.delete, D = M.deleteEol,
+  c = M.change, C = M.changeEol,
+
+  -- G is for GO
+  ['g g'] = M.sof,    ['G'] = M.moveG, -- start/end of file
+
+  ['g f'] = M.goPath, ['g F'] = M.createPath,
+  ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
+
+  -- Go Window
+  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
+  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
+  ['g c'] = M.windowClose,
+
+  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
+  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
+
   -- Search
   ['/'] = M.searchBuf,
   n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
+
+  -- Other
+  y = M.yank, Y = M.yankEol,
+  p = M.paste,
+  u = M.undo, ['^r'] = M.redo,
 }
 
 -- times
-M.movement['0'] = M.zero  -- sol+0times
+M.common['0'] = M.zero  -- sol+0times
 for b=('1'):byte(), ('9'):byte() do
-  M.movement[string.char(b)] = M.times
+  M.common[string.char(b)] = M.times
 end
-
-M.searchBindings = {
-  ['/'] = M.searchBuf,
-  n = M.searchBufNext, N = M.searchBufPrev, ['^n'] = M.searchBufSub,
-}
 
 --- Insert Mode: directly insert text into the buffer.
 M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
@@ -420,41 +469,13 @@ ds.update(M.insert, {
 --- Command Mode: control the editor's text functions and
 --- enter other modes.
 M.command = M.KeyBindings{name='command', doc='command mode'}
-ds.update(M.command, M.movement)
-ds.update(M.command, M.searchBindings)
+ds.update(M.command, M.common)
 ds.update(M.command, {
-  fallback = M.unboundChord,
-  ['^q ^q'] = M.exit,
-
-  -- insert
-  i = M.insertMode, I=M.insertsot, A=M.inserteol,
-  o = M.insertBelow, O = M.insertAbove,
-
-  d = M.delete, D = M.deleteEol,
-  c = M.change, C = M.changeEol,
-
   -- movement
   f=M.find, F=M.findback,
 
   -- System
   s = M.systemMode,
-
-  -- G is for GO
-  ['g g'] = M.sof,    ['G'] = M.moveG, -- start/end of file
-
-  ['g f'] = M.goPath, ['g F'] = M.createPath,
-  ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
-
-  -- Window
-  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
-  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
-  ['g c'] = M.windowClose,
-
-  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
-  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
-
-  -- Other
-  u = M.undo, ['^r'] = M.redo,
 })
 
 --- System mode: view and control system-related resources such as
@@ -464,22 +485,15 @@ M.system = M.KeyBindings {
   name = 'system',
   doc = 'system mode: filesystem, commands, shell, etc',
 }
-ds.update(M.system, M.movement)
-ds.update(M.system, M.searchBindings)
+ds.update(M.system, M.common)
 ds.update(M.system, {
-  fallback = M.unboundChord,
-  esc      = M.commandMode,
-  enter    = {action='path', enter=true},
-
+  c = M.commandMode,
   s = M.save,
-  g = M.goPath,
 
+  enter = M.goEnter,
   h = M.pathBack,   H = M.pathBackExpand,
   l = M.pathExpand, L = M.pathFocusExpand,
   -- TODO: J/K: focus below/above
-
-  -- Other
-  u = M.undo, ['^r'] = M.redo,
 })
 
 return M

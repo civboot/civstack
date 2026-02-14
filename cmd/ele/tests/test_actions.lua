@@ -71,7 +71,7 @@ T'remove'; do
   end
 
   T.eq({1, 1}, {e.l, e.c})
-  assertRemove('forword', {}, 1, 1) -- remove word (end at 1.1)
+  assertRemove('forword', {}, 1, 1) -- remove word '1'
     T.eq('3 5 7 9', b:get(1))
     T.eq('  3 5', b:get(2))
   assertRemove('find', {find='7', cols=-1}, 1, 1) -- remove before 7
@@ -84,12 +84,17 @@ T'remove'; do
     T.eq('1  5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1}, 1, 3) -- backspace delete ' 5'
     T.eq('1  7 9\n', fmt(b.dat))
+  e.c = 1; M.paste(d, {action='paste', index=1})
+    T.eq(' 51  7 9\n', fmt(b.dat))
 
   info'removing first line'
   d = newEditor(lines3); local e, b = d.edit, d.edit.buf
   e.l, e.c = 1,1
   assertRemove('lines', {lines=0, times=1}, 1,3) -- remove one lines
     T.eq('  3 5\n1 3 5 7 9\n', fmt(b.dat))
+    T.eq({'1 3 5 7 9', ''}, d.yank[d.yank.right])
+  M.paste(d, {action='paste', index=1})
+    T.eq('  3 5\n1 3 5 7 9\n1 3 5 7 9\n', fmt(b.dat))
 end
 
 T'insert'; do

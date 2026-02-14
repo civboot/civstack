@@ -18,6 +18,8 @@ T'insert & remove'; do
   b:remove(1, -3, 1, -1)    T.eq('lala\nb\n', fmt(g))
 
   T.eq({'lala', 'b', ''}, ds.icopy(g))
+  b:insert('\nlob\n', 1,5)
+  T.eq({'lala', 'lob', '', 'b', ''}, ds.icopy(g))
 end
 
 T'clear'; do

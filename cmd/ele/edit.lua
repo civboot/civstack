@@ -22,6 +22,7 @@ M.Edit = mty'Edit' {
   'id[int]',
   'container', -- parent (Editor/Split)
   'buf [Buffer]',
+  'yank [ds.Deq]: global yank deque',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
@@ -142,6 +143,7 @@ end
 
 function M.Edit:insert(s)
   local b = self.buf
+  log.info('@@ edit:insert %s.%s %q', self.l,self.c, s)
   b:insert(s, self.l, self.c);
   self.l, self.c = lines.offset(b.dat, #s, self.l, self.c)
   -- if causes cursor to move to next line, move to end of cur line

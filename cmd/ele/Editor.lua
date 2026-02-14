@@ -17,8 +17,9 @@ local sfmt = string.format
 
 local EdSettings = mty'EdSettings' {
   'tabwidth [int]', tabwidth=2,
+  'yankMax [int]: max yank size in bytes',
+    yankMax=10 * 1024*1024, -- 10MiB
 }
-
 
 -- Editor is the global editor state that actions have access to.
 --
@@ -39,6 +40,7 @@ local Editor = mty'Editor' {
   'ext [table]: table for extensions to store data',
   'search [str]: search pattern for searchBuf, etc',
   'lastEvent [table]: the last event executed.',
+  'yank [ds.Deq]: a deque of removed text. See yankMax.',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
@@ -56,6 +58,7 @@ getmetatable(Editor).__call = function(T, t)
     namedBuffers=ds.WeakV{},
     overlay = Buffer{id=-1, dat=Gap{}},
     resources={}, ext={},
+    yank=ds.Deq{},
     redraw = true,
   }, t)
   t = mty.construct(T, t)
@@ -216,7 +219,7 @@ end
 --- Return the new edit view being focused.
 function Editor:focus(b) --> Edit
   local b = assertf(self:buffer(b), '%q', b)
-  local e = Edit{buf=b}
+  local e = Edit{buf=b, yank=self.yank}
   if self.edit then self.edit.container:replace(self.edit, e)
   else              e.container = self end
   self.edit = e

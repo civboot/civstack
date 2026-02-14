@@ -172,6 +172,19 @@ function M.move(ed, ev)
   ed:handleStandard(ev)
 end
 
+--- Get the start/end of a move without changing
+--- the position.
+function M.getMove(ed, ev) --> l1,c1, l2,c2
+  local e = ed.edit
+  local e_c = e.c
+  if ev.move == 'forword' then ev.cols = ev.cols or -1 end
+  local l, c = e.l, e.c + (ev.cols1 or 0)
+  M.move(ed, ev)
+  local l2,c2 = e.l,e.c
+  e.l,e.c = l,e_c
+  return lines.sort(l, c, l2,c2)
+end
+
 ----------------------------------
 -- MODIFY
 
@@ -194,6 +207,46 @@ function M.insertTab(ed, ev)
   ed:handleStandard(ev)
 end
 
+--- Yank without ed:handleStandard()
+function M._yank(ed, ev)
+  local e = ed.edit
+  if ev.lines == 0 then
+    local t = ev.times; t = (t and (t - 1)) or 0
+    log.info('yank lines(0) %s:%s', e.l, e.l + t)
+    ed.yank:push(lines.sub(e.buf.dat, e.l, e.l + t))
+  else
+    local l,c, l2,c2 = M.getMove(ed, ev)
+    log.info('yank %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
+    ed.yank:push(lines.sub(e.buf.dat, l,c, l2,c2))
+  end
+end
+
+--- yank movement action.
+function M.yank(ed, ev)
+  local mode = ds.popk(ev, 'mode') -- cache, we handle at end
+  M._yank(ed, ev)
+  ev.mode = mode; ed:handleStandard(ev)
+end
+
+--- Paste from an index (default=1) from the yank stream.
+--- The index goes from last -> first, so 1 is the most recent yank.
+function M.paste(ed, ev)
+  local ri = ev.index or 1  -- right index
+  local dat = ed.yank[ed.yank.right - (ri - 1)]
+  assertf(dat, 'yank index empty: %s', ri)
+  local e = ed.edit; e:changeStart()
+  if type(dat) == 'string' then e:insert(dat)
+  else
+    local s = concat(dat, '\n')
+    e.c = #(e.buf:get(e.l) or '') + 1
+    if s:sub(-1) == '\n' then
+      e:insert('\n'..s:sub(1,-2))
+    end
+  end
+  ed:handleStandard(ev)
+  e:changeUpdate2()
+end
+
 -- remove movement action
 --
 -- This is always tied with a movement (except below).
@@ -205,22 +258,23 @@ end
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed.edit; e:changeStart()
+  M._yank(ed, ev)
   if ev.lines == 0 then
     local t = ev.times; local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)
-    ev.mode = mode; ed:handleStandard(ev)
-    return
+  else
+    -- if ev.move == 'forword' then ev.cols = ev.cols or -1 end
+    -- local l, c = e.l, e.c + (ev.cols1 or 0)
+    -- M.move(ed, ev)
+    -- local l, c, l2, c2 = lines.sort(l, c, e.l, e.c)
+    local l,c, l2,c2 = M.getMove(ed, ev)
+    log.info('remove %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
+    if ev.lines then e:remove(l,l2)
+    else             e:remove(l,c, l2,c2) end
+    l, c = motion.topLeft(l, c, l2, c2)
+    e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
   end
-  if ev.move == 'forword' then ev.cols = ev.cols or -1 end
-  local l, c = e.l, e.c + (ev.cols1 or 0)
-  M.move(ed, ev)
-  local l, c, l2, c2 = lines.sort(l, c, e.l, e.c)
-  log.info('remove %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
-  if ev.lines then e:remove(l,l2)
-  else             e:remove(l,c, l2,c2) end
-  l, c = motion.topLeft(l, c, l2, c2)
-  e.l = math.min(#e.buf, l); e.c = e:boundCol(c)
   ev.mode = mode; ed:handleStandard(ev)
   e:changeUpdate2()
 end
@@ -474,13 +528,12 @@ function M.path(ed, ev, evsend)
   if ev.entry then
     nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
-  if ev.go then nav.goPath(ed, 'create' == ev.go) end
-  if ev.enter then
+  if ev.go == 'enter' then
     local e = ed.edit
     local line = e.buf:get(e.l)
     if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
     else                    nav.goPath(ed, ev.create) end
-  end
+  elseif ev.go then nav.goPath(ed, ev.go == 'create') end
   ed:handleStandard(ev)
 end
 
@@ -490,7 +543,9 @@ end
 --- * clear: clear the current edit view.
 --- ]
 function M.edit(ed, ev)
-  if ev.save  then ed.edit:save(ed)   end
+  if ev.save  then
+    ed.edit:save(ed)
+  end
   if ev.focus then ed:focus(ev.focus) end
   if ev.clear then
     ed.edit:changeStart()

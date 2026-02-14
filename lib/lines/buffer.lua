@@ -45,6 +45,7 @@ M.Buffer = mty'Buffer' {
   'l [int]', 'c [int]', -- used by clients
 
   -- recorded changes from update (for undo/redo)
+  -- TODO: put these in a file.
   'changes',
   'changeMax [int]',    changeMax=0,
   'changeStartI [int]', changeStartI=0,
