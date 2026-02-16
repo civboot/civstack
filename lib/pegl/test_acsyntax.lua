@@ -35,8 +35,8 @@ T'tokens'; do
   local fg,bg = bytearray(), bytearray()
   hl:_highlight(tz, fg,bg)
   T.eq(s[[
-  zzzzzzzzzzzz
-  RRRRR z A N zzzzzzzzzzzz]]
+  ffffffffffff
+  RRRRR z A N ffffffffffff]]
   , tostring(fg))
 
   hl:assertTokens({N's', {kind='singleStr', "'str'"}}, [[s'str']])

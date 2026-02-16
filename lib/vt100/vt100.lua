@@ -1,3 +1,7 @@
+local T = [[
+This is a test string
+FIXME: delete this
+]]
 local G = G or _G
 --- Civboot vt100 Terminal library that supports LAP protocol.
 --- Module for interacting with the vt100 via keys and AsciiColors.
@@ -8,6 +12,7 @@ local G = G or _G
 --- ]$
 local M = G.mod and mod'vt100' or setmetatable({}, {})
 G.MAIN = G.MAIN or M
+
 
 local mty = require'metaty'
 local fmt = require'fmt'
@@ -21,6 +26,7 @@ local ac = require'asciicolor'
 local min = math.min
 local char, byte, slen = string.char, string.byte, string.len
 local lower, upper     = string.lower, string.upper
+local srep             = string.rep
 local ulen = utf8.len
 local push, unpack, sfmt = table.insert, table.unpack, string.format
 local concat             = table.concat
@@ -268,25 +274,30 @@ end
 ---
 --- Return: [$fg, bg, write(str, ...)]
 --- [" Note: fg and bg are the updated color codes]
-function M.acwrite(f, colorFB, fg, bg, fgstr, bgstr, str, ...)
+function M.acwrite(f, colorFB, fg, bg, fgstr, bgstr, str, ...) --> fg,bg, ok,err?
   str, fgstr, bgstr = str or '', fgstr or '', bgstr or ''
-  local w1, w2, si, slen, chr, fc, bc = true, nil, 1, #str
-  for i=1,slen do
-    chr, fc, bc = str:sub(i,i), fgstr:sub(i,i), bgstr:sub(i,i)
-    fc, bc = acode(fc), acode(bc)
+  bgstr = bgstr..srep(' ', #fgstr - #bgstr)
+  assert(#fgstr == #bgstr)
+  local w1, w2, si, chr, fc, bc = true, nil, 1
+  -- We find where the code changes in order to write the color code.
+  -- After this loop we write using the current code.
+  for i=1,#fgstr do
+    chr = str:sub(i,i)
+    fc, bc = acode(fgstr:sub(i,i)), acode(bgstr:sub(i,i))
     if fc ~= fg or bc ~= bg then
       f:write(str:sub(si, i-1)) -- write in previous color
       w1, w2 = colorFB(f, fc, bc, fg, bg)
       si, fg, bg = i, fc, bc
     end
   end
-  if slen - si >= 0 then f:write(str:sub(si)) end -- write end of string
-  if select('#', ...) > 0 then -- write(...) using color=z
+  if #str - si >= 0 then f:write(str:sub(si)) end -- write end of string
+  local pstr = concat{...}
+  if #pstr > 0 then -- write using color=z
     if fg ~= 'z' or bg ~= 'z' then
       colorFB(f, 'z', 'z', fg, bg)
       fg, bg = 'z', 'z'
     end
-    w1, w2 = f:write(...)
+    w1, w2 = f:write(pstr)
   end
   return fg, bg, w1, w2
 end

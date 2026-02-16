@@ -143,9 +143,7 @@ function Session:highlight()
     yield('sleep', 1)
     local buf = self.ed.edit.buf
     local path = buf.dat.path
-    info('@@ highlight loop %q', path)
     if path and path:find'%.lu[ak]$' then
-      info('@@ highlighting %q', path)
       local lf = buf.dat:reader()
       local fg,bg = Gap{}, Gap{}
       hl:highlight(lf, fg,bg)

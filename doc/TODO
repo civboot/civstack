@@ -1,4 +1,5 @@
 Ele:
+* 'x' key doesn't work.s
 * auto-backup what buffers were open an re-load them.
 * auto-backup files and re-load them.
 

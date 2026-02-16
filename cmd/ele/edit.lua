@@ -211,9 +211,13 @@ function M.Edit:draw(ed, isRight)
   self.tc = self.tc + bw
   local buf = self.buf
   self:_drawBox(d.text, buf.dat)
-  if buf.fg then
+  if buf.fg then -- use color
     self:_drawBox(d.fg, buf.fg)
     self:_drawBox(d.bg, buf.bg)
+  else -- make first fg/bg a space
+    local spcs = srep('z\n', self.th) 
+    d.fg:insert(self.tl,self.tc, spcs)
+    d.bg:insert(self.tl,self.tc, spcs)
   end
 end
 
