@@ -210,6 +210,9 @@ local funcname = {name, Many{'.', name}, Maybe{UNPIN, ':', name}, kind='funcname
 local varset = {UNPIN, explist, '=', PIN, explist, kind='varset'}
 
 ds.extend(stmt, {
+  {Pat'#%!.*', kind='shexe'}, -- shell execute
+  ';',  -- unused ';' permitted
+
   {Pat'::', name, Pat'::', kind='loc'},
 
   -- do block end

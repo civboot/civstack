@@ -59,6 +59,8 @@ T'move'; do
   -- find
   e.l, e.c = 1, 1
   assertMove('find',     {find='3'},     1, 3)
+  assertMove('find',     {find=' '},     1, 4)
+  assertMove('find',     {find=' '},     1, 6)
   assertMove('find',     {find='9'},     1, 9)
   assertMove('findback', {findback='1'}, 1, 1)
 end
@@ -86,11 +88,13 @@ T'remove'; do
     T.eq('1  7 9\n', fmt(b.dat))
   e.c = 1; M.paste(d, {action='paste', index=1})
     T.eq(' 51  7 9\n', fmt(b.dat))
+  e.c = 1; assertRemove('find', {find=' ', times=2}, 1,1)
+    T.eq('7 9\n', fmt(b.dat))
 
   info'removing first line'
   d = newEditor(lines3); local e, b = d.edit, d.edit.buf
   e.l, e.c = 1,1
-  assertRemove('lines', {lines=0, times=1}, 1,3) -- remove one lines
+  assertRemove('lines', {lines=0, times=1}, 1,1) -- remove one lines
     T.eq('  3 5\n1 3 5 7 9\n', fmt(b.dat))
     T.eq({'1 3 5 7 9', ''}, d.yank[d.yank.right])
   M.paste(d, {action='paste', index=1})

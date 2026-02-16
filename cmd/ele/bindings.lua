@@ -211,7 +211,7 @@ function M.tillback(keys)
 end
 
 M.backspace = {action='remove', off=-1, cols1=-1}
-M.delkey    = {action='remove', off=1}
+M.delkey    = {action='remove', off=0}
 
 --- delete until a movement command (or similar)
 function M.delete(keySt)
@@ -228,6 +228,18 @@ function M.deleteEol(keySt)
   local ev = ds.popk(keySt, 'event')
   ev.move, keySt.keep = 'eol', nil
   return ev
+end
+
+function M.replace(keySt)
+  local ev = keySt.event or {}
+  if ev.replace then
+    return {action='chain',
+      {action='remove', off=0, times=ev.times},
+      {ds.last(keySt.chord), action='insert', times=ev.times},
+    }
+  end
+  ev.replace = 1
+  keySt.event, keySt.next, keySt.keep = ev, M.replace, true
 end
 
 --- Delete <move> then enter insert.
@@ -290,7 +302,8 @@ M.searchBufSub  = {action='searchBuf', next=true, sub=true, wrap=true}
 
 --- Interactively search the buffer.
 ---
---- This holds onto keySt (sets .keep), effectively owning all keyboard
+--- This holds onto keySt (sets .keep + .next), effectively owning all keyboard
+
 --- inputs.
 function M.searchBuf(keySt)
   local ev, chord = keySt.event or {}, keySt.chord
@@ -339,7 +352,7 @@ M.pathBackExpand = {action='chain',
   M.pathFocus, M.pathBack, M.pathExpand,
 }
 
-M.save = {action='edit', save=true, mode='insert'}
+M.save = {action='edit', save=true, mode='command'}
 M.undo = {action='edit', undo=true}
 M.redo = {action='edit', redo=true}
 
@@ -471,8 +484,12 @@ ds.update(M.insert, {
 M.command = M.KeyBindings{name='command', doc='command mode'}
 ds.update(M.command, M.common)
 ds.update(M.command, {
+  -- edit
+  x = M.delkey, del=M.delkey,
+  r = M.replace,
+
   -- movement
-  f=M.find, F=M.findback,
+  f = M.find, F = M.findback,
 
   -- System
   s = M.systemMode,

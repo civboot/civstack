@@ -56,7 +56,7 @@ function M.keyinput(ed, ev, evsend)
   local ok, ev
   if type(nxt) == 'table' and not getmetatable(nxt) then
     log.info(' + keyinput plain ev %q (%q)', K.chord, nxt)
-    ok, ev = true, ds.copy(nxt)
+    ok, ev = true, ds.copy(K.event or {}, nxt)
   elseif callable(nxt) then
     log.info(' + keyinput calling %q (%q)', K.chord, nxt)
     ok, ev = try(nxt, K)
@@ -128,7 +128,7 @@ local DOMOVE = {
   -- search for character
   find = function(e, line, ev)
     e.c = e:boundC(e.l,e.c)
-    e.c = line:find(ev.find, e.c, true) or e.c
+    e.c = line:find(ev.find, e.c+1, true) or e.c
   end,
   findback = function(e, line, ev)
     e.c = e:boundC(e.l,e.c)
@@ -259,16 +259,15 @@ function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed.edit; e:changeStart()
   M._yank(ed, ev)
+  local t = ev.times
   if ev.lines == 0 then
-    local t = ev.times; local l2 = (t and (t - 1)) or 0
+     local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)
   else
-    -- if ev.move == 'forword' then ev.cols = ev.cols or -1 end
-    -- local l, c = e.l, e.c + (ev.cols1 or 0)
-    -- M.move(ed, ev)
-    -- local l, c, l2, c2 = lines.sort(l, c, e.l, e.c)
     local l,c, l2,c2 = M.getMove(ed, ev)
+    log.info('@@ remove t=%s', t)
+    if t and l==l2 and c==c2 then c2 = c2 + (t-1) end
     log.info('remove %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
     if ev.lines then e:remove(l,l2)
     else             e:remove(l,c, l2,c2) end
@@ -558,13 +557,21 @@ function M.edit(ed, ev)
   end
   if ev.redo then
     for _=1,ev.times or 1 do
+
       if not ed.edit:redo() then break end
+
+
+
+
+
     end
   end
   ed:handleStandard(ev)
 end
 
 --- Directly modify a buffer by name. This is most commonly
+
+
 --- used for the overlay.
 function M.buf(ed, ev)
   local b; if ev.create then b = ed:buffer(ev.buf)

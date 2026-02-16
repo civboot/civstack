@@ -185,6 +185,17 @@ T'function_'; do
       }, EMPTY, EMPTY, EOF
     },
   }
+  assertParse{ spec=src, config=config,
+    dat=[[ function F:f(a) end ]],
+    expect = {
+      {kind="fndef",
+        KW"function", {
+          N"F", KW":", N"f", 
+          kind="funcname"
+        }, KW"(", N"a", KW")", EMPTY, KW"end", 
+      }, EMPTY, EMPTY, EOF
+    },
+  }
 end
 
 T'fncall'; do
@@ -410,7 +421,7 @@ end
 
 
 T'parseSrc'; do
-  -- testLuaPath('/patience/patience2.lua')
   testLuaPath(D..'pegl.lua')
   testLuaPath(D..'lua.lua')
+  testLuaPath('cmd/ff/ff.lua')
 end

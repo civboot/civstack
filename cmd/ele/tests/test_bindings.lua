@@ -80,13 +80,21 @@ T'action'; do
 
   -- remove
   local rm = function(t) t.action = 'remove'; return t end
-  assertKeys('d l',   'command', false, {rm{off=1}})
-  assertKeys('5 d l', 'command', false, {rm{off=1,  times=5}})
-  assertKeys('3 d d', 'command', false, {rm{lines=0, times=3}})
+  assertKeys('d l',     'command', false, {rm{off=1}})
+  assertKeys('5 d l',   'command', false, {rm{off=1,  times=5}})
+  assertKeys('3 d d',   'command', false, {rm{lines=0, times=3}})
+  assertKeys('3 d f e', 'command', false, {rm{move='find', find='e', times=3}})
+  assertKeys('3 r a',     'command', false, {
+    {action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
+  })
+
 
   local ch = function(t) t.mode='insert'; return rm(t) end
   d = assertKeys('3 c l', 'command', false, {ch{off=1, times=3}})
   d = assertKeys('c c',   'command', false, {ch{lines=0}})
+
+  d = assertKeys('x',     'command', false, {rm{off=0}})
+  d = assertKeys('3 x',   'command', false, {rm{off=0, times=3}})
 
   -- find
   assertKeys('f x',       'command', false,
