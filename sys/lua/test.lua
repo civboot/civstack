@@ -16,12 +16,14 @@ local w = require'civ.Worker':get()
 local function main()
   for _, id in ipairs(w.ids) do
     local tgt = w:target(id); if tgt.kind ~= 'test' then goto continue end
-    info('testing %q', tgt:tgtname())
     for _, src in pairs(tgt.src) do
-      dofile(tgt.dir..src)
+      src = tgt.dir..src
+      io.fmt:styled('notify', 'running test '..src, '\n')
+      dofile(src)
     end
     ::continue::
   end
 end
 
 ds.main(main)
+-- main()

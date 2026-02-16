@@ -275,7 +275,7 @@ end
 --- Return: [$fg, bg, write(str, ...)]
 --- [" Note: fg and bg are the updated color codes]
 function M.acwrite(f, colorFB, fg, bg, fgstr, bgstr, str, ...) --> fg,bg, ok,err?
-  str, fgstr, bgstr = str or '', fgstr or '', bgstr or ''
+  str, fgstr, bgstr = str or '', fgstr or ' ', bgstr or ' '
   bgstr = bgstr..srep(' ', #fgstr - #bgstr)
   assert(#fgstr == #bgstr)
   local w1, w2, si, chr, fc, bc = true, nil, 1
@@ -468,7 +468,6 @@ function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
   io.user = M.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
-  -- io.fmt  = M.Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
   io.fmt  = M.Fmt{to=io.stderr}
   G.IS_SETUP = true
   log.info'vt100 setup done'

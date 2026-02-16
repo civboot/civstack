@@ -112,8 +112,6 @@ local function bracketedStrRaw(p, node, raw, startCol)
       end
       l, c, p.c = p.l, w2+1, w2+1
     end
-    
-    I('!! line=%q pat=%q', p.line:sub(p.c), closePat)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1

@@ -367,9 +367,19 @@ T'error'; do
   end)
 end
 
+local function assertLenient(t)
+  t.spec   = t.spec   or M.lenientBlock
+  t.config = t.config or lenientConfig
+  local r, n, p = assertParse(t)
+  local ee = t.firstError
+  local fe = p.firstError
+  T.eq({ee.l,ee.c}, {fe.l, fe.c})
+  T.contains(ee.contains, table.concat(fe, '\n'))
+end
+
 T'lenient'; do
-  local r, n, p = assertParse{
-    dat=BAD_LUA, spec=M.lenientBlock, config=lenientConfig,
+  assertLenient{
+    dat=BAD_LUA,
     expect= {
       KW"local", KW"function",
       { kind="stmtexp",
@@ -382,17 +392,22 @@ T'lenient'; do
         N"x", KW"=", NUM{1},
       },
       "+", KW"{", NUM{2}, NUM{3}, KW"}", KW"end"
-    }
+    },
+    firstError = {l=2,c=16, contains="'2 3' is invalid"},
   }
-  local fe = p.firstError
-  T.eq({2,16}, {fe.l, fe.c})
-  T.contains("'2 3' is invalid", fe[1])
+
+  assertLenient{
+    dat = [[string'not done]],
+    expect = {N'string', "'not", N'done'},
+    firstError={l=1,c=8, contains="Expected singleStr, reached end of line"},
+  }
 end
 
 local function testLuaPath(path)
   local text = pth.read(path)
   assertParse{dat=text, spec=src, config=config, parseOnly=true}
 end
+
 
 T'parseSrc'; do
   -- testLuaPath('/patience/patience2.lua')

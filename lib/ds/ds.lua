@@ -9,6 +9,7 @@ local shim = require'shim'
 
 local ty = mty.ty
 local next, getmt, setmt = mty.from(G,      'next,getmetatable,setmetatable')
+local insert             = mty.from(table,  'insert')
 local push, pop, concat  = mty.from(table,  'insert,remove,concat')
 local move, sort, unpack = mty.from(table,  'move,sort,unpack')
 local sfmt, sfind        = mty.from(string, 'format,find')
@@ -1193,6 +1194,7 @@ function M.tracelist(tbstr, level) --> {traceback}
   end
   return tb
 end
+
 --- Get the current traceback as an indented string.
 function M.traceback(level) --> string
   return concat(M.tracelist(nil, 1 + (level or 0)), '\n    ')
@@ -1200,7 +1202,7 @@ end
 
 local function fmtTracebackItem(f, tbitem)
   f:write'  '
-  local path, li, ctx = tbitem:match'%s*(%S+):(%d+):%s*(.*)'
+  local path, li, ctx = tbitem:match'%s*(%S+):(%d+):?%s*(.*)'
   if not path then return f:styled('warn', tbitem, '\n') end
   f:styled('warn', sfmt('[% 5i]', math.tointeger(li)), ' ')
   f:styled('path', require'ds.path'.nice(path), ' ')
@@ -1234,13 +1236,16 @@ function M.Error:__tostring() return fmt(self) end
 --- FIXME: have this take T as first arg
 function M.Error.from(msg, tb, cause) --> Error
   local cause
+  tb = M.tracelist((type(tb) == 'thread') and traceback(tb) or tb)
+  -- remove traceback part from message
+  local tb1, msg1 = msg:match'^(%S+/%S+:%d+): (.*)'
+  if tb1 then msg = msg1; insert(tb, 1, tb1) end
   if ty(msg) == M.Error then
     cause, msg = msg, '(rethrown)'
   end
-  tb = (type(tb) == 'thread') and traceback(tb) or tb
   return M.Error{
-    msg=msg:match'^%S+/%S+:%d+: (.*)' or msg, -- remove line number
-    traceback=(type(tb) == 'table') and tb or M.tracelist(tb),
+    msg=msg,
+    traceback=tb,
     cause=cause,
   }
 end

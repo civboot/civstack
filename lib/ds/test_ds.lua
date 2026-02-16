@@ -614,14 +614,15 @@ T'error'; do
     "lib/ds/ds.lua:1084: in function <lib/ds/ds.lua:1081>"
   }, M.tracelist(TB))
 
-  local ok, err = M.try(c); T.eq(false, ok)
+  local ok, err = M.try(c)
+  T.eq(false, ok)
   M.clear(err.traceback, 4)
   local expect = M.Error{
     msg='a error',
     traceback={
+      D.."test_ds.lua:4",
       D.."test_ds.lua:4: in upvalue 'a'",
       D.."test_ds.lua:5: in upvalue 'b'",
-      D.."test_ds.lua:5: in function <"..D.."test_ds.lua:5>",
     },
   }
   T.eq(expect, err)
@@ -629,6 +630,8 @@ T'error'; do
   local cor = coroutine.create(c)
   local ok, msg = coroutine.resume(cor)
   assert(not ok)
+
+  push(expect.traceback, D.."test_ds.lua:5: in function <"..D.."test_ds.lua:5>")
   T.eq(expect, M.Error.from(msg, cor))
 end
 

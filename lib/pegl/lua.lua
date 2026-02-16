@@ -114,9 +114,11 @@ local function quoteImpl(p, char, pat, kind)
         return Token:encode(p, l, c, p.l, c2, kind)
       end
     else
-      if p.line:sub(#p.line) == '\\' then
-        p:incLine(); if p:isEof() then p:error("Expected "..kind..", reached EOF") end
-      else p:error("Expected "..kind..", reached end of line") end
+      if p.line:sub(#p.line) ~= '\\' then
+        return p:error("Expected "..kind..", reached end of line")
+      end
+      p:incLine()
+      if p:isEof() then return p:error("Expected "..kind..", reached EOF") end
     end
   end
 end
@@ -139,7 +141,7 @@ local function bracketStrImpl(p)
       return t
     else
       p:incLine()
-      if p:isEof() then p:error(
+      if p:isEof() then return p:error(
         "Expected closing "..pat:gsub('%%', '')..", reached EOF"
       )end
     end
