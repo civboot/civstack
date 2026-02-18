@@ -112,6 +112,14 @@ local DOMOVE = {
   eot = function(e, line) e.c = line:find'.*%S%s*' or #line end,
   eof = function(e, line) e.l,e.c = #e,1                    end,
 
+  nextLineText = function(e)
+    log.info('@@ nextLineText %s.%s', e.l,e.c)
+    if e.l >= #e then return end
+    e.l = e:boundLC(e.l+1, 1)
+    e.c = e:curLine():find'%S' or 1
+    log.info('@@   -> %s.%s', e.l,e.c)
+ end,
+
   --- move lines screen widths (e.th * ev.mul / ev.div)
   screen = function(e, line, ev)
     e.l = e.l + (e.th * (ev.mul or 1) // (ev.div or 1))
@@ -189,8 +197,6 @@ end
 -- MODIFY
 
 -- insert action, normally inserts ev[1] at the current position.
---
--- Set [$special] to call I_SPECIAL fn first.
 function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
   local e = ed.edit
@@ -548,10 +554,21 @@ function M.edit(ed, ev)
   if ev.focus then ed:focus(ev.focus) end
   if ev.clear then
     ed.edit:changeStart()
+
+
+
+
+
     ed.edit:clear()
+
+
+
+
   end
   if ev.undo then
     for _=1,ev.times or 1 do
+
+
       if not ed.edit:undo() then break end
     end
   end

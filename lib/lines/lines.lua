@@ -119,7 +119,7 @@ end
 
 --- Bound the line/col for the lines table.[+
 --- * [$l] will be from [$1 -#t ].
---- * [$c] will be from [$$1 - (#t[l]+1)]$.
+--- * [$c] will be from [$$0 - (#t[l]+1)]$.
 --- ]
 --- [$len] is precomputed [$t] and [$line] is pre-fetched [$$t[l]]$
 ---
@@ -131,7 +131,7 @@ function M.bound(t, l, c, len, line) --> l, c
   line = line or get(t, l) or ''
   if c == 'end' then c = #line + 1  end
   if c < 0  then c = #line + c + 1  end
-  return l, bound(c, 1, #line + 1)
+  return l, bound(c, 0, #line + 1)
 end
 
 --- Get the [$l, c] with the +/- offset applied
@@ -227,15 +227,13 @@ end
 --- remove span (l, c) -> (l2, c2), return what was removed
 function M.remove(t, ...) --> string|table
   local l, c, l2, c2 = span(...);
-  info('@@ lines.remove %s.%s - %s.%s', l,c, l2,c2)
-  c, c2 = c or 1, c2 or #get(t,l2) + 1
+  c, c2 = c or 1, c2 or (#get(t,l2) + 1)
   local len = #t
   if l2 > len then l2, c2 = len, #get(t,len) + 1 end
-  info('@@ + %s.%s - %s.%s', l,c, l2,c2)
+  info('@@ lines.remove %s.%s - %s.%s', l,c, l2,c2)
   if l > l2 then return {} end
   local rem, new = {}, {}
   if l == l2 then -- same line
-    info'@@ + same line'
     if c <= c2 then
       local line = get(t,l); local llen = #line
       if c2 > llen then -- include newline
@@ -257,7 +255,11 @@ function M.remove(t, ...) --> string|table
     -- elseif c is within first line then get sub-string of line
     elseif c <= #line then new[1] = line:sub(1, c - 1)
     -- else join first+second line
-    else l1 = l+1;         new[1] = line..(get(t,l1) or '') end
+    else 
+       l1 = l+1;  local line2 = get(t,l1)
+       if c2 > 0 then push(rem, line2:sub(1,c2)) end
+       new[1] = line..(get(t,l1) or ''):sub(c2+1)
+    end
     for i=l1+1,l2-1 do push(rem, get(t,i)) end
     if l1 < l2 then
       if c2 > #get(t,l2) then -- include newline

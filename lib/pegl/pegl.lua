@@ -6,6 +6,7 @@ local M = G.mod and G.mod'pegl' or {}
 local mty     = require'metaty'
 local fmt     = require'fmt'
 local ds      = require'ds'
+local lap     = require'lap'
 local log     = require'ds.log'
 local lines   = require'lines'
 local T       = require'civtest'
@@ -233,6 +234,7 @@ function M.Maybe(spec) return M.Or{spec, M.Empty} end
 M.Many = mty'Many' {
   'min [int]', min = 0,
   'kind [string]', 'name [string]',
+  'yield [int]: call lap.yield() on every int loop',
   __fmt = M.fmtSpec,
 }
 
@@ -462,11 +464,15 @@ function M.Many:parse(p)
   p:skipEmpty()
   local out = {}
   p:dbgEnter(self)
+  local y = self.yield
   while true do
     local t = M.parseSeq(p, self)
     if not t then break end
     if ty(t) ~= M.Token and #t == 1 then push(out, t[1])
     else _seqAdd(p, out, self, t) end
+    if y and y == 1 then
+      y = self.yield; lap.yield()
+    end
   end
   if #out < self.min then
     p:dbgMissed(self, ' got count=%s', #out)
@@ -525,11 +531,13 @@ end
 --- Parse the [$dat] with the [$spec], asserting the resulting "string tokens"
 --- are identical to [$expect].
 ---
---- the input is a table of the form: [{$ lang=lua}
+--- The input is a table of the form: [{$$ lang=lua}
 ---   {dat, spec, expect, dbg=nil, config=default} --> nil
---- ]
+--- ]$
 function M.assertParse(t) --> result, node, parser
   assert(t.dat, 'dat'); assert(t.spec, 'spec')
+
+
   local config = (t.config and ds.copy(t.config)) or M.Config{}
   config.dbg   = t.dbg or config.dbg
   local node, parser = M.parse(t.dat, t.spec, config)

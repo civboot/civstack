@@ -67,7 +67,8 @@ doc.Doc.close  = fmt.Fmt.close
 
 --- Check that lines parse.
 function doc.Doc:check(name, lns)
-  cxt.parse(type(lns)=='string' and lines(lns) or lns, false, name)
+  cxt.parse(type(lns)=='string' and lines(lns) or lns, false,
+            'name:'..(name or '(unknown)'))
 end
 
 function doc.Doc:bold(text) self:write(sfmt('[*%s]', text)) end

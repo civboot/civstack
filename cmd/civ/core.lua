@@ -497,8 +497,14 @@ end
 function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
   info('Civ.prebuild: %q', tgts)
   tgts = ds.icopy(tgts)
-  for k in pairs(prevTgts) do push(tgts, k) end -- also build all prev targets
 
+  local tgtNames = {}; for _, tgtname in ipairs(tgts) do
+    tgtNames[M.tgtname(tgtname)] = true
+  end
+  -- include all previous targets
+  for tn in pairs(prevTgts) do
+    if not tgtNames[tn] then push(tgts, tn) end
+  end
   for _, tgtname in ipairs(tgts) do self:loadPkg(tgtnameSplit(tgtname)) end
 
   local depMap = {}; self:targetDepMap(tgts, depMap)
@@ -557,7 +563,7 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
     if not toBuild[tgtname] then
       goto skip
     end
-    local prev = prevTgts[tgtname] if prev then
+    local prev = prevTgts[tgtname]; if prev then
       info('removing previous %q', tgtname)
       for _, out in pairs(prev:outPaths(self.cfg.buildDir)) do
         assert(ix.rm(out))
@@ -582,6 +588,7 @@ function M.Civ:build(tgts) --> ordered, tgtsCache
     end
     ::skip::
   end
+  tgtFile:flush(); tgtFile:close()
   worker:close()
   G.MAIN = main
   return ordered, worker.tgtsCache

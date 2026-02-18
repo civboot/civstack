@@ -1,10 +1,11 @@
+local mty = require'metaty'
+
 -- Bindings builin plugin
 --
 -- This defines the default keybindings and the function
--- for handling key inputs.
-local M = mod and mod'ele.keys' or {}
+-- for handling key inputs
+local M = mty.mod'ele.bindings'
 
-local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
 local et = require'ele.types'
@@ -212,6 +213,14 @@ end
 
 M.backspace = {action='remove', off=-1, cols1=-1}
 M.delkey    = {action='remove', off=0}
+
+--- Join next line
+M.join      = {action='chain',
+  {action='move', move='eol', cols=1},
+  {action='insert', ' '},
+  {action='move', move='eol', cols=1},
+  {action='remove', move='nextLineText', cols=-1},
+}
 
 --- delete until a movement command (or similar)
 function M.delete(keySt)
@@ -435,7 +444,7 @@ M.common = {
   i = M.insertMode, I=M.insertsot, A=M.inserteol,
   o = M.insertBelow, O = M.insertAbove,
 
-  d = M.delete, D = M.deleteEol,
+  d = M.delete, D = M.deleteEol, J = M.join,
   c = M.change, C = M.changeEol,
 
   -- G is for GO

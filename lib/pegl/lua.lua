@@ -28,7 +28,7 @@ local stmt = Or{name='stmt'}
 
 local KEYWORDS = {
   'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
-  'then', 'function', 'return',
+  'then', 'function', 'return', 'goto',
 }
 local keyW           = Key{name='keyword',       KEYWORDS}
 local name           = {UNPIN, Not{keyW}, common.name}
@@ -82,9 +82,10 @@ ds.extend(exp, {exp1, Many{ Or{postexp, {name='op2exp', op2, exp}} }})
 -- block    ::= {stat [`;´]} [laststat[`;´]]
 local explist  = Maybe{exp, Many{',', exp}}
 local return_ = {'return', explist, kind='return'}
-local laststmt = Or{name='laststmt', return_, 'break'}
+local goto_   = {'goto', name, kind='goto'}
+local laststmt = Or{name='laststmt', return_, goto_, 'break'}
 local block = {name='block',
-  Many{stmt, Maybe(';')},
+  Many{stmt, Maybe(';'), yield=true},
   Maybe{laststmt, Maybe(';')}
 }
 
