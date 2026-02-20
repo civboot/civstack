@@ -5,6 +5,7 @@ local M = G.mod and G.mod'pegl.acsyntax' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
+local lap = require'lap'
 local pth = require'ds.path'
 local pegl = require'pegl'
 local lines = require'lines'
@@ -97,6 +98,7 @@ function M.tokenize:_dfs(node)
       n.style = n.kind and (style[n.kind] or 'keyword')
              or sty
       push(self._nodeTokens, n)
+      if #self._nodeTokens % 1024 == 0 then lap.yield() end
     else
       self:_dfs(n)
     end
@@ -126,7 +128,8 @@ end
 function M.Highlighter:_highlight(tz, fg, bg) --> nil
   local sc = self.styleColor
   local l,c = 1,0
-  for _, t in ipairs(tz) do
+  for i, t in ipairs(tz) do
+    if i % 1024 == 0 then lap.yield() end
     local tc = sc[t.style] or '  '
     local tf = assert(CODES[tc:sub(1,1)])
     local tb = assert(CODES[tc:sub(2,2)])

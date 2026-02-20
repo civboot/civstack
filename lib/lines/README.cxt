@@ -10,3 +10,25 @@ human-readable text as a list of lines then as a list of bytes and this is
 especially true for an editor. [<#lines.File>] and [<#lines.EdFile>] use
 a separate index file to make reading and writing to files as lines
 actually performant for more real-world use-cases.
+
+[{h2}sub / insert / remove semantics]
+[$lines.sub(t, l,c, l2,c2)] returns the text from span l.c -> l2.c2.
+
+For instance: suppose you have the following text:[$$
+1234 6789
+abcd fghi
+]$
+
+You would get the following values: [{table}
++ 1.1  1.2  | [${'12'}]
++ 1.6  1.10 | [${'6789', ''}] - last char goes to next line
++ 1.6  2.0  | [${'6789', ''}] - next line zero char the same
++ 1.6  2.2  | [${'6789', 'ab'}]
++ 1.10 2.2  | [${'', 'ab'}]
++ 1.10 3.0  | [${'', 'abcd fghi', ''}]
+]
+
+When you remove a span, it will modify the lines object in-place, returning
+the span you removed. If you re-insert that span in the same place it will
+return the table to it's previous state. Along with being easy to understand,
+this architecture if fundamental to how undo/redo works in the Ele editor.

@@ -132,10 +132,10 @@ T'File'; do
   T.eq({'line 1', 'line 2', 'line 3'}, ds.icopy(r))
 end
 
-local function edEq(a, b)
+local function edEq(a, b, msg)
   T.eq(EdFile, getmetatable(a))
   T.eq(EdFile, getmetatable(b))
-  T.eq(ds.icopy(a), ds.icopy(b))
+  T.eq(ds.icopy(a), ds.icopy(b), msg)
 end
 
 T'EdFile_index'; do

@@ -69,9 +69,11 @@ local showDiff = M.showDiff
 
 --- Assert that [$a] equals [$b] (according to [<#metaty.eq>]
 --- and print a diff if not.
-function M.eq(a, b)
+function M.eq(a, b, msg)
   if mty.eq(a, b) then return end
-  showDiff(io.fmt, a, b); fail'Test.eq'
+  showDiff(io.fmt, a, b)
+  print('!! msg', msg)
+  fail('Test.eq'..(msg and (': '..msg) or ''))
 end
 
 --- Same as eq but for binary strings. Shows a very clear

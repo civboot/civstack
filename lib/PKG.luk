@@ -40,7 +40,13 @@ P.test_meta = lua.test { src = 'metaty/test_metaty.lua' }
 
 -- These are part of [$bootstrap.lua boot-test]. The target cannot
 -- be defined within it's own directory due to circular dependencies.
-P.boot_tests = lua.test { src = import'civ:lib/boot_tests.luk' }
+P.boot_tests = lua.test {
+  src = import'civ:lib/boot_tests.luk',
+  dep = {
+    'civ:lib/ds/testing',
+    'civ:lib/lines/testing',
+  }
+}
 
 -- These are part of or deps of pkgs used to bootstrap but are not needed for
 -- bootstrapping.

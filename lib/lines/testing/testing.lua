@@ -6,50 +6,52 @@ local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
 local log = require'ds.log'
+
+local concat = mty.from(table, 'concat')
 M.DATA = {}
 
 --- test round-trip offset
 local function offsetRound(t, l, c, off, expect, expectOff)
-  local l2, c2 = lines.offset(t, off, l, c)
-  T.eq(expect, {l2, c2})
-  local res = lines.offsetOf(t, l, c, l2, c2)
-  T.eq(expectOff or off, res)
+  local l2,c2 = lines.offset(t, off, l,c)
+  T.eq(expect, {l2,c2}, 'offset result')
+  local res = lines.offsetOf(t, l,c, l2,c2)
+  T.eq(expectOff or off, res, 'offsetOf result')
 end
 M.DATA.offset = '12345\n6789\n'
 function M.testOffset(t)
   local l, c
-  offsetRound(t, 1, 2, 0,   {1, 2})
-  offsetRound(t, 1, 2, 1,   {1, 3})
-  offsetRound(t, 1, 3, -1,  {1, 2})
-  offsetRound(t, 1, 2, -1,  {1, 1})
+  offsetRound(t, 1,2,  0,  {1, 2})
+  offsetRound(t, 1,2,  1,  {1, 3})
+  offsetRound(t, 1,3, -1,  {1, 2})
+  offsetRound(t, 1,2, -1,  {1, 1})
   T.eq({1, 1}, {lines.offset(t, -1, 1, 1)})
 
   -- here
-  offsetRound(t, 1, 1, 3,   {1, 4})
-  offsetRound(t, 1, 1, 4,   {1, 5}) -- '5'
-  offsetRound(t, 1, 1, 5,   {1, 6}) -- '\n'
-  offsetRound(t, 1, 1, 6,   {2, 1}) -- '6'
-  offsetRound(t, 1, 1, 9,   {2, 4}) -- '9'
-  offsetRound(t, 1, 1, 10,  {2, 5}) -- '\n'
-  offsetRound(t, 1, 1, 11,  {3, 1}) -- ''
-  offsetRound(t, 1, 1, 12,  {3, 1}, 11) -- EOF
+  offsetRound(t, 1,1, 3,   {1, 4})
+  offsetRound(t, 1,1, 4,   {1, 5}) -- '5'
+  offsetRound(t, 1,1, 5,   {1, 6}) -- '\n'
+  offsetRound(t, 1,1, 6,   {2, 1}) -- '6'
+  offsetRound(t, 1,1, 9,   {2, 4}) -- '9'
+  offsetRound(t, 1,1, 10,  {2, 5}) -- '\n'
+  offsetRound(t, 1,1, 11,  {3, 1}) -- ''
+  offsetRound(t, 1,1, 12,  {3, 1}, 11) -- EOF
 
-  offsetRound(t, 1, 5, -3,  {1, 2}) -- '2'
-  offsetRound(t, 1, 5, -4,  {1, 1}) -- '1'
-  offsetRound(t, 1, 5, -5,  {1, 1}, -4) -- '1'
+  offsetRound(t, 1,5, -3,  {1, 2}) -- '2'
+  offsetRound(t, 1,5, -4,  {1, 1}) -- '1'
+  offsetRound(t, 1,5, -5,  {1, 1}, -4) -- '1'
 
-  offsetRound(t, 3, 1, -1,  {2, 5}) -- '\n'
-  offsetRound(t, 3, 1, -2,  {2, 4}) -- '9'
-  offsetRound(t, 3, 1, -3,  {2, 3}) -- '8'
-  offsetRound(t, 3, 1, -4,  {2, 2}) -- '7'
-  offsetRound(t, 3, 1, -5,  {2, 1}) -- '6'
-  offsetRound(t, 3, 1, -6,  {1, 6}) -- '\n'
-  offsetRound(t, 3, 1, -11, {1, 1}) -- '\n'
-  offsetRound(t, 3, 1, -12, {1, 1}, -11) -- BOF
+  offsetRound(t, 3,1, -1,  {2, 5}) -- '\n'
+  offsetRound(t, 3,1, -2,  {2, 4}) -- '9'
+  offsetRound(t, 3,1, -3,  {2, 3}) -- '8'
+  offsetRound(t, 3,1, -4,  {2, 2}) -- '7'
+  offsetRound(t, 3,1, -5,  {2, 1}) -- '6'
+  offsetRound(t, 3,1, -6,  {1, 6}) -- '\n'
+  offsetRound(t, 3,1, -11, {1, 1}) -- '\n'
+  offsetRound(t, 3,1, -12, {1, 1}, -11) -- BOF
 
   -- Those are all "normal", let's do some OOB stuff
-  offsetRound(t, 1, 6 , 1, {2, 1})
-  offsetRound(t, 1, 10, 1, {2, 1}) -- note (1, 6) is EOL
+  offsetRound(t, 1,6,  1, {2, 1})
+  offsetRound(t, 1,10, 1, {2, 1}) -- note (1, 6) is EOL
 end
 
 --- Test lines.remove on object. new must accept either a string or table of
@@ -58,15 +60,29 @@ end
 function M.testLinesRemove(new, assertEq, assertEqRemove)
   local assertEqR = assertEqRemove or T.eq
   local assertEq = assertEq or T.eq
+
+  -- do the remove with expectR and expect
+  local function doRm(t, l,c, l2,c2, exR, ex)
+    local s = lines.sub(t, l,c, l2,c2)
+    assertEqR(exR, s, 'sub')
+
+    local b4 = new(ds.icopy(t))
+    local r= lines.remove(t, l,c, l2,c2)
+    assertEqR(exR, r, 'removed')
+    assertEq(ex, t, 't after remove')
+    -- now reverse the process
+    local re = new(ds.icopy(t))
+    lines.insert(re, type(r)=='string' and r or concat(r, '\n'), l,c)
+    assertEq(b4, re, 'reversed not same')
+  end
+
   local t = new''
   lines.insert(t, 'foo bar', 1, 0)
-  assertEqR({'o b'}, lines.remove(t, 1, 3, 1, 5))
-  assertEq(new{'foar'}, t)
+  doRm(t, 1,3, 1,5, {'o b'}, new{'foar'})
 
   lines.insert(t, 'ab\n123', 1, 4)
-  assertEq(new{'foaab', '123r'}, t)
-  assertEqR({'aab', '12'}, lines.remove(t, 1, 3, 2, 2))
-  assertEq(new{'fo', '3r'}, t)
+    assertEq(new{'foaab', '123r'}, t)
+  doRm(t, 1,3, 2,2, {'aab', '12'}, new{'fo', '3r'})
 
   t = new'a\nb'
   assertEqR({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline

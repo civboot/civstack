@@ -10,9 +10,9 @@ return {
   'ds/test_ds_IFile.lua',
 
   -- lines
+  'lines/test_lines.lua',
   'lines/test_lines_diff.lua',
   'lines/test_lines_file.lua',
-  'lines/test_lines.lua',
 
   -- cmd
   'pod/test_pod.lua',

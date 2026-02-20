@@ -26,15 +26,15 @@ T'sub'; do
   T.eq({'ab', ''},      lsub(l, 1, 1))
   T.eq({'ab', 'c', ''}, lsub(l, 1, 2))
   T.eq({'c', '', ''},   lsub(l, 2, 3))
-  T.eq('ab\n',          lsub(l, 1, 1, 1, 3))
-  T.eq('ab\n',          lsub(l, 1, 1, 2, 0))
-  T.eq('b\nc',          lsub(l, 1, 2, 2, 1))
+  T.eq({'ab', ''},      lsub(l, 1,1, 1,3))
+  T.eq({'ab', ''},      lsub(l, 1,1, 2,0))
+  T.eq({'b', 'c'},      lsub(l, 1,2, 2,1))
 
   l = lines"4     It's nice to have some real data"
-  T.eq('It',     lsub(l, 1, 7, 1, 8))
-  T.eq("'",      lsub(l, 1, 9, 1, 9))
-  T.eq("s",      lsub(l, 1, 10, 1, 10))
-  T.eq(" nice",  lsub(l, 1, 11, 1, 15))
+  T.eq({'It'},     lsub(l, 1,7,  1,8))
+  T.eq({"'"},      lsub(l, 1,9,  1,9))
+  T.eq({"4     It's"}, lsub(l, 1,0,  1,10))
+  T.eq({" nice"},  lsub(l, 1,11, 1,15))
 end
 
 T'find'; do
