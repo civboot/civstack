@@ -16,7 +16,7 @@ local unpack       = table.unpack
 local push, concat = table.insert, table.concat
 local sfmt, srep   = string.format, string.rep
 local min, max     = math.min, math.max
-local span, lsub, box = mty.from(lines, 'span, sub, box')
+local span, box = mty.from(lines, 'span, box')
 
 M.Edit = mty'Edit' {
   'id[int]',

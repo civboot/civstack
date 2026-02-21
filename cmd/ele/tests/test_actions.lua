@@ -67,6 +67,7 @@ end
 
 T'remove'; do
   local d = newEditor(lines3); local e, b = d.edit, d.edit.buf
+  local y = d.edit.yank
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -86,6 +87,7 @@ T'remove'; do
     T.eq('1  5 7 9\n', fmt(b.dat))
   e.c = 4; assertRemove(nil, {off=-1}, 1, 3) -- backspace delete ' 5'
     T.eq('1  7 9\n', fmt(b.dat))
+    T.eq(y[y.right], {' 5'})
   e.c = 1; M.paste(d, {action='paste', index=1})
     T.eq(' 51  7 9\n', fmt(b.dat))
   e.c = 1; assertRemove('find', {find=' ', times=2}, 1,1)

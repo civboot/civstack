@@ -15,7 +15,7 @@ T'insert & remove'; do
   b:insert('l', 1);         T.eq('la\nb\n',      fmt(g));
   b:insert(' hi', 1, 'end') T.eq('la hi\nb\n',   fmt(g))
   b:insert('la', 1, -3)     T.eq('lala hi\nb\n', fmt(g))
-  b:remove(1, -3, 1, -1)    T.eq('lala\nb\n', fmt(g))
+  b:remove(1, -3, 1, -1)    T.eq('lala\nb\n',    fmt(g))
 
   T.eq({'lala', 'b', ''}, ds.icopy(g))
   b:insert('\nlob\n', 1,5)
@@ -25,9 +25,11 @@ end
 T'clear'; do
   local b = Buffer.new'a\nb\n'; local g = b.dat
   T.eq('a\nb\n', fmt(g))
+  T.eq(3, #b)
   b:changeStart(0,0)
-  b:remove(1,#b); T.eq('', fmt(g))
-                  T.eq({''}, ds.icopy(g))
+  b:remove(1, 3)
+  T.eq('', fmt(g))
+  T.eq({''}, ds.icopy(g))
   b:insert('hi', 1)
   T.eq('hi', fmt(g)); T.eq({'hi'}, ds.icopy(g))
 end
@@ -77,7 +79,7 @@ T'undoInsRm'; do
   ch = b:insert('12345\n', 1, 2); T.eq(ch1, ch)
 
   b:changeStart(0, 1)
-  ch = b:remove(1, 1, 1, 2);      T.eq(ch2, ch)
+  ch = b:remove(1,1, 1,2);      T.eq(ch2, ch)
   T.eq('345\n', fmt(g))
 
   ch = b:undo()[2]                T.eq(ch2, ch)

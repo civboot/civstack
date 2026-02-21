@@ -43,8 +43,7 @@ P.test_meta = lua.test { src = 'metaty/test_metaty.lua' }
 P.boot_tests = lua.test {
   src = import'civ:lib/boot_tests.luk',
   dep = {
-    'civ:lib/ds/testing',
-    'civ:lib/lines/testing',
+    'civ:lib#testing',
   }
 }
 

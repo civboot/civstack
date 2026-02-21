@@ -5,9 +5,10 @@ local T = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
-local log = require'ds.log'
+local info = mty.from'ds.log  info'
 
 local concat = mty.from(table, 'concat')
+local get    = mty.from(ds,    'get')
 M.DATA = {}
 
 --- test round-trip offset
@@ -17,37 +18,36 @@ local function offsetRound(t, l, c, off, expect, expectOff)
   local res = lines.offsetOf(t, l,c, l2,c2)
   T.eq(expectOff or off, res, 'offsetOf result')
 end
-M.DATA.offset = '12345\n6789\n'
+M.DATA.offset = '12345\n789\n'
 function M.testOffset(t)
   local l, c
   offsetRound(t, 1,2,  0,  {1, 2})
   offsetRound(t, 1,2,  1,  {1, 3})
   offsetRound(t, 1,3, -1,  {1, 2})
   offsetRound(t, 1,2, -1,  {1, 1})
-  T.eq({1, 1}, {lines.offset(t, -1, 1, 1)})
+  T.eq({1,1}, {lines.offset(t, -1, 1,1)})
 
   -- here
   offsetRound(t, 1,1, 3,   {1, 4})
   offsetRound(t, 1,1, 4,   {1, 5}) -- '5'
   offsetRound(t, 1,1, 5,   {1, 6}) -- '\n'
-  offsetRound(t, 1,1, 6,   {2, 1}) -- '6'
-  offsetRound(t, 1,1, 9,   {2, 4}) -- '9'
-  offsetRound(t, 1,1, 10,  {2, 5}) -- '\n'
-  offsetRound(t, 1,1, 11,  {3, 1}) -- ''
-  offsetRound(t, 1,1, 12,  {3, 1}, 11) -- EOF
+  offsetRound(t, 1,1, 6,   {2, 1}) -- '7'
+  offsetRound(t, 1,1, 8,   {2, 3}) -- '9'
+  offsetRound(t, 1,1, 9,   {2, 4}) -- '\n'
+  offsetRound(t, 1,1, 10,  {3, 1}) -- ''
+  offsetRound(t, 1,1, 12,  {3, 1}, 10) -- EOF
 
   offsetRound(t, 1,5, -3,  {1, 2}) -- '2'
   offsetRound(t, 1,5, -4,  {1, 1}) -- '1'
   offsetRound(t, 1,5, -5,  {1, 1}, -4) -- '1'
 
-  offsetRound(t, 3,1, -1,  {2, 5}) -- '\n'
-  offsetRound(t, 3,1, -2,  {2, 4}) -- '9'
-  offsetRound(t, 3,1, -3,  {2, 3}) -- '8'
-  offsetRound(t, 3,1, -4,  {2, 2}) -- '7'
-  offsetRound(t, 3,1, -5,  {2, 1}) -- '6'
-  offsetRound(t, 3,1, -6,  {1, 6}) -- '\n'
-  offsetRound(t, 3,1, -11, {1, 1}) -- '\n'
-  offsetRound(t, 3,1, -12, {1, 1}, -11) -- BOF
+  offsetRound(t, 3,1, -1,  {2, 4}) -- '\n'
+  offsetRound(t, 3,1, -2,  {2, 3}) -- '9'
+  offsetRound(t, 3,1, -3,  {2, 2}) -- '8'
+  offsetRound(t, 3,1, -4,  {2, 1}) -- '7'
+  offsetRound(t, 3,1, -5,  {1, 6}) -- '\n'
+  offsetRound(t, 3,1, -10, {1, 1}) -- '1'
+  offsetRound(t, 3,1, -12, {1, 1}, -10) -- SoF
 
   -- Those are all "normal", let's do some OOB stuff
   offsetRound(t, 1,6,  1, {2, 1})
@@ -61,18 +61,32 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
   local assertEqR = assertEqRemove or T.eq
   local assertEq = assertEq or T.eq
 
-  -- do the remove with expectR and expect
   local function doRm(t, l,c, l2,c2, exR, ex)
-    local s = lines.sub(t, l,c, l2,c2)
+    l,c, l2,c2 = lines.span(l,c, l2,c2)
+    local s, l1,c1, l2a,c2a = lines.sub(t, l,c, l2,c2)
+    info('@@ sub actual: %s.%s %s.%s', l1,c1, l2a,c2a)
+    T.eq({l,c}, {l1,c1}, 'actual start')
     assertEqR(exR, s, 'sub')
+    local str = concat(s, '\n')
+    local off = lines.offsetOf(t, l1,c1, l2a,c2a)
+    local expOff = #str-1
+    info('@@ removed=%q (expOff=%s),  off=%s', str, expOff, off)
+    if l2a > #t or (l2a == #t and c2a > #get(t,l2a)) then
+      expOff = expOff + 1 -- EoF will be missing '\n' char
+      info('@@ + isEof, expOff=%s', expOff)
+    end
+    T.eq(expOff, off, 'offsetOf result')
+    T.eq({l2a,c2a}, {lines.offset(t, off, l1,c1)}, 'offset result')
 
     local b4 = new(ds.icopy(t))
-    local r= lines.remove(t, l,c, l2,c2)
+    local r  = lines.remove(t, l,c, l2,c2)
+    if rawget(t, 'dats') then t:flush() end -- TODO: get rid of this?
     assertEqR(exR, r, 'removed')
     assertEq(ex, t, 't after remove')
     -- now reverse the process
     local re = new(ds.icopy(t))
-    lines.insert(re, type(r)=='string' and r or concat(r, '\n'), l,c)
+    info('@@ insert(%q, %q, %s.%s)', re, r, l,c)
+    lines.insert(re, r, l,c)
     assertEq(b4, re, 'reversed not same')
   end
 
@@ -82,56 +96,38 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
 
   lines.insert(t, 'ab\n123', 1, 4)
     assertEq(new{'foaab', '123r'}, t)
-  doRm(t, 1,3, 2,2, {'aab', '12'}, new{'fo', '3r'})
+  doRm(t, 1,3, 2,2, {'aab', '12'}, new{'fo3r'})
 
   t = new'a\nb'
-  assertEqR({''}, lines.remove(t, 1, 2, 2, 0)) -- remove newline
-  assertEq(new{'ab'}, t)
-  assertEqR({'ab'}, lines.remove(t, 1, 1, 2, 1))
-  assertEq(new{}, t)
-
+  doRm(t, 1,2, 1,2, {'', ''},  new{'ab'})
   t = new'a\nb'
-  assertEqR({''}, lines.remove(t, 1, 2, 1, 2)) -- alternate remove newline
-  assertEq(new{'ab'}, t)
+  doRm(t, 1,2, 2,0, {'', ''},  new{'ab'})
+  doRm(t, 1,1, 2,1, {'ab'},    new{})
 
-  t = new'ab\nc'
-  assertEqR({'b', 'c'}, lines.remove(t, 1, 2, 2, 1))
-  assertEq(new{'a', ''}, t)
-
-  t = new'ab\nc'
-  assertEqR({'b', 'c'}, lines.remove(t, 1, 2, 2, 2))
-  assertEq(new{'a'}, t)
+  t = new'ab\nc'; doRm(t, 1,2, 2,1, {'b', 'c'}, new{'a'})
+  t = new'ab\nc'; doRm(t, 1,2, 2,2, {'b', 'c'}, new{'a'})
 
   t = new'ab\nc\n\nd'
-  assertEqR({'c', ''}, lines.remove(t, 2, 3))
-  if rawget(t, 'dats') then t:flush() end
-  assertEq(new{'ab', 'd'}, t)
+  doRm(t, 2,3, nil,nil, {'c', '', ''}, new{'ab', 'd'})
 
   t = new'ab\nc'
+  doRm(t, 2,1, 2,1, {'c'}, new{'ab', ''})
+  doRm(t, 1,3, 2,0, {'', ''}, new{'ab'})
 
-  assertEqR({'c'}, lines.remove(t, 2, 1, 2, 1)) -- remove c
-  assertEq(new{'ab', ''}, t)
-  assertEqR({''}, lines.remove(t, 1, 3, 2, 0)) -- remove \n (lineskip)
-  assertEq(new{'ab'}, t)
-
+  -- remove \n (single)
   t = new'ab\nc'
-  assertEqR({''}, lines.remove(t, 1, 3, 1, 3)) -- remove \n (single)
-  assertEq(new{'abc'}, t)
+  doRm(t, 1,3, 2,0, {'', ''}, new{'abc'})
 
   t = new'ab\nc\nde\n'
-  -- remove \n (single)
-  assertEqR({''}, lines.remove(t, 1, 3, 1, 3))
-  assertEq(new{'abc', 'de', ''}, t)
+  doRm(t, 1,3, 2,0, {'', ''}, new{'abc', 'de', ''})
 
   -- remove first line
   t = new'ab\nc\nde\n'
-  assertEqR({'ab'}, lines.remove(t, 1,1, 1,3))
-  assertEq(new{'c', 'de', ''}, t)
+  doRm(t, 1,1, 2,0, {'ab', ''}, new{'c', 'de', ''})
 
   -- join lines
   t = new'ab \n  c\nde\n'
-  assertEqR({'', '  '}, lines.remove(t, 1,4, 2,2))
-  assertEq(new{'ab c', 'de', ''}, t)
+  doRm(t, 1,4, 2,2, {'', '  '}, new{'ab c', 'de', ''})
 
   -- TODO: consider re-adding as a separate test
   -- t = new'a b c\nd e\nf g\nh i\n'

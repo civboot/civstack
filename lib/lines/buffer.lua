@@ -7,8 +7,9 @@ local Gap  = require'lines.Gap'
 local M = {}
 local span, bound = lines.span, lines.bound
 local push, ty = table.insert, mty.ty
-local concat, sfmt, srep = mty.from(string, 'concat, format, rep')
-local info               = mty.from'ds.log  info'
+local sfmt, srep = mty.from(string, 'format, rep')
+local concat     = table.concat
+local info       = mty.from'ds.log  info'
 local construct = mty.construct
 
 M.ChangeId = 0
@@ -73,10 +74,11 @@ end
 local Buffer, Change = M.Buffer, M.Change
 
 function Buffer:doRm(ch)
-  local len = #ch.s - 1; if len < 0 then return ch end
+  local len = #ch.s; if len <= 0 then return ch end
   local dat = self.dat
   local l,c = ch[1],ch[2]
-  local l2, c2 = lines.offset(dat, len, l,c)
+  local l2, c2 = lines.offset(dat, len-1, l,c)
+  info('@@ doRm %s.%s %s.%s len=%s', l,c, l2,c2, len)
   if self.fg then self:_matchColorLine(l) end
   lines.remove(dat, l,c, l2,c2)
   if self.fg then
@@ -247,21 +249,13 @@ function Buffer:insert(s, l,c)
 end
 
 function Buffer:remove(...)
-  local l, c, l2, c2 = span(...)
-  info('remove span %s.%s %s.%s', l,c, l2,c2)
+  info('remove span %q', {...})
+  local s, l,c = lines.sub(self.dat, ...)
+  info('  -> %s.%s len=%s', l,c, #s)
 
-  local t = self.dat
-  if l2 > #t then l2, c2 = len, #get(t,#t) + 1 end
-  l,c   = bound(t, l, c or 1)
-  l2,c2 = bound(t, l2, c2 or (#t[l2] + 1))
-  local lt, ct = motion.topLeft(l, c, l2, c2)
-  lt, ct = bound(t, lt, ct)
-  local s = lines.sub(t, l, c, l2, c2)
   local ch = self:addChange{
-    k=REMOVE, lt,ct,
-    s=type(s)=='string' and s or concat(s, '\n'),
+    k=REMOVE, l,c, s=concat(s, '\n'),
   }
-  info('remove %s.%s : %s.%s', l,c, l2,c2)
   self:doRm(ch)
   return ch
 end

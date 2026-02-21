@@ -16,6 +16,12 @@ function M.testInset(new, assertEq)
 
   t = N{1, 4, 3}; ds.inset(t, 2, {2}, 1)
     eq(N{1, 2, 3}, t)
+
+  t = N{1, 4, 3}; ds.inset(t, 2, {2}, 2)
+    eq(N{1, 2}, t)
+
+  t = N{1, 4, 3}; ds.inset(t, 2, {2, 22}, 2)
+    eq(N{1, 2, 22}, t)
 end
 
 function M.testInsetStr(new, assertEq)

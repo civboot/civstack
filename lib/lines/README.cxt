@@ -25,10 +25,14 @@ You would get the following values: [{table}
 + 1.6  2.0  | [${'6789', ''}] - next line zero char the same
 + 1.6  2.2  | [${'6789', 'ab'}]
 + 1.10 2.2  | [${'', 'ab'}]
-+ 1.10 3.0  | [${'', 'abcd fghi', ''}]
++ 1.10 3.0  | [${'', 'abcd fghi'}] - EoF does not have new line
 ]
 
-When you remove a span, it will modify the lines object in-place, returning
-the span you removed. If you re-insert that span in the same place it will
-return the table to it's previous state. Along with being easy to understand,
-this architecture if fundamental to how undo/redo works in the Ele editor.
+The methods [$span remove offset offsetOf insert] are all designed to
+use these conventions to enable reversibility. When you remove a span, it will
+modify the lines object in-place, returning the span you removed. If you
+re-insert that span in the same place it will return the table to it's previous
+state. Along with being easy to understand, this architecture if fundamental to
+how undo/redo works in the Ele editor.
+
+

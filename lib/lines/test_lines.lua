@@ -23,18 +23,26 @@ end
 T'sub'; do
   local lsub = lines.sub
   local l = lines'ab\nc\n\nd'
-  T.eq({'ab', ''},      lsub(l, 1, 1))
-  T.eq({'ab', 'c', ''}, lsub(l, 1, 2))
-  T.eq({'c', '', ''},   lsub(l, 2, 3))
-  T.eq({'ab', ''},      lsub(l, 1,1, 1,3))
-  T.eq({'ab', ''},      lsub(l, 1,1, 2,0))
-  T.eq({'b', 'c'},      lsub(l, 1,2, 2,1))
+  T.eq({''},                       lsub(l, 1,1, 0,0))
+  T.eq({''},                       lsub(l, 1,1, 1,0))
+  T.eq({'ab'},                     lsub(l, 1,1, 1,2))
+  T.eq({{'ab', ''}, 1,1, 1,3},    {lsub(l, 1,1, 1,3)})
+  T.eq({'ab', ''},                 lsub(l, 1,1, 2,0))
+  T.eq({'b', 'c'},                 lsub(l, 1,2, 2,1))
+  T.eq({'', ''},                   lsub(l, 1,3, 2,0))
 
   l = lines"4     It's nice to have some real data"
   T.eq({'It'},     lsub(l, 1,7,  1,8))
   T.eq({"'"},      lsub(l, 1,9,  1,9))
   T.eq({"4     It's"}, lsub(l, 1,0,  1,10))
   T.eq({" nice"},  lsub(l, 1,11, 1,15))
+
+  -- select lines
+  l = lines'ab\nc\n\nd'
+  T.eq({''},            lsub(l, 1, 0))
+  T.eq({'ab', ''},      lsub(l, 1, 1))
+  T.eq({'ab', 'c', ''}, lsub(l, 1, 2))
+  T.eq({'c', '', ''},   lsub(l, 2, 3))
 end
 
 T'find'; do
@@ -58,9 +66,8 @@ T'inset'; do
   T.eq(1, #t)
   lines.insert(t, 'foo bar', 1, 0)
   T.eq('foo bar', lines.join(t))
-  lines.insert(t, 'baz ', 1, 5)
+  lines.insert(t, 'baz ', 1,5)
   T.eq('foo baz bar', lines.join(t))
-
   lines.insert(t, '\nand', 1, 4)
   T.eq('foo\nand baz bar', lines.join(t))
   lines.insert(t, 'buz ', 2, 5)
@@ -137,8 +144,8 @@ local function subTests(g)
   T.eq({'ab', ''},      lines.sub(g, 1, 1))
   T.eq({'ab', 'c', ''}, lines.sub(g, 1, 2))
   T.eq({'c', '', ''},   lines.sub(g, 2, 3))
-  T.eq('ab\n',          lines.sub(g, 1, 1, 1, 3))
-  T.eq('b\nc',          lines.sub(g, 1, 2, 2, 1))
+  T.eq({'ab', ''},      lines.sub(g, 1, 1, 1, 3))
+  T.eq({'b', 'c'},      lines.sub(g, 1, 2, 2, 1))
 end
 T'Gap.sub'; do
   local g = Gap'ab\nc\n\nd'
@@ -147,10 +154,10 @@ T'Gap.sub'; do
   g:setGap(2); subTests(g)
 
   g = Gap"4     It's nice to have some real data"
-  T.eq('It',     lines.sub(g, 1, 7, 1, 8))
-  T.eq("'",      lines.sub(g, 1, 9, 1, 9))
-  T.eq("s",      lines.sub(g, 1, 10, 1, 10))
-  T.eq(" nice",  lines.sub(g, 1, 11, 1, 15))
+  T.eq({'It'},    lines.sub(g, 1, 7, 1, 8))
+  T.eq({"'"},     lines.sub(g, 1, 9, 1, 9))
+  T.eq({"s"},     lines.sub(g, 1, 10, 1, 10))
+  T.eq({" nice"}, lines.sub(g, 1, 11, 1, 15))
 end
 
 T'Gap.offset'; do

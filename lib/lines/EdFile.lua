@@ -44,6 +44,10 @@ getmetatable(EdFile).__call = function(T, v, mode)
   })
 end
 
+function EdFile:__fmt(f)
+  f:write'EdFile('; f(self.lf.path or 'no-path'); f:write')'
+end
+
 function EdFile:_updateLens(max)
   max = max or MAXINT
   local lens, dats, len = self.lens, self.dats

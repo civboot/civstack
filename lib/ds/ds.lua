@@ -95,8 +95,9 @@ end
 --- Uses [$inset] method if available.
 --- rmlen, if provided, will cause [$$t[i:i+rmlen]]$ to be removed first
 ---
---- inset is like an extend but the items are insert at any place in the array.
+--- inset is like extend but the items are insert at any place in the array.
 --- The rmlen will also remove a certain number of items.
+--- These are done together to improve performance.
 function M.inset(t, i, values, rmlen) --> nil
   if getmt(t) then return t:inset(i, values, rmlen) end
   -- impl notes, there are two modes:
@@ -104,14 +105,17 @@ function M.inset(t, i, values, rmlen) --> nil
   -- * we don't want to keep values after i: we shift in the values and clear
   --   the rest
   rmlen = rmlen or 0; local tlen, vlen = #t, #values
-  if tlen - i - rmlen >= 0 then -- we want to keep some values >= i
-    local cache = move(t, i + rmlen, tlen, 1, {})
-    move(values, 1, max(vlen, tlen - i + 1), i, t)
-    move(cache, 1, #cache, i + vlen, t)
-    return
+  assert(i >= 1 and i <= tlen + 1, 'i OOB')
+  if i + rmlen <= tlen then -- we want to keep some values
+    -- TODO: I think the cache isn't needed anymore
+    require'ds.log'.info('@@ inset keeping')
+    local cache = move(t, i + rmlen, tlen, 1, {}) -- cache end
+    move(values, 1, vlen, i, t)
+    move(cache, 1, max(#cache, tlen - i + 1 + vlen), i + vlen, t) -- move cached back
+  else -- not keeping values >= i
+    require'ds.log'.info('@@ inset not-keeping')
+    move(values, 1, max(vlen, rmlen), i, t)
   end
-  -- not keeping values >= i
-  move(values, 1, max(vlen, rmlen), max(1, i + 1 - rmlen), t)
 end
 
 ---------------------
@@ -1237,12 +1241,12 @@ function M.Error:__tostring() return fmt(self) end
 function M.Error.from(msg, tb, cause) --> Error
   local cause
   tb = M.tracelist((type(tb) == 'thread') and traceback(tb) or tb)
-  -- remove traceback part from message
-  local tb1, msg1 = msg:match'^(%S+/%S+:%d+): (.*)'
-  if tb1 then msg = msg1; insert(tb, 1, tb1) end
   if ty(msg) == M.Error then
     cause, msg = msg, '(rethrown)'
   end
+  -- remove traceback part from message
+  local tb1, msg1 = msg:match'^(%S+/%S+:%d+): (.*)'
+  if tb1 then msg = msg1; insert(tb, 1, tb1) end
   return M.Error{
     msg=msg,
     traceback=tb,

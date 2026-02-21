@@ -57,7 +57,7 @@ getmetatable(Test).__call = function(Ty, t)
   print('## test_session.Test', name)
   local testFn = function()
     if t.dat then
-      lines.insert(ed.edit.buf.dat, t.dat, 1)
+      lines.insert(ed.edit.buf.dat, t.dat, 1,1)
     elseif t.open then ed:open(t.open) end
     t.s:handleEvents()
     assert(t[2], 'need [2]=fn')(t)

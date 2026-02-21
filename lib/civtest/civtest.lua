@@ -72,7 +72,6 @@ local showDiff = M.showDiff
 function M.eq(a, b, msg)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b)
-  print('!! msg', msg)
   fail('Test.eq'..(msg and (': '..msg) or ''))
 end
 

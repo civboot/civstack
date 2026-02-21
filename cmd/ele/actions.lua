@@ -13,6 +13,7 @@ local et = require'ele.types'
 local Edit = require'ele.edit'.Edit
 local B = require'ele.bindings'
 
+local lsub      = mty.from'lines  sub'
 local push, pop = table.insert, table.remove
 local concat    = table.concat
 local unpack    = table.unpack
@@ -219,11 +220,11 @@ function M._yank(ed, ev)
   if ev.lines == 0 then
     local t = ev.times; t = (t and (t - 1)) or 0
     log.info('yank lines(0) %s:%s', e.l, e.l + t)
-    ed.yank:push(lines.sub(e.buf.dat, e.l, e.l + t))
+    ed.yank:push( (lsub(e.buf.dat, e.l, e.l + t)) )
   else
     local l,c, l2,c2 = M.getMove(ed, ev)
     log.info('yank %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
-    ed.yank:push(lines.sub(e.buf.dat, l,c, l2,c2))
+    ed.yank:push( (lsub(e.buf.dat, l,c, l2,c2)) )
   end
 end
 
@@ -241,7 +242,7 @@ function M.paste(ed, ev)
   local dat = ed.yank[ed.yank.right - (ri - 1)]
   assertf(dat, 'yank index empty: %s', ri)
   local e = ed.edit; e:changeStart()
-  if type(dat) == 'string' then e:insert(dat)
+  if #dat == 1 then e:insert(dat[1])
   else
     local s = concat(dat, '\n')
     e.c = #(e.buf:get(e.l) or '') + 1

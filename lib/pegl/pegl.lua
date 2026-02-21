@@ -6,11 +6,13 @@ local M = G.mod and G.mod'pegl' or {}
 local mty     = require'metaty'
 local fmt     = require'fmt'
 local ds      = require'ds'
-local lap     = require'lap'
 local log     = require'ds.log'
+local lap     = require'lap'
 local lines   = require'lines'
 local T       = require'civtest'
 local extend  = ds.extend
+
+local ljoin, lines_sub = mty.from'lines  join,sub'
 local push, pop = table.insert, table.remove
 local concat, unpack = table.concat, table.unpack
 local sfmt    = string.format
@@ -18,6 +20,8 @@ local srep = string.rep
 local ty = mty.ty
 local get, set = ds.get, ds.set
 local info = mty.from'ds.log info'
+
+local function lsub(...) return concat(lines_sub(...), '\n') end
 
 local function zero() return 0 end
 
@@ -43,7 +47,7 @@ end
 M.Token.encode = function(T, p, l, c, l2, c2, kind, style)
   return T{M.encodeSpan(l,c, l2,c2), kind=kind, style=style}
 end
-function M.Token:decode(dat) return lines.sub(dat, M.decodeSpan(self[1])) end
+function M.Token:decode(dat) return lsub(dat, M.decodeSpan(self[1])) end
 function M.Token:__fmt(f)
   f:write'Tkn';
   f:write(sfmt('(%s.%s %s.%s', self:span()))
@@ -382,7 +386,7 @@ function M.Key:parse(p)
     found = keys[true]
   end
   if found then
-    local kind = self.kind or lines.sub(p.dat, p.l, c, p.l, p.c - 1)
+    local kind = self.kind or lsub(p.dat, p.l, c, p.l, p.c - 1)
     return M.Token:encode(p, p.l, c, p.l, p.c -1, kind)
   end
   p.c = c
@@ -590,8 +594,8 @@ function M.Parser:peek(pat)
     return M.Token:encode(self, self.l, c, self.l, c2)
   end
 end
-function M.Parser:sub(t) -- t=token
-  return lines.sub(self.dat, t:span())
+function M.Parser:sub(t) --> string
+  return lsub(self.dat, t:span())
 end
 function M.Parser:incLine()
   self.l, self.c = self.l + 1, 1
