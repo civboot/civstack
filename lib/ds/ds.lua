@@ -108,12 +108,10 @@ function M.inset(t, i, values, rmlen) --> nil
   assert(i >= 1 and i <= tlen + 1, 'i OOB')
   if i + rmlen <= tlen then -- we want to keep some values
     -- TODO: I think the cache isn't needed anymore
-    require'ds.log'.info('@@ inset keeping')
     local cache = move(t, i + rmlen, tlen, 1, {}) -- cache end
     move(values, 1, vlen, i, t)
     move(cache, 1, max(#cache, tlen - i + 1 + vlen), i + vlen, t) -- move cached back
   else -- not keeping values >= i
-    require'ds.log'.info('@@ inset not-keeping')
     move(values, 1, max(vlen, rmlen), i, t)
   end
 end

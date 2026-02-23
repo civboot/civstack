@@ -114,11 +114,9 @@ local DOMOVE = {
   eof = function(e, line) e.l,e.c = #e,1                    end,
 
   nextLineText = function(e)
-    log.info('@@ nextLineText %s.%s', e.l,e.c)
     if e.l >= #e then return end
     e.l = e:boundLC(e.l+1, 1)
     e.c = e:curLine():find'%S' or 1
-    log.info('@@   -> %s.%s', e.l,e.c)
  end,
 
   --- move lines screen widths (e.th * ev.mul / ev.div)
@@ -214,6 +212,16 @@ function M.insertTab(ed, ev)
   ed:handleStandard(ev)
 end
 
+function M.autoIndent(ed, ev)
+  local e = ed.edit; local b = e.buf
+  local ind = lines.autoIndent(b,e.l)
+  for l=e.l, e.l + (ev.times or 1) - 1 do
+    b:remove(l,1,l,#b:get(l):match'^%s*')
+    b:insert(ind, l,1)
+  end
+  e.c = #ind + 1
+end
+
 --- Yank without ed:handleStandard()
 function M._yank(ed, ev)
   local e = ed.edit
@@ -273,7 +281,6 @@ function M.remove(ed, ev)
     e:remove(e.l, e.l + l2)
   else
     local l,c, l2,c2 = M.getMove(ed, ev)
-    log.info('@@ remove t=%s', t)
     if t and l==l2 and c==c2 then c2 = c2 + (t-1) end
     log.info('remove %q: %s.%s -> %s.%s', ev, l,c, l2,c2)
     if ev.lines then e:remove(l,l2)
@@ -500,7 +507,6 @@ end
 function nav.goPath(ed, create)
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
-  info('@@ nav.getPath %s', p)
   if p then
     local b = ed:getBuffer(p); if b then
       ed:focus(b); return
@@ -553,8 +559,17 @@ function M.edit(ed, ev)
     ed.edit:save(ed)
   end
   if ev.focus then ed:focus(ev.focus) end
+
+
+
+
+
+
+
   if ev.clear then
     ed.edit:changeStart()
+
+
 
 
 

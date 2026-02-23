@@ -124,6 +124,10 @@ T'insert'; do
     T.eq('4 5 6',     b:get(2))
   assertInsert('6 7\n', {}, 2, 1)
     T.eq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
+  d = newEditor'a b\n  c\nd'; e, b = d.edit, d.edit.buf
+  e.l,e.c = 3,1
+  M.autoIndent(d, {})
+    T.eq('a b\n  c\n  d', fmt(b.dat))
 end
 
 local NAV1 = [[

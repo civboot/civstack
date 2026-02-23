@@ -64,16 +64,13 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
   local function doRm(t, l,c, l2,c2, exR, ex)
     l,c, l2,c2 = lines.span(l,c, l2,c2)
     local s, l1,c1, l2a,c2a = lines.sub(t, l,c, l2,c2)
-    info('@@ sub actual: %s.%s %s.%s', l1,c1, l2a,c2a)
     T.eq({l,c}, {l1,c1}, 'actual start')
     assertEqR(exR, s, 'sub')
     local str = concat(s, '\n')
     local off = lines.offsetOf(t, l1,c1, l2a,c2a)
     local expOff = #str-1
-    info('@@ removed=%q (expOff=%s),  off=%s', str, expOff, off)
     if l2a > #t or (l2a == #t and c2a > #get(t,l2a)) then
       expOff = expOff + 1 -- EoF will be missing '\n' char
-      info('@@ + isEof, expOff=%s', expOff)
     end
     T.eq(expOff, off, 'offsetOf result')
     T.eq({l2a,c2a}, {lines.offset(t, off, l1,c1)}, 'offset result')
@@ -85,7 +82,6 @@ function M.testLinesRemove(new, assertEq, assertEqRemove)
     assertEq(ex, t, 't after remove')
     -- now reverse the process
     local re = new(ds.icopy(t))
-    info('@@ insert(%q, %q, %s.%s)', re, r, l,c)
     lines.insert(re, r, l,c)
     assertEq(b4, re, 'reversed not same')
   end

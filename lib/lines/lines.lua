@@ -90,7 +90,6 @@ local args = M._args
 --- See: [<#Gap>] (or similar) for handling real-world workloads.
 function M.insert(t, ins, l,c) --> nil
   ins = type(ins) == 'string' and M(ins) or ds.icopy(ins)
-  info('@@ insert %s.%s %q', l,c, ins)
   if #ins == 0 then return end
   local ln = get(t,l) or ''
   local lnSt, lnEnd = ssub(ln, 1, c-1), ssub(ln, c) -- start,end
@@ -101,7 +100,6 @@ function M.insert(t, ins, l,c) --> nil
   -- update start and end to preserve original
   ins[1]      = lnSt..ins[1]
   ins[insLen] = ins[insLen]..lnEnd
-  info('@@  -> inset l=%s ins=%q', l, ins)
   inset(t, l, ins, 1)
 end
 
@@ -115,9 +113,7 @@ end
 
 local function _lsub(sub, slen, t, l,c, l2,c2) --> {str}, l,c, l2,c2
   local len = #t
-  info('@@ _lsub %s.%s %s.%s', l,c, l2,c2)
   l,c, l2,c2 = boundSpan(t, l,c, l2,c2, len)
-  info('@@    -> %s.%s %s.%s', l,c, l2,c2)
 
   local s = {}
   if l > len or l > l2 then goto done end
@@ -159,14 +155,12 @@ end
 --- Get the [$l, c] with the +/- offset applied
 function M.offset(t, off, l,c) --> l2,c2
   -- FIXME: bound l/c correctly.
-  info('@@ offset %s %s.%s', off, l,c)
   local len, off2, llen, ln = #t
   l,c = bound(t, l,c, len)
   if off > 0 then ::loopGt::
     ln = get(t,l); if not ln then return l-1,#get(t,l-1) + 1 end
     -- off2: what remains of offset if we use whole line (+newline)
     off2 = off - (#ln+1 - c)
-    info('@@ + off=%s %s.%s llen=%s off2=%s', off, l,c, #ln+1, off2)
     if off2 <= 0 then return l, c + off end
     off = off2
     l,c = l+1,0
@@ -180,7 +174,6 @@ function M.offset(t, off, l,c) --> l2,c2
   while true do -- negative offset
     -- off2: what remains of offset if we use whole line
     off2 = off + c
-    info('@@ - off=%s %s.%s off2=%s', off, l,c, off2)
     if off2 > 0 then return l, off2 end
     off, l = off2, l-1
     ln = get(t,l); if not ln then return 1,1 end
@@ -191,7 +184,6 @@ end
 --- get the byte offset 
 function M.offsetOf(t, l,c, l2,c2) --> int
   local len, off, sign = #t, 0
-  info('@@ offsetOf %s.%s %s.%s', l,c, l2,c2)
   if     l < l2 then sign = 1
   elseif l > l2 then sign = -1
   else               sign = (c <= c2) and 1 or -1 end
@@ -199,7 +191,6 @@ function M.offsetOf(t, l,c, l2,c2) --> int
   l,c, l2,c2 = M.boundSpan(t, l,c, l2,c2, len)
   -- determine direction. We always calculate
   -- in positive direction.
-  info('@@       -> %s.%s %s.%s sign=%s', l,c, l2,c2, sign)
   while l < l2 do
     off = off + #get(t,l) + 1 - c
     l,c = l+1,0
@@ -250,9 +241,7 @@ end
 function M.remove(t, l,c, l2,c2) --> string|table
   local sub = string.sub
   local len = #t
-  info('@@ remove %s.%s %s.%s', l,c, l2,c2)
   l,c, l2,c2 = boundSpan(t, l,c, l2,c2, len)
-  info('@@     -> %s.%s %s.%s (len=%s)', l,c, l2,c2, len)
 
   if l > len or l > l2 then return {} end
   local ln = get(t,l)
@@ -274,7 +263,6 @@ function M.remove(t, l,c, l2,c2) --> string|table
     push(keep, sub(ln, 1,c-1)..sub(ln2 or '', c2+1))
   end
 
-  info('@@ + inset %s add=%q rm=%s', l, keep, l2-l+1)
   ds.inset(t, l, keep, l2 - l + 1)
   return rm
 end
@@ -298,6 +286,29 @@ function M.box(t, l1, c1, l2, c2, fill) --> lines
     push(b, line)
   end
   return b
+end
+
+--- Get the indentation of line.
+function M.getIndent(t, l) --> str?
+  local ln = get(t,l) or 'z'
+  local ind = ln:match'^(%s*)'
+  if #ind > 0 then return ind end
+  if #ln > 0  then return ''  end
+end
+
+--- Get the autoIndent to use for line.
+function M.autoIndent(t, l) --> string?
+  local ind
+  for i=l+1,#t do
+    ind = M.getIndent(t,i); if ind then
+      if ind ~= '' then return ind else break end
+    end
+  end
+  for i=l-1,1,-1 do
+    ind = M.getIndent(t,i); if ind then
+      if ind ~= '' then return ind else break end
+    end
+  end
 end
 
 -------------------------

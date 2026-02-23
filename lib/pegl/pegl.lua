@@ -475,7 +475,7 @@ function M.Many:parse(p)
     if ty(t) ~= M.Token and #t == 1 then push(out, t[1])
     else _seqAdd(p, out, self, t) end
     if y and y == 1 then
-      y = self.yield; lap.yield()
+      y = self.yield; lap.yield(true)
     end
   end
   if #out < self.min then

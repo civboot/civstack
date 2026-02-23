@@ -122,6 +122,8 @@ Test{'move', dat=LINES3, function(tst)
   s:play'b';   T.eq({2, 2}, {e.l, e.c})
   s:play'l ^'; T.eq({2, 2}, {e.l, e.c})
   s:play'3 G'; T.eq({3, 2}, {e.l, e.c})
+  s:play'g g'; T.eq({1, 1}, {e.l, e.c})
+  s:play'G';   T.eq({3, 1}, {e.l, e.c})
 end}
 
 Test{'backspace', dat=LINES3, function(tst)
@@ -379,6 +381,53 @@ Test{'searchBuf', dat=LINES3, function(tst)
     T.eq(false,  ov.ext.show)
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
     T.eq({1,5}, {e.l,e.c})
+end}
+ 
+Test{'session', dat='', function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b, t = ed.edit.buf, ed.display
+  T.eq('command', ed.mode)
+  T.eq('\n\n\n', fmt(t))
+
+  s:play'Z' -- unknown
+    T.eq(1, #ed.error)
+    T.matches('unbound chord: Z', fmt(ed.error[1]))
+  ds.clear(ed.error)
+
+  s:play'i'
+    T.eq('insert', ed.mode) -- next mode
+    T.eq(nil, ed.ext.keys.next) -- selected in keyinput
+  T.eq(log.LogTable{}, ed.error)
+
+  s:play'9 space 8'; ed:draw()
+    T.eq('9 8', b.dat[1])
+    T.eq(SI..'\n9 8\n\n', fmt(t))
+  T.eq(log.LogTable{}, ed.error)
+
+  s:play'space 7 enter 6'
+    T.eq(SI..'\n9 8 7\n6\n', fmt(t))
+end}
+
+-- a common coding session
+local CODE = [[
+function foo(a)
+  a = a + 1
+end
+]]
+Test{'coding', dat=CODE, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local b, t = ed.edit.buf, ed.display
+  T.eq('command', ed.mode)
+  s:play'2 G'
+    T.eq({2,1}, {e.l,e.c})
+    T.eq('  a = a + 1', b:get(e.l))
+
+  s:play'o'
+    T.eq(
+    "function foo(a)\n"
+  .."  a = a + 1\n  \nend\n", fmt(b.dat))
+    T.eq({3,3}, {e.l,e.c})
+    T.eq('insert', ed.mode)
 end}
 
 G.PWD = _PWD

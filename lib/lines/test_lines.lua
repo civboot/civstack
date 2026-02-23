@@ -96,6 +96,26 @@ T'box'; do
   T.eq({'7 9  ', '     ', 'e f g'}, lines.box(l, 1,7, 3,11, ' '))
 end
 
+T'autoIndent'; do
+  local ai = lines.autoIndent
+  local l = {
+    'ab',
+    '  cd',
+    '    ef',
+    '  gh',   -- 3
+    '',       -- 4
+    '  ij',
+    'kl',
+  }
+
+  T.eq('  ',   ai(l, 1))
+  T.eq('    ', ai(l, 2))
+  T.eq('  ',   ai(l, 3))
+  T.eq('  ',   ai(l, 4))
+  T.eq('  ',   ai(l, 5))
+  T.eq('  ',   ai(l, 6))
+end
+
 ------------------------
 -- Gap Tests
 

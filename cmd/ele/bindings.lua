@@ -15,6 +15,7 @@ local vt100 = require'vt100'
 local sfmt = string.format
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp, dp = ds.getp, ds.dotpath
+local info = log.info
 
 ---------------------------
 -- Utility Functions and Callable Records
@@ -148,11 +149,13 @@ M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
 
 M.insertBelow = {
   action='chain', mode='insert',
-  {action='move', move='eol', cols=1}, {action='insert', '\n'},
+  {action='move', move='eol', cols=1},
+  {action='insert', '\n'},
+  {action='autoIndent'},
 }
 M.insertAbove = {
   action='chain', mode='insert',
-  {action='move', move='sol'},         {action='insert', '\n'},
+  {action='move', move='sol'},         {action='insert', '\n', autoIndent=true},
   {action='move', rows=-1},
 }
 
@@ -160,6 +163,7 @@ function M.moveAction(event)
   return function(keys)
     local ev = keys.event or {}
     ev.action = ev.action or 'move'
+    info('@@ MA ev=%q actionEv=%q', ev, event)
     return ds.update(ev, event)
   end
 end
@@ -178,7 +182,7 @@ end
 
 function M.moveG(keySt) -- specific line or end-of-file
   local ev = keySt.event or {}
-  return ev.times and {action='move', move='absolute', l=ev.times} or M.eof
+  return ev.times and {action='move', move='absolute', l=ev.times} or M.eof(ev)
 end
 
 function M.movekey(keys)
@@ -448,7 +452,7 @@ M.common = {
   c = M.change, C = M.changeEol,
 
   -- G is for GO
-  ['g g'] = M.sof,    ['G'] = M.moveG, -- start/end of file
+  ['g g'] = M.sof,    G = M.moveG, -- start/end of file
 
   ['g f'] = M.goPath, ['g F'] = M.createPath,
   ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,

@@ -143,7 +143,6 @@ end
 
 function M.Edit:insert(s)
   local b = self.buf
-  log.info('@@ edit:insert %s.%s %q', self.l,self.c, s)
   b:insert(s, self.l, self.c);
   self.l, self.c = lines.offset(b.dat, #s, self.l, self.c)
   -- if causes cursor to move to next line, move to end of cur line
@@ -289,6 +288,31 @@ function M.Edit:split(S) --> split
   local sp = S{};  c:replace(self, sp)
   sp:insert(1, self); sp:insert(2, self:copy())
   return sp
+end
+
+local function getIndent(ln) --> int
+  return select(2, ln:find'^\t*')
+end
+
+function M.Edit:autoIndent()
+  local b, l, ln, ind = self.buf, self.l
+  while l >= 1 do -- look up
+    ln = b:get(l); ind = getIndent(ln)
+    if ind > 0 then goto doIndent end
+    if #ln > 0 then break end
+    l = l - 1
+  end
+  l = self.l + 1
+  while l <= #b do
+    ln = b:get(l); ind = getIndent(ln)
+    if ind > 0 then goto doIndent end
+    if #ln > 0 then break end
+    l = l + 1
+  end
+  do return end
+  ::doIndent::
+  self.l,self.c = l,1
+  self:write(srep('\t', ind))
 end
 
 function M.Edit:path() return self.buf:path() end --> path?

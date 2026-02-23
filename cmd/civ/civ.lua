@@ -195,11 +195,8 @@ function civ.run:__call()
   assertf(#tgtnames == 1, 'must run a single target, expanded to: %q',
          tgtnames)
   local tgt = cv:target(tgtnames[1])
-  info('@@ tgt.out %q', tgt.out)
-  info('@@ tgt.link %q', tgt.link)
   local bin
   local getBin = function(p)
-    info('@@ looking at bin: %s', p)
     if p:match'^bin/' then
       assertf(not bin, 'multiple bin outputs:\n%s\n%s', bin, p)
       bin = p

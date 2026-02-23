@@ -77,6 +77,8 @@ T'action'; do
   assertKeys('l',     'command', false, {move{off=1}})
   assertKeys('3 l',   'command', false, {move{off=1, times=3}})
   assertKeys('3 0 l', 'command', false, {move{off=1, times=30}})
+  assertKeys('3 G',   'command', false, {move{move='absolute', l=3}})
+  assertKeys('G',     'command', false, {move{move='eof'}})
 
   -- remove
   local rm = function(t) t.action = 'remove'; return t end

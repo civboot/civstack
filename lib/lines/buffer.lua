@@ -78,7 +78,6 @@ function Buffer:doRm(ch)
   local dat = self.dat
   local l,c = ch[1],ch[2]
   local l2, c2 = lines.offset(dat, len-1, l,c)
-  info('@@ doRm %s.%s %s.%s len=%s', l,c, l2,c2, len)
   if self.fg then self:_matchColorLine(l) end
   lines.remove(dat, l,c, l2,c2)
   if self.fg then
