@@ -336,16 +336,15 @@ function M.dump(t, f, close, chunk)
     return
   end
   local dat, len, chunk = {}, 0, chunk or M.CHUNK
-  for i=1,#t-1 do; local line = t[i]
+  for i=1,#t-1 do; local line = get(t, i)
     push(dat, line); len = len + #line + 1
     if len >= chunk then
-      push(dat, '\n')
-      assert(f:write(concat(dat, '\n')))
+      assert(f:write(concat(dat, '\n')):write'\n')
       ds.clear(dat)
       len = 0
     end
   end
-  push(dat, t[#t])
+  push(dat, get(t, #t))
   assert(f:write(concat(dat, '\n')))
   if close then f:close() end
 end

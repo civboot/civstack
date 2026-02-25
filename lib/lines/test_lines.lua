@@ -6,6 +6,9 @@ local testing = require'lines.testing'
 local Gap = require'lines.Gap'
 local T = require'civtest'
 
+local O = '.out/lines_test/'
+require'civix'.mkDirs(O)
+
 T'new'; do
   T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
   T.eq({'one', 'two 2', ''}, lines._args'one\ntwo 2\n')
@@ -227,6 +230,12 @@ T'Gap.clear'; do
   g:set(1, 'hi')
   g:set(2, 'bye')
   T.eq('hi\nbye', fmt(g))
+end
+
+T'Gap.dumpf'; do
+  local t = {'some lines', 'more lines', 'final lines'}
+  lines.dump(t, O..'dumpf.txt', nil, 10)
+  T.path(O..'dumpf.txt', table.concat(t, '\n'))
 end
 
 T'Writer'; do

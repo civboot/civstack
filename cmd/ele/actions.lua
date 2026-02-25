@@ -558,45 +558,20 @@ function M.edit(ed, ev)
   if ev.save  then
     ed.edit:save(ed)
   end
+
   if ev.focus then ed:focus(ev.focus) end
-
-
-
-
-
-
-
   if ev.clear then
     ed.edit:changeStart()
-
-
-
-
-
-
-
     ed.edit:clear()
-
-
-
-
   end
   if ev.undo then
     for _=1,ev.times or 1 do
-
-
       if not ed.edit:undo() then break end
     end
   end
   if ev.redo then
     for _=1,ev.times or 1 do
-
       if not ed.edit:redo() then break end
-
-
-
-
-
     end
   end
   ed:handleStandard(ev)
