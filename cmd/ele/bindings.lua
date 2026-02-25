@@ -215,7 +215,7 @@ function M.tillback(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
-M.backspace = {action='remove', off=-1, cols1=-1}
+M.backspace = {action='backspace'}
 M.delkey    = {action='remove', off=0}
 
 --- Join next line

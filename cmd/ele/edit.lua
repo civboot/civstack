@@ -17,6 +17,8 @@ local push, concat = table.insert, table.concat
 local sfmt, srep   = string.format, string.rep
 local min, max     = math.min, math.max
 local span, box = mty.from(lines, 'span, box')
+local assertf      = mty.from'fmt  assertf'
+local info         = mty.from'ds.log  info'
 
 M.Edit = mty'Edit' {
   'id[int]',
@@ -47,16 +49,20 @@ getmetatable(M.Edit).__call = function(T, t)
   return self
 end
 
+M.Edit.getEditor = types.getEditor
+
 function M.Edit:close(ed)
   assert(not self.container, "Edit not removed before close")
+  assert(ed, 'must provide Editor')
   self.closed = true
-  if self.buf.tmp then
-    self.buf.tmp[self] = nil; if #self.buf.tmp == 0 then
+  local b = self.buf
+  if b.tmp then
+    b.tmp[self] = nil; if #b.tmp == 0 then
       ed.buffers[self.id] = nil
     end
   end
+  b.l,b.c = self.l,self.c
 end
-
 function M.Edit:save(ed)
   local b = self.buf; local dat = b.dat
   local ro = b.readonly; b.readonly = true
@@ -285,7 +291,7 @@ end
 --- Return the resulting split.
 function M.Edit:split(S) --> split
   local c = self.container
-  local sp = S{};  c:replace(self, sp)
+  local sp = S{};  c:replace(self, sp) -- note: DON'T close self
   sp:insert(1, self); sp:insert(2, self:copy())
   return sp
 end

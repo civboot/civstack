@@ -126,13 +126,16 @@ Test{'move', dat=LINES3, function(tst)
   s:play'G';   T.eq({3, 1}, {e.l, e.c})
 end}
 
-Test{'backspace', dat=LINES3, function(tst)
+Test{'backspace', dat='   a\n', function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b = e.buf
-  s:play'l l';    T.eq({1, 3}, {e.l, e.c})
-  s:play'i back'; T.eq({1, 2}, {e.l, e.c})
-    T.eq('13 5 7 9', b:get(1))
-  T.eq(SI..'\n13 5 7 9\n 2 4 6\n', fmt(ed.display))
+  e.l,e.c = 1,5
+  s:play'i'
+  s:play'back'; T.eq('   \n', fmt(b.dat)); T.eq({1, 4}, {e.l, e.c})
+  s:play'back'; T.eq('  \n',  fmt(b.dat)); T.eq({1, 3}, {e.l, e.c})
+  s:play'back'; T.eq('\n',    fmt(b.dat)); T.eq({1, 1}, {e.l, e.c})
+  e.l,e.c = 2,1
+  s:play'back'; T.eq('',      fmt(b.dat)); T.eq({1, 1}, {e.l, e.c})
 end}
 
 Test{'change_undo', dat=LINES3, function(tst)

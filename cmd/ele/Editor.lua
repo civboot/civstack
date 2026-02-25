@@ -67,6 +67,8 @@ getmetatable(Editor).__call = function(T, t)
   return t
 end
 
+function Editor:getEditor() return self end
+
 function Editor:__fmt(f)
   f:write'Editor{mode='; f:string(self.mode); f:write'}'
 end
@@ -220,11 +222,14 @@ end
 function Editor:focus(b) --> Edit
   local b = assertf(self:buffer(b), '%q', b)
   local e = Edit{buf=b, yank=self.yank}
-  if self.edit then self.edit.container:replace(self.edit, e)
+  if self.edit then self.edit.container:replace(self.edit, e):close(self)
   else              e.container = self end
   self.edit = e
   if not self.view then self.view = e end
   return e
+end
+
+function Editor:close()
 end
 
 return Editor

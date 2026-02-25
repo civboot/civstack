@@ -186,6 +186,7 @@ function M.getMove(ed, ev) --> l1,c1, l2,c2
   local e_c = e.c
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
+  info('@@ getMove %s.%s', l,c)
   M.move(ed, ev)
   local l2,c2 = e.l,e.c
   e.l,e.c = l,e_c
@@ -210,6 +211,21 @@ function M.insertTab(ed, ev)
   local c = (ed.edit.c - 1) % tw
   ed.edit:insert(srep(' ', tw - c))
   ed:handleStandard(ev)
+end
+
+function M.backspace(ed, ev)
+  local tw = ed.s.tabwidth
+  local e = ed.edit; local b = e.buf
+  local ln = e:curLine() or ''
+  local ind = ln:match'^%s*'
+  local rm = 1
+  if e.c == #ind + 1 then
+    log.info'@@ backtab'
+    -- remove up to a tab-width
+    rm = tw - ((e.c - 1) % tw)
+  end
+  log.info('@@ backspace %s', rm)
+  M.remove(ed, {off=-rm, cols1=-1})
 end
 
 function M.autoIndent(ed, ev)
@@ -637,7 +653,7 @@ function M.window(ed, ev)
   end
   if ev.close then
     local e = ed.edit
-    e.container:remove(e); e:close()
+    e.container:remove(e); e:close(ed)
     ed.edit = nil;         ed:focusFirst()
     if not ed.view or not ed.edit then
       ed:focus(ed:buffer'b#scratch')

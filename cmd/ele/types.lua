@@ -20,6 +20,14 @@ Press ^q (ctrl-q) twice at any time to exit.
 This page will have more help message in the future.
 ]]
 
+function M.getEditor(c)
+  local Editor = require'ele.Editor'
+  while c and mty.ty(c) ~= Editor do
+    c = c.container
+  end
+  return c
+end
+
 --- A container with windows split vertically (i.e. tall windows)
 M.VSplit = mty'VSplit' {
   'container [Editor|VSplit|HSplit]: parent container',
@@ -27,6 +35,7 @@ M.VSplit = mty'VSplit' {
   'tl[int]', tl=-1, 'tc[int]', tc=-1, -- term line,col (top-left/right)
   'th[int]', th=-1, 'tw[int]', tw=-1, -- term   height, width
 }
+M.VSplit.getEditor = M.getEditor
 M.VSplit.close = ds.noop
 M.VSplit.insert = function(sp, i, v)
   assert(not v.container)
@@ -46,8 +55,9 @@ M.VSplit.remove = function(sp, v) --> v
   if #sp == 0 then -- no items, this shouldn't happen
     log.warning('zero items left in %s', mty.name(sp))
     sp.container:remove(sp)
-  elseif #sp == 1 then -- only 1 item left, close it
-    sp.container:replace(sp, sp[1]); sp[1] = nil
+  elseif #sp == 1 then -- only 1 item left, close self
+    sp.container:replace(sp, sp[1]):close(sp:getEditor())
+    sp[1] = nil
   end
   return v
 end
