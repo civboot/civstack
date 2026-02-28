@@ -163,7 +163,6 @@ function M.moveAction(event)
   return function(keys)
     local ev = keys.event or {}
     ev.action = ev.action or 'move'
-    info('@@ MA ev=%q actionEv=%q', ev, event)
     return ds.update(ev, event)
   end
 end

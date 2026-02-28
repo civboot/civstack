@@ -21,6 +21,7 @@ local push      = mty.from(ds,   'push')
 local pop       = table.remove
 
 local construct = mty.construct
+local YIELD_FREQ = 32
 
 --- Usage: [$$
 --- hl = require'pegl.lua'.highlighter
@@ -98,7 +99,7 @@ function M.tokenize:_dfs(node)
       n.style = n.kind and (style[n.kind] or 'keyword')
              or sty
       push(self._nodeTokens, n)
-      if #self._nodeTokens % 1024 == 0 then lap.yield(true) end
+      if #self._nodeTokens % YIELD_FREQ == 0 then lap.yield(true) end
     else
       self:_dfs(n)
     end
@@ -129,7 +130,7 @@ function M.Highlighter:_highlight(tz, fg, bg) --> nil
   local sc = self.styleColor
   local l,c = 1,0
   for i, t in ipairs(tz) do
-    if i % 1024 == 0 then lap.yield(true) end
+    if i % YIELD_FREQ == 0 then lap.yield(true) end
     local tc = sc[t.style] or '  '
     local tf = assert(CODES[tc:sub(1,1)])
     local tb = assert(CODES[tc:sub(2,2)])

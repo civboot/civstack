@@ -227,7 +227,6 @@ static void FD_write(FD* fd) {
   if(c >= 0) {
     fd->pos += c; fd->fpos = fd->pos;
     fd->si += c;  fd->code = 0;
-  } else {
   }
 }
 
@@ -394,7 +393,10 @@ static int l_FD_write(LS* L) {
   FD_free(fd);
   fd->buf = (char*)luaL_checklstring(L, 2, (size_t*)&fd->ei);
   if(!lua_isnoneornil(L, 3)) fd->si = luaL_checkinteger(L, 3);
-  if(!lua_isnoneornil(L, 4)) fd->ei = luaL_checkinteger(L, 4);
+  if(!lua_isnoneornil(L, 4)) {
+    size_t ei = luaL_checkinteger(L, 4);
+    if(ei < fd->ei) fd->ei = ei;
+  }
   FD_write(fd);
 done:
   lua_pushinteger(L, fd->code); return 1;

@@ -85,8 +85,8 @@ local return_ = {'return', explist, kind='return'}
 local goto_   = {'goto', name, kind='goto'}
 local laststmt = Or{name='laststmt', return_, goto_, 'break'}
 local block = {name='block',
-  Many{stmt, Maybe(';'), yield=true},
-  Maybe{laststmt, Maybe(';')}
+  Many{stmt, Maybe';', yield=1},
+  Maybe{laststmt, Maybe';'}
 }
 
 M.unexpectedKeyW  = Key{name='unexpectedKey', KEYWORDS}

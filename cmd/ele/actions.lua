@@ -186,7 +186,6 @@ function M.getMove(ed, ev) --> l1,c1, l2,c2
   local e_c = e.c
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
-  info('@@ getMove %s.%s', l,c)
   M.move(ed, ev)
   local l2,c2 = e.l,e.c
   e.l,e.c = l,e_c
@@ -220,11 +219,9 @@ function M.backspace(ed, ev)
   local ind = ln:match'^%s*'
   local rm = 1
   if e.c == #ind + 1 then
-    log.info'@@ backtab'
     -- remove up to a tab-width
     rm = tw - ((e.c - 1) % tw)
   end
-  log.info('@@ backspace %s', rm)
   M.remove(ed, {off=-rm, cols1=-1})
 end
 
