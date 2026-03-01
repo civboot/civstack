@@ -102,8 +102,15 @@ end
 
 ----------------------------------
 -- MOVE
--- This defines the move action
-local DOMOVE = {
+
+--- Whether the move is considered "large"
+M.LARGE_MOVE = {
+  lines=1, sof=1, eof=1, screen=1,
+}
+local LARGE_MOVE = M.LARGE_MOVE
+
+--- This defines the move actions
+M.DOMOVE = {
   lines = function(e, _, ev) e.l = e.l + ev.lines end,
   -- start/end of line/text
   sol = function(e, line) e.c = 1                           end,
@@ -142,9 +149,13 @@ local DOMOVE = {
     e.c = motion.findBack(line, ev.findback, e.c, true) or e.c
   end,
 }
-local function domove(e, ev)
-  local fn = ev.move and DOMOVE[ev.move]
-  if fn      then fn(e, e.buf:get(e.l), ev) end
+local DOMOVE = M.DOMOVE
+local function domove(e, ev, actual)
+  if ev.move then
+    if actual and LARGE_MOVE[ev.move] then e:getEditor():pushLocation() end
+    local fn = DOMOVE[ev.move]
+    if fn      then fn(e, e.buf:get(e.l), ev) end
+  end
   if ev.cols then e.c = e.c + ev.cols       end
   if ev.rows then e.l = e.l + ev.rows       end
   if ev.off  then
@@ -171,9 +182,10 @@ function M.move(ed, ev)
   local e = ed.edit
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   if ev.move == 'absolute' then
+    ed:pushLocation()
     e.l,e.c = ev.l, ev.c or e.c
   else
-    for _=1,ev.times or 1 do domove(e, ev) end
+    for _=1,ev.times or 1 do domove(e, ev, true) end
   end
   e.l = e:boundLC(e.l, e.c)
   ed:handleStandard(ev)
@@ -316,7 +328,7 @@ function M.searchBuf(ed, ev)
       sb:insert('\n'..ed.search, -1,'end')
     end
   else ed.search = sb:get(#sb) end
-
+  ed:pushLocation()
   for _=1, ev.times or 1 do
     if ev.next then
       local l,c = lines.find(e.buf.dat, ed.search, e.l,e.c+1)
@@ -518,6 +530,7 @@ end
 
 --- go to path at l,c. If op=='create' then create the path
 function nav.goPath(ed, create)
+  ed:pushLocation()
   local e = ed.edit
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
@@ -593,7 +606,7 @@ end
 --- Directly modify a buffer by name. This is most commonly
 
 
---- used for the overlay.
+--- Manipulate a buffer by name, i.e. b#overlay, b#nav, etc.
 function M.buf(ed, ev)
   local b; if ev.create then b = ed:buffer(ev.buf)
   else                       b = ed:getBuffer(ev.buf) end

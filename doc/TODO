@@ -1,8 +1,5 @@
 Ele:
-* 'o' should auto-indent.
-
-* auto-backup what buffers were open an re-load them.
-* auto-backup files and re-load them.
+* implement 'O' especially (go to last location)
 
 General
 * I need io.open/etc to respect G.PWD
@@ -33,5 +30,3 @@ E 07:40:45 ele/Session.lua:85: failed event {action="paste", index=1}. [ERROR] a
     [  246] /home/rett/.local/civ/lua/lines/buffer.lua in method 'insert'
     [  146] /home/rett/.local/civ/lua/ele/edit.lua in method 'insert'
     [  253] /home/rett/.local/civ/lua/ele/actions.lua in function 'ele.actions.paste'
-
-

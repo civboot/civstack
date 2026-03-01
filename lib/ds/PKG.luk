@@ -25,6 +25,7 @@ P.ds = lua {
     'Grid.lua',
     'load.lua',
     'IFile.lua',
+    'Stack.lua',
   },
   lib = 'civ:lib/ds#dslib',
   dep = {

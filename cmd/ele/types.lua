@@ -140,4 +140,7 @@ function M.checkAction(data, action) --> errstring
   end
 end
 
+--- The location the cursor was at, to be in a stack.
+M.EditLoc = mty'EditLoc' { 'b [str]: buf name', 'l', 'c'}
+
 return M

@@ -80,6 +80,19 @@ function Editor:init()
   return self
 end
 
+function Editor:bufferName(b) --> string
+  return b.name or ('b#'..assert(b.id))
+end
+
+function Editor:pushLocation(e) --> EditLoc
+  e = e or self.edit
+  local loc = et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
+  if not mty.eq(loc, e.locations:get(#e.locations)) then
+    e.locations:push(loc)
+  end
+  return loc
+end
+
 --- Get an existing buffer if it exists.
 --- Else return false if the buffer is path-like and should be
 --- created, else nil.

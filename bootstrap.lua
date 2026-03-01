@@ -44,6 +44,7 @@ print'[[load]]'
     preload('ds.utf8', 'lib/ds/utf8.lua')
     preload('ds.LL', 'lib/ds/LL.lua')
     preload('ds.IFile', 'lib/ds/IFile.lua')
+    preload('ds.Stack', 'lib/ds/Stack.lua')
   preload('luk', 'lib/luk/luk.lua')
   preload('lap', 'lib/lap/lap.lua')
   preload('civix', 'lib/civix/civix.lua')

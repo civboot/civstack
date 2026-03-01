@@ -6,6 +6,7 @@ local mty    = require'metaty'
 local ds     = require'ds'
 local pth    = require'ds.path'
 local log    = require'ds.log'
+local Stack  = require'ds.Stack'
 local motion = require'lines.motion'
 local ix = require'civix'
 local lines = require'lines'
@@ -31,6 +32,7 @@ M.Edit = mty'Edit' {
   'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
   'fh[int]', fh=0,    'fw[int]', fw=0,  -- force h,w
   'closed [bool]', closed = false,
+  'locations [ds.Stack[ele.types.EditLoc]]: a deq of locations visited.',
 
   -- override specific keybindings for this buffer
   'modes [table]',
@@ -44,6 +46,7 @@ getmetatable(M.Edit).__call = function(T, t)
   local b = assert(t.buf, 'must set buf')
   t.l, t.c = t.l or b.l, t.c or b.c
   t.id = types.uniqueId()
+  t.locations = Stack(t.locations or {})
   local self = mty.construct(T, t)
   self:changeStart()
   return self
@@ -87,7 +90,12 @@ function M.Edit:__fmt(f)
 end
 
 function M.Edit:__len() return #self.buf end
-function M.Edit:copy() return ds.copy(self, {id=T.nextViewId()}) end
+function M.Edit:copy()
+  return ds.copy(self, {
+    id=T.nextViewId(),
+    locations=self.locations:copy(128)
+  })
+end
 function M.Edit:forceHeight() return self.fh end
 function M.Edit:forceWidth() return self.fw end
 function M.Edit:curLine()

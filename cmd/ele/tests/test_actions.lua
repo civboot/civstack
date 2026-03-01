@@ -101,7 +101,7 @@ T'remove'; do
     T.eq({'1 3 5 7 9', ''}, d.yank[d.yank.right])
   M.paste(d, {action='paste', index=1})
     T.eq('  3 5\n1 3 5 7 9\n1 3 5 7 9\n', fmt(b.dat))
-  
+
   info'join lines'
   d = newEditor'ab\ncd\n  z\n'; local e, b = d.edit, d.edit.buf
   e.c = 3

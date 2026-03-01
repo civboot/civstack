@@ -139,8 +139,7 @@ function Session:highlight()
   local Gap = require'lines.Gap'
   local hl = mty.from'pegl.lua  highlighter'
   hl.styleColor = require'asciicolor'.dark
-  while self.ed.run do
-    yield('sleep', 1)
+  local function highlight()
     local buf = self.ed.edit.buf
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then
@@ -151,6 +150,11 @@ function Session:highlight()
         buf.fg, buf.bg = fg, bg
       end
     end
+  end
+  while self.ed.run do
+    yield('sleep', 1)
+    local ok, err = ds.try(highlight)
+    if not ok then log.warn('highlight error:\n%q', err) end
   end
 end
 

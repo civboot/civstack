@@ -14,6 +14,7 @@ local ix = require'civix'
 
 M.SUBNAME = ''
 
+local get = ds.get
 local getmt = getmetatable
 local push, sfmt = table.insert, string.format
 
@@ -73,6 +74,18 @@ function M.eq(a, b, msg)
   if mty.eq(a, b) then return end
   showDiff(io.fmt, a, b)
   fail('Test.eq'..(msg and (': '..msg) or ''))
+end
+
+--- Assert that the indexes of two items with a length are equal.
+function M.ieq(a, b, msg)
+  if #a ~= #b then goto notequal end
+  for i=1,#a do
+    if not mty.eq(get(a,i), get(b,i)) then goto notequal end
+  end
+  do return end -- equal
+  ::notequal::
+  M.eq(ds.icopy(a), ds.icopy(b), msg)
+  error'initially compared as not equal but then tested as equal'
 end
 
 --- Same as eq but for binary strings. Shows a very clear

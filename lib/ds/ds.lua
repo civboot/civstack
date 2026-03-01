@@ -744,7 +744,7 @@ function M.icopy(t) --> list
   return move(t, 1, #t, 1, {})
 end
 
---- For types implementing [$:copy()] method.
+--- For types implementing [$:icopy()] method.
 function M.defaultICopy(r)
   local t = {}; for i=1,#r do t[i] = r:get(i) end
   return t
@@ -755,7 +755,6 @@ function M.rawcopy(t)
 end
 
 --- Copy and update full table
---- FIXME: remove add
 function M.copy(t, add) --> new t
   if ty(t) ~= 'table' then
     return add and update(t:__copy(), add)

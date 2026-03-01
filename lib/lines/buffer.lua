@@ -1,8 +1,9 @@
-local mty = require'metaty'
-local ds = require'ds'
-local lines = require'lines'
+local mty     = require'metaty'
+local ds      = require'ds'
+local Stack   = require'ds.Stack'
+local lines   = require'lines'
 local motion  = require'lines.motion'
-local Gap  = require'lines.Gap'
+local Gap     = require'lines.Gap'
 
 local M = {}
 local span, bound = lines.span, lines.bound
@@ -47,14 +48,13 @@ M.Buffer = mty'Buffer' {
 
   -- recorded changes from update (for undo/redo)
   -- TODO: put these in a file.
-  'changes',
-  'changeMax [int]',    changeMax=0,
+  'changes [ds.Stack]',
   'changeStartI [int]', changeStartI=0,
-  'changeI [int]',      changeI=0,
 
   'tmp[parents]: if set, delete when parents are empty',
   'ext[table]: table for arbitrary extensions',
 }
+local Buffer, Change = M.Buffer, M.Change
 
 getmetatable(M.Buffer).__index = mty.hardIndex
 M.Buffer.__newindex            = mty.hardNewindex
@@ -65,13 +65,13 @@ getmetatable(M.Buffer).__call = function(T, t)
     t.dat:write''
     if t.fg then t.fg:write''; t.bg:write'' end
   end
-  t.changes = t.changes or {}
+  t.changes = Stack(t.changes or {})
+  t.changes.newEl = Change
   t.ext = t.ext or {}
   if t.fg then assert(t.bg, 'must set both fg and bg, or neither') end
   return construct(T, t)
 end
 
-local Buffer, Change = M.Buffer, M.Change
 
 function Buffer:doRm(ch)
   local len = #ch.s; if len <= 0 then return ch end
@@ -99,8 +99,8 @@ function Buffer:_matchColorLine(l)
   while #self.fg < l do self.fg:write'\n'; self.bg:write'\n' end
   local dln, fln = self.dat[l] or '', self.fg[l] or ''
   if #dln == #fln then return end
-  assert(#fln < #dln)
   local bln = self.bg[l]
+  if #fln > #dln then fln, bln = fln:sub(1,#dln), bln:sub(1,#dln) end
   self.fg[l] = fln..srep(lastChar(fln), #dln - #fln)
   self.bg[l] = bln..srep(lastChar(bln), #dln - #bln)
 end
@@ -145,49 +145,47 @@ function Buffer:__len() return #self.dat       end
 function Buffer:get(i)  return self.dat:get(i) end
 
 function Buffer:addChange(ch)
-  ch = Change(ch)
-  self.changeI = self.changeI + 1; self.changeMax = self.changeI
-  self.changes[self.changeI] = ch
-  return ch
+  return self.changes:push(ch)
 end
 --- Return true if anything has changed since i (default=changeStartI)
 function Buffer:changed(i) --> bool
-  return (i or self.changeStartI) < self.changeI
+  return (i or self.changeStartI) < #self.changes
 end
 function Buffer:discardUnusedStart()
-  if self.changeI ~= 0 and self.changeStartI == self.changeI then
-    local ch = self.changes[self.changeI]
+  local top = self.changes.top
+  if top ~= 0 and self.changeStartI == top then
+    local ch = self.changes:get(top)
     assert(ch.k == START)
-    self.changeI = self.changeI - 1
-    self.changeMax = self.changeI
+    self.changes.top = top - 1
+    self.changes.max = top - 1
     self.changeStartI = 0
   end
 end
 function Buffer:changeStart(l, c)
   local ch = Change{k=START, l,c}
   self:discardUnusedStart()
-  self:addChange(ch); self.changeStartI = self.changeI
+  self:addChange(ch); self.changeStartI = #self.changes
   return ch
 end
 function Buffer:getStart()
-  if self.changeStartI <= self.changeMax then
+  if self.changeStartI <= self.changes.max then
     return self.changes[self.changeStartI]
   end
 end
 function Buffer:printChanges()
-  for i=1,self.changeMax do
-    pnt(self.changes[i], (i == self.changeI) and "<-- changeI" or "")
+  for i=1,self.changes.max do
+    pnt(self.changes:get(i), (i == #self.changes) and "<-- top" or "")
   end
 end
 
-function Buffer:canUndo() return self.changeI >= 1 end
-function Buffer:canRedo() return self.changeI < self.changeMax end
+function Buffer:canUndo() return #self.changes >= 1 end
+function Buffer:canRedo() return #self.changes < self.changes.max end
 
 function Buffer:undoTop()
-  if self:canUndo() then return self.changes[self.changeI] end
+  if self:canUndo() then return self.changes:get(#self.changes) end
 end
 function Buffer:redoTop()
-  if self:canRedo() then return self.changes[self.changeI + 1] end
+  if self:canRedo() then return self.changes:get(#self.changes + 1) end
 end
 
 function Buffer:undo()
@@ -195,8 +193,9 @@ function Buffer:undo()
   self:discardUnusedStart(); self.changeStartI = 0
 
   local done = {}
+  local changes = self.changes
   while ch do
-    self.changeI = self.changeI - 1
+    changes.top = changes.top - 1
     push(done, ch)
     if ch.k == START then break
     else
@@ -212,10 +211,11 @@ function Buffer:redo()
   local ch = self:redoTop(); if not ch then return end
   self:discardUnusedStart(); self.changeStartI = 0
   assert(ch.k == START)
-  local done = {ch}; self.changeI = self.changeI + 1
+  local changes = self.changes
+  local done = {ch}; changes.top = changes.top + 1
   ch = self:redoTop(); assert(ch.k ~= START)
   while ch and ch.k ~= START do
-    self.changeI = self.changeI + 1
+    changes.top = changes.top + 1
     push(done, ch)
     CHANGE_REDO[ch.k](self, ch)
     ch = self:redoTop()

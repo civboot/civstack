@@ -596,6 +596,18 @@ T'deq'; do
   T.eq({left=1, right=0}, setmetatable(d, nil))
 end
 
+T'Stack'; do
+  local s = require'ds.Stack'{10, 20, 30}
+  s:push(40)
+  T.ieq({10, 20, 30, 40}, s)
+  T.eq(40, s:pop())
+  T.ieq({10, 20, 30}, s)
+  T.eq(4, s.max); T.eq(40, s:get(s.max))
+  local s2 = s:copy(2)
+  T.ieq({20, 30}, s2)
+  T.eq(3, s2.max); T.eq(40, s2:get(s2.max))
+end
+
 local TB = [[
 stack traceback:
         [C]: in function 'string.gsub'
