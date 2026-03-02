@@ -58,6 +58,9 @@ T'find'; do
   T.eq({3, 4,4}, {lines.findBack(t, '6', 3)})
   T.eq({3, 4,4}, {lines.findBack(t, '6', 3, 4)})
   T.eq({2, 1,1}, {lines.findBack(t, '6', 3, 3)})
+  
+  -- found bug: infinite loop
+  T.eq({}, {lines.findBack({''}, '', 1,1)})
 end
 
 T'offset'; do

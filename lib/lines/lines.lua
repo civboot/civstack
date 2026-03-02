@@ -212,12 +212,15 @@ function M.find(t, pat, l,c) --> (l, c, c2)
   end
 end
 
-local function findBack(s, pat, end_)
-  local s, fs, fe = s:sub(1, end_), nil, 0
+local function sfindBack(s, pat, ei)
+  local s, fs, fe = s:sub(1, ei), nil, 0
   assert(#s < 256)
+  info('@@ sfindBack pat=%q', pat)
   while true do
+    info('@@ + %q %s', s, fe+1)
     local _fs, _fe = s:find(pat, fe + 1)
     if not _fs then break end
+    if _fs > _fe then return end
     fs, fe = _fs, _fe
   end
   if fe == 0 then fe = nil end
@@ -229,9 +232,10 @@ function M.findBack(t, pat, l,c)
   l, c = bound(t, l or 1, c or (#get(t,l) + 1))
   local c2
   while true do
+    info('@@ findBack l=%s', l)
     local s = get(t,l)
     if not s then return nil end
-    c,c2 = findBack(s, pat, c)
+    c,c2 = sfindBack(s, pat, c)
     if c then return l, c,c2 end
     l, c = l - 1, nil
   end

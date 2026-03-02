@@ -52,6 +52,7 @@ end
 --- Write the diff of strings a vs b to the [@fmt.Fmt] [$f].
 --- Typically, you want to call [<#civtest.eq>] instead.
 function M.showDiff(f, a, b)
+  f = fmt.Fmt:pretty{to=f, style=f.style}
   f:styled('error', '\n!! EXPECT:', '\n');   f(a)
   f:styled('error', '\n!! RESULT:', '\n');   f(b)
   if mty.ty(a) ~= mty.ty(b) then
@@ -134,12 +135,12 @@ function M.throws(contains, fn) --> ds.Error
     fail'Test.throws (no error)'
   end
   if err.msg:find(contains, 1, true) then return err end
-  local f = io.fmt
+  local f = io.fmt 
   f:styled('error', '\n!! Unexpected Result:', '\n');
   f:styled('error', 'Actual error:', '\n')
   f:write(err.msg)
   f:styled('error', '\n# end actual error', '\n')
-  showDiff(io.fmt, contains, err.msg)
+  showDiff(f, contains, err.msg)
   fail'Test.throws (not expected)'
 end
 

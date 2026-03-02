@@ -1,4 +1,5 @@
 Ele:
+* BUG: split twice, close window. Caused floating cursor
 * implement 'O' especially (go to last location)
 
 General

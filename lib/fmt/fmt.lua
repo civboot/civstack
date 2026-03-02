@@ -183,10 +183,11 @@ Fmt['function'] = function(self, fn)
 end
 
 --- format items in table "list"
-function Fmt:items(t, hasKeys, listEnd)
-  local len = #t; for i=1,len do
+function Fmt:items(t, hasKeys, listEnd, si, ei)
+  si, ei = si or 1, ei or #t
+  for i=si,ei do
     self(t[i])
-    if (i < len) or hasKeys then self:styled('meta', self.indexEnd, '') end
+    if (i < ei) or hasKeys then self:styled('meta', self.indexEnd, '') end
   end
   if listEnd then self:styled('meta', listEnd, '') end
 end

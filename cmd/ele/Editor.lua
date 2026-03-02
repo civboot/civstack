@@ -11,6 +11,7 @@ local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
 
+local info = mty.from'ds.log  info'
 local min, max = math.min, math.max
 local assertf = fmt.assertf
 local sfmt = string.format
@@ -84,18 +85,21 @@ function Editor:bufferName(b) --> string
   return b.name or ('b#'..assert(b.id))
 end
 
-function Editor:pushLocation(e) --> EditLoc
+function Editor:pushLocation(e) --> pushed
   e = e or self.edit
   local loc = et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
-  if not mty.eq(loc, e.locations:get(#e.locations)) then
-    e.locations:push(loc)
-  end
-  return loc
+  if mty.eq(loc, e.locations:get(#e.locations)) then return end
+  e.locations:push(loc)
+  info('pushed location %q', loc)
+  return true
 end
 
 --- Get an existing buffer if it exists.
 --- Else return false if the buffer is path-like and should be
 --- created, else nil.
+--- Special buffers: [+
+--- * [$b#tmp] creates a new buffer pointing to a tmp file.
+--- ]
 function Editor:getBuffer(v) --> Buffer?
   if mty.ty(v) == Buffer then
     assert(self.bufferId[v], 'must create buffer with Editor:buffer')
@@ -106,6 +110,7 @@ function Editor:getBuffer(v) --> Buffer?
   elseif type(v) == 'string' then
     local id = v:match'^b#(%d+)$'; if id then return self.buffers[tonumber(id)] end
     id = v:match'^b#([%w_-]+)$' if id then
+      if id == 'tmp' then return self:buffer(os.tmpname()) end
       return assertf(self.namedBuffers[id], 'unknown named buffer: %q', id)
     end
     id = v:match'^%d+$'; if id then return self.buffers[tonumber(id)] end
@@ -117,7 +122,7 @@ function Editor:getBuffer(v) --> Buffer?
   else error('Cannot convert '..type(v)..' to buffer') end
 end
 
--- create new buffer from v (path or table of lines)
+-- create new buffer.
 -- idOrPath can be a buffer id, b#123 string or path/to/file.txt.
 -- It will look for an existing buffer first, then create a
 -- new one if not.

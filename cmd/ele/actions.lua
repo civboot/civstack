@@ -104,9 +104,7 @@ end
 -- MOVE
 
 --- Whether the move is considered "large"
-M.LARGE_MOVE = {
-  lines=1, sof=1, eof=1, screen=1,
-}
+M.LARGE_MOVE = { sof=1, eof=1 }
 local LARGE_MOVE = M.LARGE_MOVE
 
 --- This defines the move actions
@@ -337,11 +335,15 @@ function M.searchBuf(ed, ev)
       end
       if l then e.l,e.c = l,c end
     elseif ev.prev then
+      info'@@ searchBufPrev'
       local l,c = lines.findBack(e.buf.dat, ed.search, e.l,e.c-1)
+      info'@@ searchBufPrev + after findBack1'
       if not l and ev.wrap then
         l,c = lines.findBack(e.buf.dat, ed.search, -1,-1)
+        info'@@ searchBufPrev + after findBack2'
       end
       if l then e.l,e.c = l,c end
+      info'@@ searchBufPrev + done'
     end
   end
 end
@@ -353,6 +355,7 @@ M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
 getmetatable(M.nav).__call = function(_, ed, ev, evsend)
   local e1 = ed.edit
   local e = ed:focus'b#nav'
+  ed:pushLocation()
   e:changeStart()
   assertf(M.DO_NAV[ev.nav], 'unknown nav: %q', ev.nav)(ed, e1, e)
   e:changeUpdate2()
@@ -584,8 +587,10 @@ function M.edit(ed, ev)
   if ev.save  then
     ed.edit:save(ed)
   end
-
-  if ev.focus then ed:focus(ev.focus) end
+  if ev.focus then
+     ed:pushLocation()
+     ed:focus(ev.focus)
+  end
   if ev.clear then
     ed.edit:changeStart()
     ed.edit:clear()
@@ -668,6 +673,27 @@ function M.window(ed, ev)
     if not ed.view or not ed.edit then
       ed:focus(ed:buffer'b#scratch')
     end
+  end
+end
+
+function M.jump(ed, ev)
+  local e = ed.edit
+  if ev.location then
+    local loc = ev.location
+    if loc < 0 then -- back, store cur location then jump back
+      if ed:pushLocation(e) then e.locations:pop() end
+      loc = e.locations:pop()
+      info('jump back to %q', loc)
+    elseif e.locations.top < e.locations.max then -- forward
+      e.locations.top = e.locations.top + 1
+      loc = e.locations:get(e.locations.top)
+      info('jump forward to %q', loc)
+    end
+    if not loc then return end
+    if ed:bufferName(e.buf) ~= loc.b then
+      e = ed:focus(loc.b)
+    end
+    e.l,e.c = loc.l,loc.c
   end
 end
 

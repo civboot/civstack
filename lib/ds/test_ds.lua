@@ -597,11 +597,15 @@ T'deq'; do
 end
 
 T'Stack'; do
-  local s = require'ds.Stack'{10, 20, 30}
+  local S = require'ds.Stack'
+  local s = S{10, 20, 30}
   s:push(40)
   T.ieq({10, 20, 30, 40}, s)
   T.eq(40, s:pop())
+  T.eq("ds.Stack{\n  10, 20, 30,\n  -----> top <-----\n  40\n}", fmt(s))
   T.ieq({10, 20, 30}, s)
+  T.eq(S{10, 20, 30, 40, top=3,max=4}, s)
+  assert(S{10, 20, 30, 444, top=3,max=4} ~= s)
   T.eq(4, s.max); T.eq(40, s:get(s.max))
   local s2 = s:copy(2)
   T.ieq({20, 30}, s2)
@@ -939,4 +943,3 @@ T'want'; do
   T.eq(mty,         ds.wantpath'metaty')
   T.eq(true,        ds.wantpath'metaty.CONCRETE.boolean')
 end
-

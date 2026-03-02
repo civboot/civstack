@@ -367,6 +367,7 @@ M.pathBackExpand = {action='chain',
 M.save = {action='edit', save=true, mode='command'}
 M.undo = {action='edit', undo=true}
 M.redo = {action='edit', redo=true}
+M.tmpBuf = {action='edit', focus='b#tmp'}
 
 --- CWD: current working directory
 M.navCwd = {action='nav', nav='cwd', mode='system'}
@@ -442,6 +443,7 @@ M.common = {
   ['^'] = M.sot, ['$'] = M.eol,
 
   ['^d'] = M.downScreen, ['^u'] = M.upScreen,
+  B = {action='jump', location=-1}, ['^b'] = {action='jump', location=1},
 
   -- Insert
   i = M.insertMode, I=M.insertsot, A=M.inserteol,
@@ -455,6 +457,7 @@ M.common = {
 
   ['g f'] = M.goPath, ['g F'] = M.createPath,
   ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
+  ['g n'] = M.tmpBuf,
 
   -- Go Window
   ['g h'] = M.windowLeft, ['g l'] = M.windowRight,

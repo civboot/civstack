@@ -6,6 +6,7 @@ local CT = require'civtest'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
+local Stack = require'ds.Stack'
 local pth = require'ds.path'
 local log = require'ds.log'
 local path = require'ds.path'
@@ -292,6 +293,8 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq(SS..'\n'..NAV_1, fmt(ed.display))
     T.eq('system', ed.mode)
     T.eq({1,8}, {e.l,e.c})
+    T.eq(1, ed.edit.locations.max)
+    T.ieq({et.EditLoc{b='nav', l=1,c=1}}, ed.edit.locations)
 
   s:play'esc'; T.eq('command', ed.mode)
 
@@ -421,9 +424,30 @@ Test{'coding', dat=CODE, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, t = ed.edit.buf, ed.display
   T.eq('command', ed.mode)
+  local locs1 = {et.EditLoc{b='b#4', l=1,c=1}}
+  -- (1) start at 1.1 (2) goto 2.1 (3) goto end 4.1
   s:play'2 G'
     T.eq({2,1}, {e.l,e.c})
     T.eq('  a = a + 1', b:get(e.l))
+    T.ieq(locs1, ed.edit.locations)
+    T.eq(1,   ed.edit.locations.max)
+
+  local locs2 = Stack{top=2,max=2,
+    et.EditLoc{b='b#4', l=1,c=1},
+    et.EditLoc{b='b#4', l=2,c=1},
+  }
+  s:play'G'
+    T.eq({4,1}, {e.l,e.c})
+    T.eq(locs2, ed.edit.locations)
+
+  local locs3= ds.copy(locs2, {top=1, max=2})
+  s:play'B' -- jump (-1)
+    T.eq({2,1}, {e.l,e.c})
+    T.eq(locs3, ed.edit.locations)
+
+  s:play'^b' -- jump (+1)
+    T.eq({4,1}, {e.l,e.c})
+    T.ieq(locs2, ed.edit.locations)
 
   s:play'o'
     T.eq(
@@ -431,6 +455,14 @@ Test{'coding', dat=CODE, function(tst)
   .."  a = a + 1\n  \nend\n", fmt(b.dat))
     T.eq({3,3}, {e.l,e.c})
     T.eq('insert', ed.mode)
+
+  s:play'esc g n'; local bt = ed.edit.buf
+    T.ieq({''}, bt.dat)
+    -- FIXME: no
+    T.ieq({}, ed.edit.locations)
+    T.eq(0, ed.edit.locations.max)
+
+  ds.yeet'ok'
 end}
 
 G.PWD = _PWD
