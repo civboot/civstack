@@ -200,7 +200,8 @@ function M.Picks:groupChanges(ci)
   while ci <= len and mty.ty(self.changes[ci]) == M.Keep do
     ci = ci + 1
   end
-  local starti = ci; for ci, ch in ds.islice(self.changes, ci) do
+  local starti = ci
+  for ci, ch in ds.islice(self.changes, ci) do local ci=ci
     local chTy = mty.ty(ch)
     if ci == len then
       if chTy == M.Keep then ci = ci - 1 end

@@ -247,7 +247,7 @@ local function untracked(P) --> list[string]
   local out, paths = {}, ds.Set(loadPaths(P))
   local ignore = loadIgnore(P)
   local w = ix.Walk{P}
-  for path, fty in w do
+  for path, fty in w do local path=path
     path = path:sub(#P+1)
     if path == '' then goto cont end
     local mpath = './'..path -- path for matching

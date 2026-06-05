@@ -21,7 +21,7 @@ function M.keyword() return setmetatable({}, Keyword) end
 
 local function undocumented(name)
   local t = {}
-  for k, v in pairs(_G[name]) do
+  for k, v in pairs(_G[name]) do local k=k
     k = name..'.'..k; if not rawget(M, k) then t[k] = v end
   end
   return t

@@ -215,7 +215,7 @@ end
 --- Default __fromPod for metatype records
 function M.mty_fromPod(T, pod, p)
   local t, podders, fieldIds = {}, T.__podders, T.__fieldIds
-  for k, v in pairs(p) do
+  for k, v in pairs(p) do local k=k
     if type(k) == 'number' then k = fieldIds[k] end
     t[k] = podders[k]:__fromPod(pod, v)
   end

@@ -397,7 +397,7 @@ function M.sort(t, fn) sort(t, fn); return t end --> t
 function M.sortUnique(t, sortFn, rmFn) --> t
   sort(t, sortFn); rmFn = rmFn or M.eq
   local i, len, iv, kv = 1, #t
-  for k=2,len do
+  for k=2,len do local k=k
     iv, kv = t[i], t[k]
     if not rmFn(iv, kv) then
       i = i + 1; t[i] = kv
@@ -712,7 +712,7 @@ function M.walk(t, fieldFn, tableFn, maxDepth, state) --> nil
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end
   end
-  for k, v in pairs(t) do
+  for k, v in pairs(t) do local k=k
     if type(v) == 'table' then
       if tableFn then
         k = tableFn(k, v, state); if k then

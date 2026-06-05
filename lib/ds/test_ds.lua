@@ -632,11 +632,12 @@ T'error'; do
 
   local ok, err = M.try(c)
   T.eq(false, ok)
-  M.clear(err.traceback, 4)
+  M.clear(err.traceback, 5)
   local expect = M.Error{
     msg='a error',
     traceback={
       D.."test_ds.lua:4",
+      "[C]: in global 'error'",
       D.."test_ds.lua:4: in upvalue 'a'",
       D.."test_ds.lua:5: in upvalue 'b'",
     },

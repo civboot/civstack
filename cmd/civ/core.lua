@@ -320,7 +320,7 @@ function M.Civ:expand(pat) --> targets
     w = ix.Walk{pth.concat{hubdir, pkgroot}}
     dirs = w
   end
-  for path, ftype in dirs do
+  for path, ftype in dirs do local path=path
     if w and ftype=='dir' and
         select(2, pth.last(path)):match'^%.' then
       log.info('skipping dir %q', path)
