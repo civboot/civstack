@@ -212,11 +212,12 @@ struct sh {
   int rc; // return code of wait
 };
 
+// wait for pid to be complete. Set pid to 0 when done.
 struct sh* sh_wait(struct sh* sh, int flags) {
   if(sh->pid) {
     siginfo_t infop = {0};
     if(waitid(P_PID, sh->pid, &infop, WEXITED | flags)) {
-      fprintf(stderr, "ERROR: waitid failed\n");
+      fprintf(stderr, "ERROR: waitid failed (%s [%i])\n", SERR, errno);
       return sh;
     }
     if(infop.si_pid) {

@@ -11,6 +11,7 @@ local ds = require'ds'
 local pth = require'ds.path'
 local lines = require'lines'
 local ix = require'civix'
+local info = require'ds.log'.info
 
 M.SUBNAME = ''
 
@@ -131,8 +132,8 @@ function M.throws(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
     io.fmt:styled('error',
-      '!! Unexpected: did not receive an error: ')
-    fail'Test.throws (no error)'
+      '!! Unexpected: did not receive an error:\n')
+    fail'throws: not receive expected error'
   end
   if err.msg:find(contains, 1, true) then return err end
   local f = io.fmt 

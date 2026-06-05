@@ -3,6 +3,7 @@ local ds = require'ds'
 local pth = require'ds.path'
 local Iter = require'ds.Iter'
 local T = require'civtest'
+local info = require'ds.log'.info
 
 local M  = require'civix'
 local B  = M._B -- bootstrapped
@@ -59,14 +60,16 @@ local function directShTest(sh)
   T.throws('Command failed with rc=1', function()
     sh'false'
   end)
-  -- FIXME
-  -- T.throws('Command failed with rc=1', function()
-  --   sh{'commandNotExist', 'blah'}
-  -- end)
 end
 
+T'directShBoot'; do
+  directShTest(B.sh)
+  -- TODO: in lua 5.5 this no longer works quite right in Sh.
+  T.throws('Command failed with rc=1', function()
+    B.sh{'commandNotExist', 'blah'}
+  end)
+end
 T'directSh';     do directShTest(M.sh) end
-T'directShBoot'; do directShTest(B.sh) end
 
 T'testSh'; do
   local sh, out, err, s = M.sh
