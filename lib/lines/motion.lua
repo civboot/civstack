@@ -6,6 +6,7 @@ local M = mod and mod'lines.motion' or {}
 
 local mty = require'metaty'
 local ds = require'ds'
+local match, sfmt            = mty.from(string, 'match, format')
 local sort2, bound, isWithin = mty.from(ds, 'sort2,bound,isWithin')
 local min, max               = mty.from(math, 'min,max')
 

@@ -7,6 +7,7 @@ local log    = require'ds.log'
 M._term      = require'vt100'
 local assertf = fmt.assertf
 local sfmt = string.format
+local toint = math.tointeger
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp = ds.getp
 
@@ -142,5 +143,13 @@ end
 
 --- The location the cursor was at, to be in a stack.
 M.EditLoc = mty'EditLoc' { 'b [str]: buf name', 'l', 'c'}
+
+--- parses l.c:b
+function M.EditLoc.parse(T, str, defaultBuf)
+  local l, c, b = str:match'^(%d+)%.(%d+)%s*(.*)$'
+  b = b=='' and defaultBuf or b
+  assertf(l and c and b, 'invalid EditLoc: %s b=%s', str, b)
+  return T{b=b, l=toint(l), c=toint(c)}
+end
 
 return M

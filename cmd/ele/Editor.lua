@@ -85,9 +85,15 @@ function Editor:bufferName(b) --> string
   return b.name or ('b#'..assert(b.id))
 end
 
+function Editor:currentLocation(e)
+  e = e or self.edit
+  return et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
+end
+
 function Editor:pushLocation(e) --> pushed
   e = e or self.edit
-  local loc = et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
+  local loc = self:currentLocation(e)
+  -- noop if already the same
   if mty.eq(loc, e.locations:get(#e.locations)) then return end
   e.locations:push(loc)
   info('pushed location %q', loc)
@@ -238,10 +244,13 @@ end
 --- Replace the current edit view with the new [$self:buffer(b)].
 --- Return the new edit view being focused.
 function Editor:focus(b) --> Edit
+  local cur = self.edit
   local b = assertf(self:buffer(b), '%q', b)
   local e = Edit{buf=b, yank=self.yank}
-  if self.edit then self.edit.container:replace(self.edit, e):close(self)
-  else              e.container = self end
+  if cur then
+    cur.container:replace(cur, e):close(self)
+    e.locations = ds.copy(cur.locations)
+  else e.container = self end
   self.edit = e
   if not self.view then self.view = e end
   return e

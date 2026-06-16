@@ -364,9 +364,9 @@ M.pathBackExpand = {action='chain',
   M.pathFocus, M.pathBack, M.pathExpand,
 }
 
-M.save = {action='edit', save=true, mode='command'}
-M.undo = {action='edit', undo=true}
-M.redo = {action='edit', redo=true}
+M.save   = {action='edit', save=true, mode='command'}
+M.undo   = {action='edit', undo=true}
+M.redo   = {action='edit', redo=true}
 M.tmpBuf = {action='edit', focus='b#tmp'}
 
 --- CWD: current working directory

@@ -8,16 +8,12 @@ local M = mty.mod'lines'
 
 local ds  = require'ds'
 
-local info = mty.from'ds.log  info'
-local push, pop = table.insert, table.remove
-local concat    = table.concat
-local ssub      = string.sub
-local max, min, ibound = math.max, math.min, ds.bound
-local srep = string.rep
-local sort2 = ds.sort2
-local rawsplit = mty.rawsplit
-
-local set, get, inset = ds.set, ds.get, ds.inset
+local info                    = mty.from'ds.log  info'
+local match, sfmt, ssub, srep = mty.from(string, 'match, format, sub, rep')
+local push, pop, concat       = mty.from(table, 'insert, remove, concat')
+local max, min, ibound        = math.max, math.min, ds.bound
+local sort2, set, get, inset  = mty.from'ds  sort2,set,get,inset'
+local rawsplit                = mty.rawsplit
 
 M.CMAX = 999
 M.CHUNK = 0x4000 -- 16KiB

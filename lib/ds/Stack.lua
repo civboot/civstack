@@ -5,7 +5,7 @@ local ty, meq   = mty.from'metaty  ty,eq'
 
 --- A stack of values with history preservation.
 ---
---- The main value of this vs a normal list is that pop'd items can be
+--- The main value of this vs a list is that pop'd items can be
 --- recovered until new items are pushed (by incrementing top up to max).
 --- This is very useful for undo/redo stacks/etc.
 local Stack = mty.recordMod'ds.Stack' {
@@ -60,6 +60,9 @@ end
 function Stack:__fmt(f)
   f:level(1)
   f:styled('symbol', self.__name .. f.tableStart, '\n')
+  f:tableKey'top' f:write' = '; f(self.top); f:write', '
+  f:tableKey'max' f:write' = '; f(self.max); f:write'\n'
+
   f:items(self, false, nil, 1,self.top)
   if self.top < self.max then
     f:write',\n'; f:styled('meta', '-----> top <-----', '\n')

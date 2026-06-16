@@ -676,17 +676,25 @@ function M.window(ed, ev)
   end
 end
 
+--- ev={location=+/-int}
 function M.jump(ed, ev)
   local e = ed.edit
   if ev.location then
     local loc = ev.location
+    local cur = ed:currentLocation(e)
     if loc < 0 then -- back, store cur location then jump back
       if ed:pushLocation(e) then e.locations:pop() end
-      loc = e.locations:pop()
+      while e.locations.top > 0 do
+        loc = e.locations:pop()
+        if not mty.eq(loc, cur) then break end
+      end
       info('jump back to %q', loc)
-    elseif e.locations.top < e.locations.max then -- forward
-      e.locations.top = e.locations.top + 1
-      loc = e.locations:get(e.locations.top)
+    else
+      while e.locations.top < e.locations.max do -- forward
+        e.locations.top = e.locations.top + 1
+        loc = e.locations:get(e.locations.top)
+        if not mty.eq(loc, cur) then break end
+      end
       info('jump forward to %q', loc)
     end
     if not loc then return end

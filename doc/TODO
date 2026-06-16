@@ -1,6 +1,5 @@
 Ele:
 * BUG: split twice, close window. Caused floating cursor
-* implement 'O' especially (go to last location)
 
 General
 * I need io.open/etc to respect G.PWD

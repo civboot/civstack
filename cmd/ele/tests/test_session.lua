@@ -424,31 +424,36 @@ Test{'coding', dat=CODE, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
   local b, t = ed.edit.buf, ed.display
   T.eq('command', ed.mode)
-  local locs1 = {et.EditLoc{b='b#4', l=1,c=1}}
-  -- (1) start at 1.1 (2) goto 2.1 (3) goto end 4.1
-  s:play'2 G'
+  local locs = function(lcs)
+    local s = Stack{}
+    for _, lc in ipairs(lcs) do
+      s:push(et.EditLoc:parse(lc, 'b#4'))
+    end
+    s.top = lcs.top or #lcs
+    s.max = lcs.max or #lcs
+    return s
+  end
+  -- start at (1.1)
+  s:play'2 G' -- goto 2.1
+    T.eq(locs{'1.1'}, ed.edit.locations)
     T.eq({2,1}, {e.l,e.c})
     T.eq('  a = a + 1', b:get(e.l))
-    T.ieq(locs1, ed.edit.locations)
-    T.eq(1,   ed.edit.locations.max)
 
-  local locs2 = Stack{top=2,max=2,
-    et.EditLoc{b='b#4', l=1,c=1},
-    et.EditLoc{b='b#4', l=2,c=1},
-  }
-  s:play'G'
+  s:play'G' -- goto end (4.1)
+    T.eq(locs{'1.1', '2.1'}, ed.edit.locations)
     T.eq({4,1}, {e.l,e.c})
-    T.eq(locs2, ed.edit.locations)
 
-  local locs3= ds.copy(locs2, {top=1, max=2})
-  do return end -- FIXME
-  s:play'B' -- jump (-1)
+  s:play'B' -- jump (-1), back to 2.1
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
     T.eq({2,1}, {e.l,e.c})
-    T.eq(locs3, ed.edit.locations)
 
-  s:play'^b' -- jump (+1)
+  s:play'^b' -- jump (+1), "forward" to 4.1
+    T.eq(locs{'1.1', '2.1', '4.1'}, ed.edit.locations)
     T.eq({4,1}, {e.l,e.c})
-    T.ieq(locs2, ed.edit.locations)
+
+  s:play'B' -- jump (-1), back to 2.1
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
+    T.eq({2,1}, {e.l,e.c})
 
   s:play'o'
     T.eq(
@@ -456,14 +461,14 @@ Test{'coding', dat=CODE, function(tst)
   .."  a = a + 1\n  \nend\n", fmt(b.dat))
     T.eq({3,3}, {e.l,e.c})
     T.eq('insert', ed.mode)
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
 
   s:play'esc g n'; local bt = ed.edit.buf
     T.ieq({''}, bt.dat)
-    -- FIXME: no
-    T.ieq({}, ed.edit.locations)
-    T.eq(0, ed.edit.locations.max)
+    T.eq(locs{'1.1', '3.3'}, ed.edit.locations)
 
-  ds.yeet'ok'
+  s:play'B' -- jump (-1), back to b#4
+    T.eq(locs{'1.1', '3.3', '1.1 b#5', top=1}, ed.edit.locations)
 end}
 
 G.PWD = _PWD
