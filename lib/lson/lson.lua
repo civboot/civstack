@@ -98,7 +98,6 @@ function M.Json.table(f, t)
   end
 end
 function M.Json:__call(v, podder, pod)
-  log.trace('Json.__call %q', v)
   if v ~= none then
     v = toPod(v, podder, pod or podSet)
   end

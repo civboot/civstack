@@ -276,17 +276,20 @@ static int l_sh(LS *L) {
   // process stdin
   if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
   else if (lua_toboolean(L, 4)) {
-    createdChR = true; if(pipe(rw)) goto error; ch_r  = rw[0]; pr_w  = rw[1];
+    createdChR = true; if(pipe(rw)) goto error;
+    ch_r = rw[0]; pr_w  = rw[1];
   }
   // process stdout
   if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
   else if (lua_toboolean(L, 5)) {
-    createdChW = true; if(pipe(rw)) goto error; pr_r  = rw[0]; ch_w  = rw[1];
+    createdChW = true; if(pipe(rw)) goto error;
+    pr_r = rw[0]; ch_w  = rw[1];
   }
   // process stderr
   if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
   else if (lua_toboolean(L, 6)) {
-    createdChL = true; if(pipe(rw)) goto error; pr_l  = rw[0]; ch_l  = rw[1];
+    createdChL = true; if(pipe(rw)) goto error;
+    pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
 
@@ -309,7 +312,7 @@ static int l_sh(LS *L) {
     execvp(command, argv);
     if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
           command, SERR, errno);
-    return 1;
+    _exit(1);
   } // else parent
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes

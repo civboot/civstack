@@ -12,7 +12,7 @@ local Iter = require'ds.Iter'
 local lap  = require'lap'
 
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
-local trace = require'ds.log'.trace
+local trace, info     = mty.from'ds.log   trace, info'
 local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
