@@ -670,6 +670,7 @@ function M.window(ed, ev)
       ed:focus(ed:buffer'b#scratch')
     end
   end
+  ed.redraw = true
 end
 
 --- ev={location=+/-int}

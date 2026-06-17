@@ -206,3 +206,4 @@ T'namedBuffer'; do
   local n = d:namedBuffer'nav'
   T.eq(et.INIT_BUFS - 1, n.id)
 end
+

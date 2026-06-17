@@ -29,6 +29,29 @@ function M.getEditor(c)
   return c
 end
 
+--- The base record for Edit/Game.
+M.BasePane = mty'BasePane' {
+  'id[int]',
+  'container', -- parent (Editor/Split)
+
+  'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
+  'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
+  'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
+  'closed [bool]', closed = false,
+
+  'modes [table]: override specific keybindings for this pane',
+}
+
+function M.BasePane.__init(t)
+  t.id = M.uniqueId()
+end
+
+function M.BasePane:close(ed)
+  assert(not self.container, 'close() before container removed')
+  assert(ed, 'must provide Editor')
+  self.closed = true
+end
+
 --- A container with windows split vertically (i.e. tall windows)
 M.VSplit = mty'VSplit' {
   'container [Editor|VSplit|HSplit]: parent container',
@@ -57,6 +80,7 @@ M.VSplit.remove = function(sp, v) --> v
     log.warning('zero items left in %s', mty.name(sp))
     sp.container:remove(sp)
   elseif #sp == 1 then -- only 1 item left, close self
+    sp[1].container = nil
     sp.container:replace(sp, sp[1]):close(sp:getEditor())
     sp[1] = nil
   end

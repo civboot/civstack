@@ -416,8 +416,8 @@ end}
 
 -- a common coding session
 local CODE = [[
-function foo(a)
-  a = a + 1
+function abc(d)
+  e = d + 1
 end
 ]]
 Test{'coding', dat=CODE, function(tst)
@@ -437,7 +437,7 @@ Test{'coding', dat=CODE, function(tst)
   s:play'2 G' -- goto 2.1
     T.eq(locs{'1.1'}, ed.edit.locations)
     T.eq({2,1}, {e.l,e.c})
-    T.eq('  a = a + 1', b:get(e.l))
+    T.eq('  e = d + 1', b:get(e.l))
 
   s:play'G' -- goto end (4.1)
     T.eq(locs{'1.1', '2.1'}, ed.edit.locations)
@@ -457,8 +457,8 @@ Test{'coding', dat=CODE, function(tst)
 
   s:play'o'
     T.eq(
-    "function foo(a)\n"
-  .."  a = a + 1\n  \nend\n", fmt(b.dat))
+    "function abc(d)\n"
+  .."  e = d + 1\n  \nend\n", fmt(b.dat))
     T.eq({3,3}, {e.l,e.c})
     T.eq('insert', ed.mode)
     T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
@@ -469,6 +469,31 @@ Test{'coding', dat=CODE, function(tst)
 
   s:play'B' -- jump (-1), back to b#4
     T.eq(locs{'1.1', '3.3', '1.1 b#5', top=1}, ed.edit.locations)
+end}
+
+local SPLITV3 = [[
+function afunctfunct
+  e = d +   e =  e =
+end       end  end]]
+
+local SPLITV2 = [[
+function afunction a
+  e = d +   e = d + 
+end       end]]
+
+Test{'splitTwice', dat=CODE, function(tst)
+  local s, ed = tst.s, tst.s.ed
+  local d = ed.display
+
+  s:play'g L  g L' -- split twice
+    T.eq(SC..'\n'..SPLITV3, fmt(ed.display))
+    T.eq({2,16}, {d.l,d.c})
+
+  s:play'g c' -- close right view
+    local e = ed.edit
+    T.eq({1,1}, {e.l,e.c})
+    T.eq(SC..'\n'..SPLITV2, fmt(ed.display))
+    T.eq({2,1}, {d.l,d.c})
 end}
 
 G.PWD = _PWD

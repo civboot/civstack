@@ -1,7 +1,5 @@
 local M = mod'ele.edit'
 
--- #####################
--- # Edit struct
 local mty    = require'metaty'
 local ds     = require'ds'
 local pth    = require'ds.path'
@@ -21,31 +19,21 @@ local span, box = mty.from(lines, 'span, box')
 local assertf      = mty.from'fmt  assertf'
 local info         = mty.from'ds.log  info'
 
-M.Edit = mty'Edit' {
-  'id[int]',
-  'container', -- parent (Editor/Split)
+--- Ele Edit View for viewing and editing text files in a pane.
+M.Edit = mty.extend(types.BasePane, 'Edit', {
   'buf [Buffer]',
   'yank [ds.Deq]: global yank deque',
   'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
-  'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
-  'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
-  'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
-  'fh[int]', fh=0,    'fw[int]', fw=0,  -- force h,w
-  'closed [bool]', closed = false,
   'locations [ds.Stack[ele.types.EditLoc]]: a deq of locations visited.',
-
-  -- override specific keybindings for this buffer
-  'modes [table]',
   'drawBars [fn[Edit] -> botHeight,leftWidth]',
   'lineStyle [str]: asciicolor style',
     lineStyle = 'bar:line',
-}
-
+})
 
 getmetatable(M.Edit).__call = function(T, t)
+  T.__init(t)
   local b = assert(t.buf, 'must set buf')
   t.l, t.c = t.l or b.l, t.c or b.c
-  t.id = types.uniqueId()
   t.locations = Stack(t.locations or {})
   local self = mty.construct(T, t)
   self:changeStart()
@@ -55,9 +43,7 @@ end
 M.Edit.getEditor = types.getEditor
 
 function M.Edit:close(ed)
-  assert(not self.container, "Edit not removed before close")
-  assert(ed, 'must provide Editor')
-  self.closed = true
+  types.BasePane.close(self, ed)
   local b = self.buf
   if b.tmp then
     b.tmp[self] = nil; if #b.tmp == 0 then
@@ -96,8 +82,6 @@ function M.Edit:copy()
     locations=self.locations:copy(127)
   })
 end
-function M.Edit:forceHeight() return self.fh end
-function M.Edit:forceWidth() return self.fw end
 function M.Edit:curLine()
   return self.buf.dat[self.l] end
 function M.Edit:colEnd() return #(self:curLine() or '') + 1 end

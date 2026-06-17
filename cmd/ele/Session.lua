@@ -55,6 +55,7 @@ end
 -- run events until they are exhuasted
 Session.run = function(s)
   s.running = true
+  -- FIXME: should be [$s.ed.pane.actions or s.ed.actions]
   local actions = s.ed.actions
   while #s.events > 0 do
     local ev = s.events()

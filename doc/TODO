@@ -1,13 +1,16 @@
-Ele:
-* BUG: split twice, close window. Caused floating cursor
+Simple Typing Game
+
+Displays one or more words from words.txt which are in form `word  points`.
+
+As you advance you are asked to earn more points.
+
+The game itself just shows the line, then you type below the line
+and it highlights text that is correct (blue) vs wrong (red).
 
 General
 * I need io.open/etc to respect G.PWD
-* Have good way to check if sh command exists.
-  Check for stuff in pvc, especially merge (install rcs).
 * The cxt info boxes are rendering very far away from the next
   element, i.e. in pvc.at
-* civtest shows two "pathEq" because two variables are assigned it. Fix that behavior.
 
 Review Docs
 * pegl
@@ -15,7 +18,6 @@ Review Docs
 * shim
 * vcds
 * vt100
-
 
 ## Bug
 yank EoL -> paste -> undo -> move -> paste
