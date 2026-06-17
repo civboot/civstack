@@ -61,6 +61,7 @@ local function directShTest(sh)
     sh'false'
   end)
   T.throws('Command failed with rc=1', function()
+    -- FIXME: remove B. Started failing in lua 5.5
     B.sh{'commandNotExist', 'blah'}
   end)
 end

@@ -602,7 +602,11 @@ T'Stack'; do
   s:push(40)
   T.ieq({10, 20, 30, 40}, s)
   T.eq(40, s:pop())
-  T.eq("ds.Stack{\n  10, 20, 30,\n  -----> top <-----\n  40\n}", fmt(s))
+  T.eq('ds.Stack{\n'
+     ..'  top = 3, max = 4,\n'
+     ..'  10, 20, 30,\n'
+     ..'  -----> top <-----\n'
+     ..'  40\n}', fmt(s))
   T.ieq({10, 20, 30}, s)
   T.eq(S{10, 20, 30, 40, top=3,max=4}, s)
   assert(S{10, 20, 30, 444, top=3,max=4} ~= s)

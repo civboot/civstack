@@ -61,7 +61,7 @@ function Stack:__fmt(f)
   f:level(1)
   f:styled('symbol', self.__name .. f.tableStart, '\n')
   f:tableKey'top' f:write' = '; f(self.top); f:write', '
-  f:tableKey'max' f:write' = '; f(self.max); f:write'\n'
+  f:tableKey'max' f:write' = '; f(self.max); f:write',\n'
 
   f:items(self, false, nil, 1,self.top)
   if self.top < self.max then

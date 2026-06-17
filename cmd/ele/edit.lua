@@ -93,7 +93,7 @@ function M.Edit:__len() return #self.buf end
 function M.Edit:copy()
   return ds.copy(self, {
     id=T.nextViewId(),
-    locations=self.locations:copy(128)
+    locations=self.locations:copy(127)
   })
 end
 function M.Edit:forceHeight() return self.fh end

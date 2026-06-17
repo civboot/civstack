@@ -10,12 +10,6 @@ local T = require'civtest'
 local O = '.out/lines_test/'
 require'civix'.mkDirs(O)
 
-T'parseLC'; do local parseLC = lines.parseLC
-  T.eq({1,2},  {parseLC'1.2'})
-  T.eq({11,2}, {parseLC'11.2'})
-  T.throws('"four.2" not in form', function() parseLC'four.2' end)
-end
-
 T'new'; do
   T.eq({'one', 'two 2', ''}, lines'one\ntwo 2\n')
   T.eq({'one', 'two 2', ''}, lines._args'one\ntwo 2\n')

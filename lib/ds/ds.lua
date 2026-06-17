@@ -473,8 +473,7 @@ function M.slice(t, si, ei) --> list
 end
 
 --- Return true if two list-like tables are equal.[{br}]
---- Note that this only compares integer keys and ignores
---- others.
+--- Note that this only compares integer keys up to [$#len].
 function M.ieq(a, b)
   if #a ~= #b then return false end
   for i=1,#a do if a[i] ~= b[i] then return false end end

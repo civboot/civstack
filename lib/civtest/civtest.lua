@@ -78,7 +78,8 @@ function M.eq(a, b, msg)
   fail('Test.eq'..(msg and (': '..msg) or ''))
 end
 
---- Assert that the indexes of two items with a length are equal.
+--- Assert that two list-like tables are equal.[{br}]
+--- Note that this only compares integer keys up to [$#len].
 function M.ieq(a, b, msg)
   if #a ~= #b then goto notequal end
   for i=1,#a do
@@ -136,7 +137,7 @@ function M.throws(contains, fn) --> ds.Error
     fail'throws: not receive expected error'
   end
   if err.msg:find(contains, 1, true) then return err end
-  local f = io.fmt 
+  local f = io.fmt
   f:styled('error', '\n!! Unexpected Result:', '\n');
   f:styled('error', 'Actual error:', '\n')
   f:write(err.msg)

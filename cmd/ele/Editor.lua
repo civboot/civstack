@@ -249,7 +249,7 @@ function Editor:focus(b) --> Edit
   local e = Edit{buf=b, yank=self.yank}
   if cur then
     cur.container:replace(cur, e):close(self)
-    e.locations = ds.copy(cur.locations)
+    e.locations = cur.locations:copy(127)
   else e.container = self end
   self.edit = e
   if not self.view then self.view = e end

@@ -335,15 +335,11 @@ function M.searchBuf(ed, ev)
       end
       if l then e.l,e.c = l,c end
     elseif ev.prev then
-      info'@@ searchBufPrev'
       local l,c = lines.findBack(e.buf.dat, ed.search, e.l,e.c-1)
-      info'@@ searchBufPrev + after findBack1'
       if not l and ev.wrap then
         l,c = lines.findBack(e.buf.dat, ed.search, -1,-1)
-        info'@@ searchBufPrev + after findBack2'
       end
       if l then e.l,e.c = l,c end
-      info'@@ searchBufPrev + done'
     end
   end
 end
