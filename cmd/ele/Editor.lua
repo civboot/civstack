@@ -34,7 +34,7 @@ local Editor = mty'Editor' {
   'buffers [list[Buffer]]', 'bufferId[map[Buffer, id]]',
   'namedBuffers [map[string,Buffer]]',
   'overlay [Buffer]: the overlay buffer',
-  'edit [Buffer]: the current edit buffer. Also in namedBuffers.overlay',
+  'pane [Buffer]: the currently active pane.',
   'view [RootView]: the root view',
   'display [Term|other]: display/terminal to write+paint text',
   'run [boolean]: set to false to stop the app', run=true,
@@ -86,12 +86,12 @@ function Editor:bufferName(b) --> string
 end
 
 function Editor:currentLocation(e)
-  e = e or self.edit
+  e = e or self.pane
   return et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
 end
 
 function Editor:pushLocation(e) --> pushed
-  e = e or self.edit
+  e = e or self.pane
   local loc = self:currentLocation(e)
   -- noop if already the same
   if mty.eq(loc, e.locations:get(#e.locations)) then return end
@@ -161,7 +161,7 @@ function Editor:open(path) --> edit
 end
 
 function Editor:draw()
-  local v, d, e = self.view, self.display, self.edit
+  local v, d, e = self.view, self.display, self.pane
   d.text:insert(1,1, sfmt('[mode:%s]', self.mode))
   v.tl, v.tc, v.th, v.tw = 2, 1, d.h-1, d.w
   v:draw(self, true)
@@ -199,10 +199,10 @@ function Editor:handleStandard(ev)
       return self.error('%s has invalid mode', ev, m)
     end
     log.info(' + mode %s -> %s', self.mode, m)
-    if m == 'insert' and not self.edit.buf:changed() then
-      self.edit:changeStart()
+    if m == 'insert' and not self.pane.buf:changed() then
+      self.pane:changeStart()
     elseif self.mode == 'insert' then
-      self.edit.buf:discardUnusedStart()
+      self.pane.buf:discardUnusedStart()
     end
     self.mode = m
   end
@@ -227,7 +227,7 @@ function Editor:remove(v) --> v
   assert(self.view == v, 'view being removed is not self.view')
   assert(v.container == self)
   self.view = nil
-  if self.edit == v then self.edit = nil end
+  if self.pane == v then self.pane = nil end
   v.container = nil
   return v
 end
@@ -237,21 +237,21 @@ function Editor:focusFirst(c)
   c = c or self.view
   while mty.ty(c) ~= Edit do c = c[1] end
   assert(mty.ty(c) == Edit)
-  self.edit = c
+  self.pane = c
   if not self.view then self.view = c end
 end
 
 --- Replace the current edit view with the new [$self:buffer(b)].
 --- Return the new edit view being focused.
 function Editor:focus(b) --> Edit
-  local cur = self.edit
+  local cur = self.pane
   local b = assertf(self:buffer(b), '%q', b)
   local e = Edit{buf=b, yank=self.yank}
   if cur then
     cur.container:replace(cur, e):close(self)
     e.locations = cur.locations:copy(127)
   else e.container = self end
-  self.edit = e
+  self.pane = e
   if not self.view then self.view = e end
   return e
 end

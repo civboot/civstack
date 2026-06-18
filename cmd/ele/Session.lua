@@ -46,7 +46,7 @@ Session.user = function(T, s)
   local s = T(s)
   s.ed.error = log.err
   s.ed.warn  = log.warn
-  local e = s.ed.edit
+  local e = s.ed.pane
   e:insert(et.WELCOME)
   e.l, e.c = 1, 1
   return s
@@ -141,7 +141,7 @@ function Session:highlight()
   local hl = mty.from'pegl.lua  highlighter'
   hl.styleColor = require'asciicolor'.dark
   local function highlight()
-    local buf = self.ed.edit.buf
+    local buf = self.ed.pane.buf
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then
       local lf = buf.dat:reader()

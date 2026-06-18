@@ -13,7 +13,7 @@ M.SLEEP = 0
 function M.newSession(text)
   local s = Session:test{}; local ed = s.ed
   push(ed.buffers, buffer.Buffer.new(text))
-  ed.edit = edit.Edit{buf=ed.buffers[1]}
+  ed.pane = edit.Edit{buf=ed.buffers[1]}
   return s
 end
 

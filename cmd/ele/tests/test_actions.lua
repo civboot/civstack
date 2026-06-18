@@ -34,7 +34,7 @@ local lines3 =
 ..'1 3 5 7 9\n'
 
 T'move'; do
-  local d = newEditor(lines3); local e = d.edit
+  local d = newEditor(lines3); local e = d.pane
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -66,8 +66,8 @@ T'move'; do
 end
 
 T'remove'; do
-  local d = newEditor(lines3); local e, b = d.edit, d.edit.buf
-  local y = d.edit.yank
+  local d = newEditor(lines3); local e, b = d.pane, d.pane.buf
+  local y = d.pane.yank
   local function assertRemove(mv, ev, l, c)
     ev.move = mv; M.remove(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -94,7 +94,7 @@ T'remove'; do
     T.eq('7 9\n', fmt(b.dat))
 
   info'removing first line'
-  d = newEditor(lines3); local e, b = d.edit, d.edit.buf
+  d = newEditor(lines3); local e, b = d.pane, d.pane.buf
   e.l, e.c = 1,1
   assertRemove('lines', {lines=0, times=1}, 1,1) -- remove one lines
     T.eq('  3 5\n1 3 5 7 9\n', fmt(b.dat))
@@ -103,7 +103,7 @@ T'remove'; do
     T.eq('  3 5\n1 3 5 7 9\n1 3 5 7 9\n', fmt(b.dat))
 
   info'join lines'
-  d = newEditor'ab\ncd\n  z\n'; local e, b = d.edit, d.edit.buf
+  d = newEditor'ab\ncd\n  z\n'; local e, b = d.pane, d.pane.buf
   e.c = 3
   assertRemove('nextLineText', {cols=-1}, 1,1)
     T.eq('abcd\n  z\n', fmt(b.dat))
@@ -113,7 +113,7 @@ T'remove'; do
 end
 
 T'insert'; do
-  local d = newEditor'1 2 3\n4 5 6'; local e, b = d.edit, d.edit.buf
+  local d = newEditor'1 2 3\n4 5 6'; local e, b = d.pane, d.pane.buf
   local function assertInsert(txt, ev, l, c)
     ev[1] = txt; M.insert(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -124,7 +124,7 @@ T'insert'; do
     T.eq('4 5 6',     b:get(2))
   assertInsert('6 7\n', {}, 2, 1)
     T.eq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
-  d = newEditor'a b\n  c\nd'; e, b = d.edit, d.edit.buf
+  d = newEditor'a b\n  c\nd'; e, b = d.pane, d.pane.buf
   e.l,e.c = 3,1
   M.autoIndent(d, {})
     T.eq('a b\n  c\n  d', fmt(b.dat))
@@ -139,8 +139,8 @@ local NAV1 = [[
 ]]
 T'nav'; do
   local d = newEditor(NAV1)
-  assert(d.edit.container == d)
-  local e, b = d.edit, d.edit.buf
+  assert(d.pane.container == d)
+  local e, b = d.pane, d.pane.buf
 
   T.eq('./focus/path/', nav.getFocus'-./focus/path/\n')
   T.eq(nil,             nav.getFocus'focus/path/\n')
@@ -191,7 +191,7 @@ T'nav'; do
   T.eq(test_txt, nav.getPath(b, 2,1))
   nav.goPath(d, true)
   T.eq(et.INIT_BUFS + 2, #d.buffers)
-  local e = d.edit
+  local e = d.pane
   T.eq(pth.abs(pth.resolve(test_txt)), e.buf.dat.path)
   T.eq({1,1}, {e.l, e.c})
   e:changeStart()

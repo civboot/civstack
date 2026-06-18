@@ -48,7 +48,7 @@ function M.keyinput(ed, ev, evsend)
     local getb = type(nxt) == 'table' and mty.getmethod(nxt, 'getBinding')
     if getb then nxt = getb(nxt, ki) end
   else
-    local emode = ds.getp(ed, {'edit', 'modes', ed.mode, ki})
+    local emode = ds.getp(ed, {'pane', 'modes', ed.mode, ki})
     nxt = emode and rawget(emode, ki)
        or rawget(mode, ki)
        or emode and rawget(emode, 'fallback')
@@ -177,7 +177,7 @@ end
 --
 -- Supports: times
 function M.move(ed, ev)
-  local e = ed.edit
+  local e = ed.pane
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   if ev.move == 'absolute' then
     ed:pushLocation()
@@ -192,7 +192,7 @@ end
 --- Get the start/end of a move without changing
 --- the position.
 function M.getMove(ed, ev) --> l1,c1, l2,c2
-  local e = ed.edit
+  local e = ed.pane
   local e_c = e.c
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
@@ -208,7 +208,7 @@ end
 -- insert action, normally inserts ev[1] at the current position.
 function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
-  local e = ed.edit
+  local e = ed.pane
   if ev[1] then
     e:insert(string.rep(assert(ev[1]), ev.times or 1))
   end
@@ -217,14 +217,14 @@ end
 
 function M.insertTab(ed, ev)
   local tw = ed.s.tabwidth
-  local c = (ed.edit.c - 1) % tw
-  ed.edit:insert(srep(' ', tw - c))
+  local c = (ed.pane.c - 1) % tw
+  ed.pane:insert(srep(' ', tw - c))
   ed:handleStandard(ev)
 end
 
 function M.backspace(ed, ev)
   local tw = ed.s.tabwidth
-  local e = ed.edit; local b = e.buf
+  local e = ed.pane; local b = e.buf
   local ln = e:curLine() or ''
   local ind = ln:match'^%s*'
   local rm = 1
@@ -236,7 +236,7 @@ function M.backspace(ed, ev)
 end
 
 function M.autoIndent(ed, ev)
-  local e = ed.edit; local b = e.buf
+  local e = ed.pane; local b = e.buf
   local ind = lines.autoIndent(b,e.l)
   for l=e.l, e.l + (ev.times or 1) - 1 do
     b:remove(l,1,l,#b:get(l):match'^%s*')
@@ -247,7 +247,7 @@ end
 
 --- Yank without ed:handleStandard()
 function M._yank(ed, ev)
-  local e = ed.edit
+  local e = ed.pane
   if ev.lines == 0 then
     local t = ev.times; t = (t and (t - 1)) or 0
     log.info('yank lines(0) %s:%s', e.l, e.l + t)
@@ -272,7 +272,7 @@ function M.paste(ed, ev)
   local ri = ev.index or 1  -- right index
   local dat = ed.yank[ed.yank.right - (ri - 1)]
   assertf(dat, 'yank index empty: %s', ri)
-  local e = ed.edit; e:changeStart()
+  local e = ed.pane; e:changeStart()
   if #dat == 1 then e:insert(dat[1])
   else
     local s = concat(dat, '\n')
@@ -295,7 +295,7 @@ end
 -- * lines=0 removes a single line (also supports times)
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
-  local e = ed.edit; e:changeStart()
+  local e = ed.pane; e:changeStart()
   M._yank(ed, ev)
   local t = ev.times
   if ev.lines == 0 then
@@ -319,7 +319,7 @@ end
 -- Search Buf
 
 function M.searchBuf(ed, ev)
-  local e, sb = ed.edit, ed:namedBuffer'search'
+  local e, sb = ed.pane, ed:namedBuffer'search'
   if ev.overlay then -- update find buffer from overlay
     ed.search = ed.overlay:get(1)
     if ev.overlay == 'store' then
@@ -349,7 +349,7 @@ end
 
 M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
 getmetatable(M.nav).__call = function(_, ed, ev, evsend)
-  local e1 = ed.edit
+  local e1 = ed.pane
   local e = ed:focus'b#nav'
   ed:pushLocation()
   e:changeStart()
@@ -530,7 +530,7 @@ end
 --- go to path at l,c. If op=='create' then create the path
 function nav.goPath(ed, create)
   ed:pushLocation()
-  local e = ed.edit
+  local e = ed.pane
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
     local b = ed:getBuffer(p); if b then
@@ -552,7 +552,7 @@ local DO_ENTRY = {
 
 --- perform the entry operation
 function nav.doEntry(ed, op, times, ls)
-  local e = ed.edit; local l = e.l
+  local e = ed.pane; local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
   local fl = fn(e.buf, l, times, ls) or l
@@ -566,7 +566,7 @@ function M.path(ed, ev, evsend)
     nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
   if ev.go == 'enter' then
-    local e = ed.edit
+    local e = ed.pane
     local line = e.buf:get(e.l)
     if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
     else                    nav.goPath(ed, ev.create) end
@@ -581,24 +581,24 @@ end
 --- ]
 function M.edit(ed, ev)
   if ev.save  then
-    ed.edit:save(ed)
+    ed.pane:save(ed)
   end
   if ev.focus then
      ed:pushLocation()
      ed:focus(ev.focus)
   end
   if ev.clear then
-    ed.edit:changeStart()
-    ed.edit:clear()
+    ed.pane:changeStart()
+    ed.pane:clear()
   end
   if ev.undo then
     for _=1,ev.times or 1 do
-      if not ed.edit:undo() then break end
+      if not ed.pane:undo() then break end
     end
   end
   if ev.redo then
     for _=1,ev.times or 1 do
-      if not ed.edit:redo() then break end
+      if not ed.pane:redo() then break end
     end
   end
   ed:handleStandard(ev)
@@ -633,10 +633,10 @@ M.SPLIT = {
 function M.window(ed, ev)
   if ev.split then
     local S = assert(M.SPLIT[ev.split], ev.split)
-    ed.edit:split(S)
+    ed.pane:split(S)
   end
   if ev.moveV then
-    local v = ed.edit; local c = e.container
+    local v = ed.pane; local c = e.container
     if mty.ty(c) == et.VSplit then
       v, c = c, c.container
     end
@@ -644,12 +644,12 @@ function M.window(ed, ev)
       local i = assert(ds.indexOf(c, v)) + ev.moveV
       if 1 <= i and i <= #c then
         assert(mty.ty(c[i] == Edit))
-        ed.edit = c[i]
+        ed.pane = c[i]
       end
     end
   end
   if ev.moveH then
-    local v = ed.edit; local c = v.container
+    local v = ed.pane; local c = v.container
     if mty.ty(c) == et.HSplit then
       v, c = c, c.container
       -- FIXME:
@@ -658,15 +658,15 @@ function M.window(ed, ev)
       local i = assert(ds.indexOf(c, v)) + ev.moveH
       if 1 <= i and i <= #c then
         assert(mty.ty(c[i] == Edit))
-        ed.edit = c[i]
+        ed.pane = c[i]
       end
     end
   end
   if ev.close then
-    local e = ed.edit
+    local e = ed.pane
     e.container:remove(e); e:close(ed)
-    ed.edit = nil;         ed:focusFirst()
-    if not ed.view or not ed.edit then
+    ed.pane = nil;         ed:focusFirst()
+    if not ed.view or not ed.pane then
       ed:focus(ed:buffer'b#scratch')
     end
   end
@@ -675,7 +675,7 @@ end
 
 --- ev={location=+/-int}
 function M.jump(ed, ev)
-  local e = ed.edit
+  local e = ed.pane
   if ev.location then
     local loc = ev.location
     local cur = ed:currentLocation(e)

@@ -52,13 +52,13 @@ getmetatable(Test).__call = function(Ty, t)
   local path = ds.srcloc(1)
   t = mty.construct(Ty, t)
   t.s = t.s or Session:test{}; local ed = t.s.ed
-  assert(ed.view == ed.edit)
+  assert(ed.view == ed.pane)
   ed.display = Fake{h=t.th, w=t.tw, styler=ac.Styler{}}
   local name = assert(t[1], 'need name')
   print('## test_session.Test', name)
   local testFn = function()
     if t.dat then
-      lines.insert(ed.edit.buf.dat, t.dat, 1,1)
+      lines.insert(ed.pane.buf.dat, t.dat, 1,1)
     elseif t.open then ed:open(t.open) end
     t.s:handleEvents()
     assert(t[2], 'need [2]=fn')(t)
@@ -78,8 +78,8 @@ getmetatable(Test).__call = function(Ty, t)
 end
 
 Test{'session', dat='', function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, t = ed.edit.buf, ed.display
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
+  local b, t = ed.pane.buf, ed.display
   T.eq('command', ed.mode)
   T.eq('\n\n\n', fmt(t))
 
@@ -103,7 +103,7 @@ Test{'session', dat='', function(tst)
 end}
 
 Test{'move', dat=LINES3, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   T.eq(3, #e.buf)
   T.eq('command', ed.mode)
   T.eq('\n\n\n', fmt(ed.display))
@@ -128,7 +128,7 @@ Test{'move', dat=LINES3, function(tst)
 end}
 
 Test{'backspace', dat='   a\n', function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b = e.buf
   e.l,e.c = 1,5
   s:play'i'
@@ -140,7 +140,7 @@ Test{'backspace', dat='   a\n', function(tst)
 end}
 
 Test{'change_undo', dat=LINES3, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b = e.buf
   s:play'f 3 C h i'   T.eq({1, 5}, {e.l, e.c})
     T.eq(SI..'\n1 hi\n 2 4 6\n', fmt(ed.display))
@@ -168,7 +168,7 @@ local SMALL_1 = '\n'..[[
  6
 | data/small.lua:1.1 (b#5) ===]]
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b, BID = e.buf, et.INIT_BUFS + 2
   T.eq(b.id, BID)
   T.eq(SMALL, pth.nice(b.dat.path))
@@ -200,7 +200,7 @@ local SPLIT_3 = '\n'..[[
 | data/small.lua:1.1 (b#5) =================================]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b, BID = e.buf, et.INIT_BUFS + 2
   local d = ed.display
 
@@ -210,8 +210,8 @@ Test{'window', open=SMALL, th=5, tw=60, function(tst)
     T.eq(SC..SPLIT_1, fmt(ed.display))
     T.eq(et.VSplit, mty.ty(ed.view))
     T.eq(e, ed.view[1])
-    T.eq(ed.edit, ed.view[2])
-    assert(e ~= ed.edit)
+    T.eq(ed.pane, ed.view[2])
+    assert(e ~= ed.pane)
 
   local sp = ed.view
   local e1, e2 = sp[1], sp[2]
@@ -220,7 +220,7 @@ Test{'window', open=SMALL, th=5, tw=60, function(tst)
     T.eq({2,7}, {e2.l,e2.c})
     T.eq(SC..SPLIT_2, fmt(ed.display))
 
-  s:play'g c'; e = ed.edit
+  s:play'g c'; e = ed.pane
     T.eq(log.LogTable{}, ed.error)
     T.eq(ed.view, e)
     T.eq(SC..SPLIT_3, fmt(d))
@@ -239,7 +239,7 @@ local INSERTED_3 = [[
   
 | (b#4:1.9) ==================]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local g = e.buf.dat
   T.eq(require'lines.Gap', mty.ty(g))
   s:play''
@@ -289,12 +289,12 @@ local BUF_1 = [[
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
   s:play'g .'
-  local e = tst.s.ed.edit
+  local e = tst.s.ed.pane
     T.eq(SS..'\n'..NAV_1, fmt(ed.display))
     T.eq('system', ed.mode)
     T.eq({1,8}, {e.l,e.c})
-    T.eq(1, ed.edit.locations.max)
-    T.ieq({et.EditLoc{b='nav', l=1,c=1}}, ed.edit.locations)
+    T.eq(1, ed.pane.locations.max)
+    T.ieq({et.EditLoc{b='nav', l=1,c=1}}, ed.pane.locations)
 
   s:play'esc'; T.eq('command', ed.mode)
 
@@ -308,7 +308,7 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq({4,8}, {e.l,e.c})
 
   s:play'2 k l j enter' -- go to thing1.txt
-  e = tst.s.ed.edit
+  e = tst.s.ed.pane
     T.matches('data/seuss/thing1%.txt$', e:path())
     T.eq('command', ed.mode)
 
@@ -316,13 +316,13 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
     T.eq('system', ed.mode)
   s:play'4 j enter'
-    T.matches('data/small.lua$', ed.edit:path())
+    T.matches('data/small.lua$', ed.pane:path())
   s:play'g b' -- should be same as before
     T.eq(SS..'\n'..BUF_1, fmt(ed.display))
 end}
 
 Test{'overlay', dat=LINES3, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local ov = ed.overlay; ov.ext.show = true
   ov:insert('THE OVERLAY', 1,1)
   s:play''
@@ -339,7 +339,7 @@ Test{'overlay', dat=LINES3, function(tst)
 end}
 
 Test{'overlay', dat=LINES3, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local ov = ed.overlay; ov.ext.show = true
   ov:insert('THE OVERLAY', 1,1)
   s:play''
@@ -356,7 +356,7 @@ Test{'overlay', dat=LINES3, function(tst)
 end}
 
 Test{'searchBuf', dat=LINES3, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local ov = ed.overlay
   local sbuf = ed:namedBuffer'search'
 
@@ -390,8 +390,8 @@ Test{'searchBuf', dat=LINES3, function(tst)
 end}
  
 Test{'session', dat='', function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, t = ed.edit.buf, ed.display
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
+  local b, t = ed.pane.buf, ed.display
   T.eq('command', ed.mode)
   T.eq('\n\n\n', fmt(t))
 
@@ -421,8 +421,8 @@ function abc(d)
 end
 ]]
 Test{'coding', dat=CODE, function(tst)
-  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.edit
-  local b, t = ed.edit.buf, ed.display
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
+  local b, t = ed.pane.buf, ed.display
   T.eq('command', ed.mode)
   local locs = function(lcs)
     local s = Stack{}
@@ -435,24 +435,24 @@ Test{'coding', dat=CODE, function(tst)
   end
   -- start at (1.1)
   s:play'2 G' -- goto 2.1
-    T.eq(locs{'1.1'}, ed.edit.locations)
+    T.eq(locs{'1.1'}, ed.pane.locations)
     T.eq({2,1}, {e.l,e.c})
     T.eq('  e = d + 1', b:get(e.l))
 
   s:play'G' -- goto end (4.1)
-    T.eq(locs{'1.1', '2.1'}, ed.edit.locations)
+    T.eq(locs{'1.1', '2.1'}, ed.pane.locations)
     T.eq({4,1}, {e.l,e.c})
 
   s:play'B' -- jump (-1), back to 2.1
-    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.pane.locations)
     T.eq({2,1}, {e.l,e.c})
 
   s:play'^b' -- jump (+1), "forward" to 4.1
-    T.eq(locs{'1.1', '2.1', '4.1'}, ed.edit.locations)
+    T.eq(locs{'1.1', '2.1', '4.1'}, ed.pane.locations)
     T.eq({4,1}, {e.l,e.c})
 
   s:play'B' -- jump (-1), back to 2.1
-    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.pane.locations)
     T.eq({2,1}, {e.l,e.c})
 
   s:play'o'
@@ -461,14 +461,14 @@ Test{'coding', dat=CODE, function(tst)
   .."  e = d + 1\n  \nend\n", fmt(b.dat))
     T.eq({3,3}, {e.l,e.c})
     T.eq('insert', ed.mode)
-    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.edit.locations)
+    T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.pane.locations)
 
-  s:play'esc g n'; local bt = ed.edit.buf
+  s:play'esc g n'; local bt = ed.pane.buf
     T.ieq({''}, bt.dat)
-    T.eq(locs{'1.1', '3.3'}, ed.edit.locations)
+    T.eq(locs{'1.1', '3.3'}, ed.pane.locations)
 
   s:play'B' -- jump (-1), back to b#4
-    T.eq(locs{'1.1', '3.3', '1.1 b#5', top=1}, ed.edit.locations)
+    T.eq(locs{'1.1', '3.3', '1.1 b#5', top=1}, ed.pane.locations)
 end}
 
 local SPLITV3 = [[
@@ -490,7 +490,7 @@ Test{'splitTwice', dat=CODE, function(tst)
     T.eq({2,16}, {d.l,d.c})
 
   s:play'g c' -- close right view
-    local e = ed.edit
+    local e = ed.pane
     T.eq({1,1}, {e.l,e.c})
     T.eq(SC..'\n'..SPLITV2, fmt(ed.display))
     T.eq({2,1}, {d.l,d.c})
