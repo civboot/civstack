@@ -81,17 +81,23 @@ function Editor:init()
   return self
 end
 
+function Editor:edit()
+  local e = self.pane
+  assert(not e or mty.ty(e) == Edit, 'not Edit')
+  return e
+end
+
 function Editor:bufferName(b) --> string
   return b.name or ('b#'..assert(b.id))
 end
 
 function Editor:currentLocation(e)
-  e = e or self.pane
+  e = e or self:edit()
   return et.EditLoc{b=self:bufferName(e.buf), l=e.l, c=e.c}
 end
 
 function Editor:pushLocation(e) --> pushed
-  e = e or self.pane
+  e = e or self:edit()
   local loc = self:currentLocation(e)
   -- noop if already the same
   if mty.eq(loc, e.locations:get(#e.locations)) then return end
@@ -199,10 +205,10 @@ function Editor:handleStandard(ev)
       return self.error('%s has invalid mode', ev, m)
     end
     log.info(' + mode %s -> %s', self.mode, m)
-    if m == 'insert' and not self.pane.buf:changed() then
-      self.pane:changeStart()
+    if m == 'insert' and not self:edit().buf:changed() then
+      self:edit():changeStart()
     elseif self.mode == 'insert' then
-      self.pane.buf:discardUnusedStart()
+      self:edit().buf:discardUnusedStart()
     end
     self.mode = m
   end
@@ -249,7 +255,11 @@ function Editor:focus(b) --> Edit
   local e = Edit{buf=b, yank=self.yank}
   if cur then
     cur.container:replace(cur, e):close(self)
-    e.locations = cur.locations:copy(127)
+    -- TODO: this should probably be made part of interface
+    --   instead of hardcoded.
+    if mty.ty(cur) == Edit then
+      e.locations = cur.locations:copy(127)
+    end
   else e.container = self end
   self.pane = e
   if not self.view then self.view = e end

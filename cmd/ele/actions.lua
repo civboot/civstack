@@ -177,7 +177,7 @@ end
 --
 -- Supports: times
 function M.move(ed, ev)
-  local e = ed.pane
+  local e = ed:edit()
   log.trace('move %q [start %s.%s]', ev, e.l, e.c)
   if ev.move == 'absolute' then
     ed:pushLocation()
@@ -192,7 +192,7 @@ end
 --- Get the start/end of a move without changing
 --- the position.
 function M.getMove(ed, ev) --> l1,c1, l2,c2
-  local e = ed.pane
+  local e = ed:edit()
   local e_c = e.c
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
@@ -208,7 +208,7 @@ end
 -- insert action, normally inserts ev[1] at the current position.
 function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
-  local e = ed.pane
+  local e = ed:edit()
   if ev[1] then
     e:insert(string.rep(assert(ev[1]), ev.times or 1))
   end
@@ -216,15 +216,15 @@ function M.insert(ed, ev, evsend)
 end
 
 function M.insertTab(ed, ev)
-  local tw = ed.s.tabwidth
-  local c = (ed.pane.c - 1) % tw
-  ed.pane:insert(srep(' ', tw - c))
+  local tw, e = ed.s.tabwidth, ed:edit()
+  local c = (e.c - 1) % tw
+  e:insert(srep(' ', tw - c))
   ed:handleStandard(ev)
 end
 
 function M.backspace(ed, ev)
   local tw = ed.s.tabwidth
-  local e = ed.pane; local b = e.buf
+  local e = ed:edit(); local b = e.buf
   local ln = e:curLine() or ''
   local ind = ln:match'^%s*'
   local rm = 1
@@ -236,7 +236,7 @@ function M.backspace(ed, ev)
 end
 
 function M.autoIndent(ed, ev)
-  local e = ed.pane; local b = e.buf
+  local e = ed:edit(); local b = e.buf
   local ind = lines.autoIndent(b,e.l)
   for l=e.l, e.l + (ev.times or 1) - 1 do
     b:remove(l,1,l,#b:get(l):match'^%s*')
@@ -247,7 +247,7 @@ end
 
 --- Yank without ed:handleStandard()
 function M._yank(ed, ev)
-  local e = ed.pane
+  local e = ed:edit()
   if ev.lines == 0 then
     local t = ev.times; t = (t and (t - 1)) or 0
     log.info('yank lines(0) %s:%s', e.l, e.l + t)
@@ -272,7 +272,7 @@ function M.paste(ed, ev)
   local ri = ev.index or 1  -- right index
   local dat = ed.yank[ed.yank.right - (ri - 1)]
   assertf(dat, 'yank index empty: %s', ri)
-  local e = ed.pane; e:changeStart()
+  local e = ed:edit(); e:changeStart()
   if #dat == 1 then e:insert(dat[1])
   else
     local s = concat(dat, '\n')
@@ -295,7 +295,7 @@ end
 -- * lines=0 removes a single line (also supports times)
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
-  local e = ed.pane; e:changeStart()
+  local e = ed:edit(); e:changeStart()
   M._yank(ed, ev)
   local t = ev.times
   if ev.lines == 0 then
@@ -319,7 +319,7 @@ end
 -- Search Buf
 
 function M.searchBuf(ed, ev)
-  local e, sb = ed.pane, ed:namedBuffer'search'
+  local e, sb = ed:edit(), ed:namedBuffer'search'
   if ev.overlay then -- update find buffer from overlay
     ed.search = ed.overlay:get(1)
     if ev.overlay == 'store' then
@@ -349,7 +349,7 @@ end
 
 M.nav = mod and mod'ele.actions.nav' or setmetatable({}, {})
 getmetatable(M.nav).__call = function(_, ed, ev, evsend)
-  local e1 = ed.pane
+  local e1 = ed:edit()
   local e = ed:focus'b#nav'
   ed:pushLocation()
   e:changeStart()
@@ -530,7 +530,7 @@ end
 --- go to path at l,c. If op=='create' then create the path
 function nav.goPath(ed, create)
   ed:pushLocation()
-  local e = ed.pane
+  local e = ed:edit()
   local p = nav.getPath(e.buf, e.l,e.c)
   if p then
     local b = ed:getBuffer(p); if b then
@@ -552,7 +552,7 @@ local DO_ENTRY = {
 
 --- perform the entry operation
 function nav.doEntry(ed, op, times, ls)
-  local e = ed.pane; local l = e.l
+  local e = ed:edit(); local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
   local fl = fn(e.buf, l, times, ls) or l
@@ -566,7 +566,7 @@ function M.path(ed, ev, evsend)
     nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
   end
   if ev.go == 'enter' then
-    local e = ed.pane
+    local e = ed:edit()
     local line = e.buf:get(e.l)
     if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
     else                    nav.goPath(ed, ev.create) end
@@ -581,24 +581,24 @@ end
 --- ]
 function M.edit(ed, ev)
   if ev.save  then
-    ed.pane:save(ed)
+    ed:edit():save(ed)
   end
   if ev.focus then
      ed:pushLocation()
      ed:focus(ev.focus)
   end
   if ev.clear then
-    ed.pane:changeStart()
-    ed.pane:clear()
+    ed:edit():changeStart()
+    ed:edit():clear()
   end
   if ev.undo then
     for _=1,ev.times or 1 do
-      if not ed.pane:undo() then break end
+      if not ed:edit():undo() then break end
     end
   end
   if ev.redo then
     for _=1,ev.times or 1 do
-      if not ed.pane:redo() then break end
+      if not ed:edit():redo() then break end
     end
   end
   ed:handleStandard(ev)
@@ -675,7 +675,7 @@ end
 
 --- ev={location=+/-int}
 function M.jump(ed, ev)
-  local e = ed.pane
+  local e = ed:edit()
   if ev.location then
     local loc = ev.location
     local cur = ed:currentLocation(e)
