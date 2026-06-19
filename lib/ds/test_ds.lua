@@ -859,6 +859,12 @@ T'Grid'; do
       '     ab\n'
     ..'  hi cd\n'
     ..'     ef', fmt(g))
+
+  g:insertGrid(1,2, Grid{h=3,w=3}:insert(1,1, 'qrs\n tu\n  v'))
+    T.eq(
+      ' qrs ab\n'
+    ..'  tu cd\n'
+    ..'   v ef', fmt(g))
 end
 
 -----------------

@@ -10,4 +10,18 @@ M.Game = mty'Game' {
   'bg {ds.Grid}: list of grid objects containing background asciicolor',
 }
 
+function M.Game:draw(ed, isRight)
+  local d = ed.display
+
+end
+
+--- A sprite with a location. Used by games to more easily write
+--- to the Game grid by simply appending the txt/fg/bg.
+M.Sprite = mty'Sprite' {
+  'l [int]: line number', 'c [int]: column number',
+  'txt [ds.Grid]',
+  'fg [ds.Grid]',
+  'bg [ds.Grid]',
+}
+
 return M

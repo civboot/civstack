@@ -6,8 +6,10 @@ local fmt = require'fmt'
 local clear = ds.clear
 local max = math.max
 local push, concat = table.insert, table.concat
-local codes, char = utf8.codes, utf8.char
+local codes, char, ulen = utf8.codes, utf8.char, utf8.len
 local assertf = fmt.assertf
+
+local EMPTY = {}
 
 --- ds.Grid: a text grid
 --- Grid is a table (rows/lines) of tables (cols). Each column should contain a
@@ -42,7 +44,7 @@ end
 --- NOT clear any data after the insert text, meaning it is essentially a
 --- replace.
 --- FIXME: considere renaming to replace... or something.
-function G:insert(l, c, str)
+function G:insert(l, c, str) --> self
   for _, sline in split(str) do -- line from string
     local row = self[l]; if not row then return end
     for i=#row+1, c-1 do row[i] = ' ' end -- fill pre-column space
@@ -52,6 +54,19 @@ function G:insert(l, c, str)
     end
     l = l + 1
   end
+  return self
+end
+
+--- Insert another grid.
+function G:insertGrid(l,c, grid) --> self
+  for gl, gln in ipairs(grid) do
+    local ln = self[gl+l-1]
+    for gc, chr in ipairs(gln) do
+      assert(ulen(chr) == 1, chr)
+      ln[gc+c-1] = chr
+    end
+  end
+  return self
 end
 
 function G:__fmt(f)

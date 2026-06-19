@@ -1,4 +1,4 @@
-local G = G or _G
+local mty = require'metaty'
 
 --- Simple logging library, set i.e. LOGLEVEL=INFO to enable logging.
 ---
@@ -15,10 +15,11 @@ local G = G or _G
 --- This module also sets (if not already set) the global LOGFN to [$ds.logFn]
 --- which logs to stderr. This fn is called with signature
 --- [$function(level, srcloc, fmt, ...)]
-local M = G.mod and G.mod'ds.log' or {}
+local M = mty.mod'ds.log'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
+local G = mty.G
 
 local push, sfmt = table.insert, string.format
 local Fmt = fmt.Fmt
@@ -64,11 +65,11 @@ M.setLevel(G.LOGLEVEL)
 
 function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
-  local f, lasti, i, args, nargs = io.fmt, 1, 0, {...}, select('#', ...)
+  local f, args, nargs = io.fmt, {...}, select('#', ...)
   f:styled(STYLES[lvl], sfmt('%s %s %s',
     SHORT[lvl], M._time(), loc), ': ')
   f:level(1)
-  local nargs, i = select('#', ...), f:format(fmt, ...)
+  local i = f:formatArgs(fmt, args)
   if i == (nargs - 1) then f:write' '; f(args[i + 1]) -- data
   elseif i ~= nargs then error('invalid #args: '..nargs..' %fmts='..i) end
   f:level(-1); f:write'\n'; f:flush()

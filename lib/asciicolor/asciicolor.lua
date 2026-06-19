@@ -68,7 +68,8 @@ M.dark = {
   -- TODO: rename notice
   notify = 'C', -- make very visible
   good   = 'G',
-  error = 'Wr', warn  = 'Y',
+  error  = 'Wr', warn  = 'Y',
+  debug  = 'A',
   base   = 'F', basel   = 'Wf', -- base(line),   aka removed text
   change = 'G', changel = 'Wg', -- change(line), aka added text
   empty  = 'zd',

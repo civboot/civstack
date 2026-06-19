@@ -1,15 +1,15 @@
-local G = G or _G
-
---- format module: format any type into a readable string
-local M = G.mod and G.mod'fmt' or setmetatable({}, {})
-
 local mty = require'metaty'
 
+--- format module: format any type into a readable string
+local M = mty.mod'fmt'
+
+local G = mty.G
 local getmt              = getmetatable
 local sfmt, srep         = mty.from(string, 'format,rep')
 local push, concat, sort = mty.from(table, 'insert,concat,sort')
 local mathtype           = math.type
 local split              = mty.split
+local io                 = G.io
 
 local DEPTH_ERROR = '{!max depth reached!}'
 
@@ -243,10 +243,9 @@ function Fmt:table(t)
 end
 function Fmt:__call(v) self[type(v)](self, v); return self end
 
---- like string.format but use [$Fmt] for [$%q].
---- Doesn't return the string, instead writes to [$Fmt]
-function Fmt:format(fmt, ...) --> varargsUsed
-  local i, lasti, args = 0, 1, {...}
+--- Format a list of arguments.
+function Fmt:formatArgs(fmt, args)
+  local i, lasti = 0, 1
   fmt:gsub('()(%%.)', function(si, m)
     self:write(fmt:sub(lasti, si-1)); lasti = si + #m
     if m == '%%' then self:write'%'
@@ -257,6 +256,12 @@ function Fmt:format(fmt, ...) --> varargsUsed
   end)
   self:write(fmt:sub(lasti))
   return i
+end
+
+--- like string.format but use [$Fmt] for [$%q].
+--- Doesn't return the string, instead writes to [$Fmt]
+function Fmt:format(fmt, ...) --> varargsUsed
+  return self:formatArgs(fmt, {...})
 end
 
 --- fmt ... separated by sep
@@ -339,6 +344,20 @@ function M.pretty(v) return concat(Fmt:pretty{}(v)) end --> string
 
 --- Set to __fmt to format a type like a table.
 function M.table(tbl, fmter) return fmter:rawtable(tbl) end
+
+--- Global debug function, useful for quickly and temporarily
+--- debugging code.  The first argument is always a format string which uses
+--- the following arguments. Additional arguments are printed as literals.
+function M.dbg(fmt, ...)
+  local f, args = io.fmt, {...}
+  f:styled('debug', 'DBG: ')
+  f:level(1)
+  local a = f:formatArgs(fmt, args)
+  for i=a+1,select('#', ...) do f:write' '; f(args[i]) end
+  f:level(-1); f:write'\n'; f:flush()
+end
+
+G.dbg = M.dbg
 
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end
