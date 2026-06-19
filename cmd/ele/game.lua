@@ -3,25 +3,47 @@ local mty = require'metaty'
 --- Ele game library.
 local M = mty.mod'ele.game'
 
-M.Game = mty'Game' {
-  -- Grids are rendered first -> last.
-  'txt {ds.Grid}: list of grid objects containing text to display',
-  'fg {ds.Grid}: list of grid objects containing foreground asciicolor',
-  'bg {ds.Grid}: list of grid objects containing background asciicolor',
-}
-
-function M.Game:draw(ed, isRight)
-  local d = ed.display
-
-end
+local G = mty.G
+local types = require'ele.types'
+local push = mty.from(table, 'push')
+local getmt = G.getmetatable
 
 --- A sprite with a location. Used by games to more easily write
 --- to the Game grid by simply appending the txt/fg/bg.
 M.Sprite = mty'Sprite' {
   'l [int]: line number', 'c [int]: column number',
-  'txt [ds.Grid]',
-  'fg [ds.Grid]',
-  'bg [ds.Grid]',
+  'txt [str]',
+  'fg  [str]',
+  'bg  [str]',
 }
+
+--- A Game window which renders a list of sprites.
+M.Game = mty.extend(types.BasePane, 'Game', {
+  --- Sprites to render.[{br}]
+  --- Sprites are written first -> last (last wins).
+  'sprites {Sprite}: list of sprites to render',
+  'mh [int]: minimum height', 'mw: minimum width',
+})
+
+getmt(M.Game).__call = function(T, t)
+  t.sprites = t.sprites or {}
+  return getmt(types.BasePane).__call(T, t)
+end
+
+
+function M.Game:draw(ed, isRight)
+  local d = ed.display
+  local tl, tc = self.tl, self.tc
+  local txt, fg, bg = d.text, d.fg, d.bg
+  if self.th < self.mh then return txt:insert(tl,tc, 'height too low') end
+  if self.tw < self.mw then return txt:insert(tl,tc, 'width too low')  end
+
+  for _, s in ipairs(self.sprites) do
+    local l, c = tl + s.l - 1, tc + s.c - 1
+    if s.txt then txt:insert(l,c, s.txt) end
+    if s.fg  then  fg:insert(l,c, s.fg)  end
+    if s.bg  then  bg:insert(l,c, s.bg)  end
+  end
+end
 
 return M

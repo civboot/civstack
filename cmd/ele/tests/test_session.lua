@@ -1,25 +1,28 @@
 -- Test display functionality (not mutation)
 
 local G = G or _G
-local T = require'civtest'
-local CT = require'civtest'
-local mty = require'metaty'
-local fmt = require'fmt'
-local ds, lines = require'ds', require'lines'
-local Stack = require'ds.Stack'
-local pth = require'ds.path'
-local log = require'ds.log'
-local path = require'ds.path'
-local ac = require'asciicolor'
-local etest = require'ele.testing'
-local Fake = require'vt100.testing'.Fake
-local edit = require'ele.edit'
-local Session = require'ele.Session'
-local et = require'ele.types'
+local T      = require'civtest'
+local mty    = require'metaty'
+local fmt    = require'fmt'
+local ds     = require'ds'
+local lines  = require'lines'
+local Stack  = require'ds.Stack'
+local pth    = require'ds.path'
+local log    = require'ds.log'
+local path   = require'ds.path'
+local Grid   = require'ds.Grid'
+local ac     = require'asciicolor'
 local Buffer = require'lines.buffer'.Buffer
-local ixt = require'civix.testing'
+local ixt    = require'civix.testing'
+local Fake   = require'vt100.testing'.Fake
+local etest  = require'ele.testing'
+local et     = require'ele.types'
+local edit   = require'ele.edit'
+local egame  = require'ele.game'
+local Session = require'ele.Session'
 
 local info = mty.from'ds.log  info'
+local push = mty.from(table, 'insert')
 
 local _PWD = PWD
 G.PWD = path.abs(ds.srcdir())
@@ -494,6 +497,39 @@ Test{'splitTwice', dat=CODE, function(tst)
     T.eq({1,1}, {e.l,e.c})
     T.eq(SC..'\n'..SPLITV2, fmt(ed.display))
     T.eq({2,1}, {d.l,d.c})
+end}
+
+
+local GAME_1 = [[
+[mode:command]
+xx(1,3)xxxxxxxxxxxxx
+x(2,2)xxxxxxxxxxxxxx
+xxxxxxxxxxxxxxxxxxxx]]
+
+Test{'gameBasic', dat=CODE, function(tst)
+  local s, ed = tst.s, tst.s.ed
+  local d = ed.display
+
+  local keyEv
+  local g = egame.Game{
+    mh = 3, mw = 10,
+    actions = {
+      keyinput = function(ed, ev) keyEv = ev end,
+    },
+  }
+  push(g.sprites, egame.Sprite{l=1,c=1,
+    txt=ds.paint('x', 4, 20),
+    bg =ds.paint(' ', 4, 20),
+    bg =ds.paint(' ', 4, 20),
+  })
+  push(g.sprites, egame.Sprite{l=1,c=3, txt='(1,3)'})
+  push(g.sprites, egame.Sprite{l=2,c=2, txt='(2,2)'})
+  ed:focus(g)
+    T.eq(g, ed.pane)
+    T.eq(g, ed.view)
+
+  s:play'H'
+    T.eq(GAME_1, fmt(d))
 end}
 
 G.PWD = _PWD

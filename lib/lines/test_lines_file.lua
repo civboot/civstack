@@ -99,6 +99,7 @@ T'File'; do
 
   local dat = {'one', 'two', 'three'}
   ds.extend(f, dat)
+    -- FIXME: sometimes this has length 102 (!!)
     T.eq({0, 4, 8}, ds.icopy(f.idx))
     T.eq('one',   f:get(1))
     T.eq('three', f:get(3))

@@ -61,6 +61,7 @@ end
 function G:insertGrid(l,c, grid) --> self
   for gl, gln in ipairs(grid) do
     local ln = self[gl+l-1]
+    for i=#ln+1, c-1 do ln[i] = ' ' end -- fill pre-column space
     for gc, chr in ipairs(gln) do
       assert(ulen(chr) == 1, chr)
       ln[gc+c-1] = chr
@@ -70,7 +71,9 @@ function G:insertGrid(l,c, grid) --> self
 end
 
 function G:__fmt(f)
-  local h = self.h; for l=1,h-1 do f:write(concat(self[l]), '\n') end
+  local h = self.h; for l=1,h-1 do
+    f:write(concat(self[l]), '\n')
+  end
   f:write(concat(self[h]))
 end
 

@@ -192,6 +192,8 @@ four
   T.eq("🫷!",  M.usub(u8, -2))
   T.eq("e 🫷", M.usub(u8, -4, -2))
   T.eq('',     M.usub(u8, 100))
+
+  T.eq('aaa\naaa', ds.paint('a', 2,3))
 end
 
 T'table'; do

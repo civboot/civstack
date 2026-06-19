@@ -24,7 +24,6 @@ P.test = lua.test {
   src = {
     'tests/test_actions.lua',
     'tests/test_bindings.lua',
-    'tests/test_game.lua',
     'tests/test_session.lua',
     'tests/test_term.lua',
   },

@@ -1,6 +1,9 @@
-local M = mod'ele.types'
-
 local mty    = require'metaty'
+
+--- Core ele types.
+local M = mty.mod'ele.types'
+
+local G      = mty.G
 local ds     = require'ds'
 local fmt    = require'fmt'
 local log    = require'ds.log'
@@ -10,6 +13,7 @@ local sfmt = string.format
 local toint = math.tointeger
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp = ds.getp
+local getmt = G.getmetatable
 
 M.INIT_BUFS = 3 -- the default number of bufs on init (for testing)
 
@@ -41,10 +45,17 @@ M.BasePane = mty'BasePane' {
   'closed [bool]', closed = false,
 
   'modes [table]: override specific keybindings for this pane',
+
+  IS_PANE = true,
 }
 
 function M.BasePane.__init(t)
   t.id = M.uniqueId()
+end
+
+getmetatable(M.BasePane).__call = function(T, t)
+  T:__init(t)
+  return mty.construct(T, t)
 end
 
 function M.BasePane:close(ed)
@@ -52,6 +63,14 @@ function M.BasePane:close(ed)
   assert(ed, 'must provide Editor')
   self.closed = true
 end
+
+M.BasePane.drawCursor = ds.noop
+
+function M.isPane(v)
+  if type(v) ~= 'table' then return false end
+  return rawget(getmt(v), 'IS_PANE')
+end
+
 
 --- A container with windows split vertically (i.e. tall windows)
 M.VSplit = mty'VSplit' {

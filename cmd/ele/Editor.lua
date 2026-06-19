@@ -249,21 +249,22 @@ end
 
 --- Replace the current edit view with the new [$self:buffer(b)].
 --- Return the new edit view being focused.
-function Editor:focus(b) --> Edit
+function Editor:focus(p) --> Edit
   local cur = self.pane
-  local b = assertf(self:buffer(b), '%q', b)
-  local e = Edit{buf=b, yank=self.yank}
-  if cur then
-    cur.container:replace(cur, e):close(self)
-    -- TODO: this should probably be made part of interface
-    --   instead of hardcoded.
+  if not et.isPane(p) then
+    local b = assertf(self:buffer(p), '%q', p)
+    p = Edit{buf=b, yank=self.yank}
+    -- TODO: don't hard-code this.
     if mty.ty(cur) == Edit then
-      e.locations = cur.locations:copy(127)
+      p.locations = cur.locations:copy(127)
     end
-  else e.container = self end
-  self.pane = e
-  if not self.view then self.view = e end
-  return e
+  end
+  if cur then
+    cur.container:replace(cur, p):close(self)
+  else p.container = self end
+  self.pane = p
+  if not self.view then self.view = p end
+  return p
 end
 
 function Editor:close()

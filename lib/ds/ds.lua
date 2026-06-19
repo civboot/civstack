@@ -12,7 +12,7 @@ local next, getmt, setmt = mty.from(G,      'next,getmetatable,setmetatable')
 local insert             = mty.from(table,  'insert')
 local push, pop, concat  = mty.from(table,  'insert,remove,concat')
 local move, sort, unpack = mty.from(table,  'move,sort,unpack')
-local sfmt, sfind        = mty.from(string, 'format,find')
+local sfmt, sfind, srep  = mty.from(string, 'format,find,rep')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
 local mathty, min, max   = mty.from(math,   'type,min,max')
 local floor              = mty.from(math,   'floor')
@@ -175,6 +175,7 @@ function M.srcloc(level) --> "/path/to/dir/file.lua:10"
   local loc = info.source; if loc:sub(1,1) ~= '@' then return end
   return loc:sub(2)..':'..info.currentline
 end
+
 --- Same as srcloc but shortens to only the parent dir.
 function M.shortloc(level) --> "dir/file.lua:10"
   local info = debug.getinfo(2 + (level or 0), 'Sl')
@@ -183,6 +184,8 @@ function M.shortloc(level) --> "dir/file.lua:10"
   loc = loc:match'^@.-([^/]*/[^/]+)$' or loc:sub(2)
   return loc..':'..info.currentline
 end
+local shortloc = M.shortloc
+
 --- Same as srcloc but removes the [$file:linenum]
 function M.srcdir(level) --> "/path/to/dir/"
   return M.srcloc(1 + (level or 0)):match'^(.*/)[^/]+$'
@@ -195,6 +198,22 @@ function M.coroutineErrorMessage(cor, err) --> string
     'Coroutine error: ', debug.stacktraceback(cor, err), '\n',
     'Coroutine failed!')
 end
+
+--- Global debug function, useful for quickly and temporarily
+--- debugging code.  The first argument is always a format string which uses
+--- the following arguments. Additional arguments are printed as literals.
+function M.dbg(fmt, ...)
+  local f, args = io.fmt, {...}
+  f:styled('debug', 'DBG('); f:styled('path', shortloc(1));
+  f:styled('debug', ')', ' ')
+  f:level(1)
+  local a = f:formatArgs(fmt, args)
+  for i=a+1,select('#', ...) do f:write' '; f(args[i]) end
+  f:level(-1); f:write'\n'; f:flush()
+end
+
+G.dbg = M.dbg
+
 
 ---------------------
 -- Order checking functions
@@ -354,6 +373,13 @@ function M.bin(uint, width--[[8]], sep4--[['_']]) --> str
   M.reverse(str)
   return concat(str, '')
 end
+
+--- Like string.rep but over multiple lines/cols
+M.paint = function(chr, lines, cols)
+  assert(lines and cols, 'must set lines and cols')
+  return srep(srep(chr, cols), lines, '\n')
+end
+
 
 ---------------------
 -- Table Functions
