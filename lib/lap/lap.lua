@@ -104,12 +104,17 @@ M.Recv = mty'Recv'{
 getmetatable(M.Recv).__call = function(T)
   return mty.construct(T, {deq=ds.Deq(), _sends=ds.WeakKV{}})
 end
+
 --- Close read side and all associated senders.
 function M.Recv:close()
   local sends = self._sends; if not sends then return end
   for s in pairs(update({}, sends)) do s:close() end
   self._sends = nil
 end
+
+--- Clear the receiver.
+function M.Recv:clear() self.deq:clear() end
+
 M.Recv.__close  = M.Recv.close
 function M.Recv:__len() return #self.deq          end
 function M.Recv:isClosed() --> bool

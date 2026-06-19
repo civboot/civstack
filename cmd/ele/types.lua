@@ -33,6 +33,7 @@ end
 M.BasePane = mty'BasePane' {
   'id[int]',
   'container', -- parent (Editor/Split)
+  'actions {string: fn}: override of actions, especially keyinput',
 
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)

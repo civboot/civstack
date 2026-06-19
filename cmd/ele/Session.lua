@@ -1,4 +1,5 @@
 local mty = require'metaty'
+
 -- Session: the root object of Ele, holds the editor
 -- object and events.
 --
@@ -25,6 +26,17 @@ local yield = coroutine.yield
 
 -- local FRAME = 0.05
 local FRAME = 0.05
+
+Session.BUILTIN_ACTIONS = {
+  clearEvents = function(s) s.events:clear() end,
+
+  exit = function(s)
+    s.ed.error'exit action received'
+    s.ed.run = false
+    s.running = false
+    yield'STOP'
+  end,
+}
 
 getmetatable(Session).__call = function(T, s)
   s.ed = s.ed or Editor{}
@@ -53,41 +65,38 @@ Session.user = function(T, s)
 end
 
 -- run events until they are exhuasted
-Session.run = function(s)
-  s.running = true
-  -- FIXME: should be [$s.ed.pane.actions or s.ed.actions]
-  local actions = s.ed.actions
-  while #s.events > 0 do
-    local ev = s.events()
+function Session:run()
+  self.running = true
+  local ed = self.ed
+  while #self.events > 0 do
+    local ev = self.events()
+    local actions = ed.pane.actions or ed.actions
     if type(ev) ~= 'table' or not ds.isPod(ev) then
-      s.ed.error('event is not POD table: %q', ev)
+      self.ed.error('event is not POD table: %q', ev)
       goto cont
     end
     log.info('run event %q', ev)
     if not ev then goto cont end
-    s.ed.redraw = true
-    local act = ev.action;
-    if not act then
-      s.ed:handleStandard(ev)
+    self.ed.redraw = true
+    local act = ev.action; if not act then
+      self.ed:handleStandard(ev)
       goto cont
     end
-    if act == 'exit' then
-      s.ed.error'exit action received'
-      s.ed.run = false
-      s.running = false
-      yield'STOP'
+    local actFn = self.BUILTIN_ACTIONS[act]; if actFn then
+      actFn(self)
+      goto cont;
     end
-    local actFn = actions[act]; if not actFn then
-      s.ed.error('unknown action: %q', act)
+    actFn = actions[act]; if not actFn then
+      self.ed.error('unknown action: %q', act)
       goto cont
     end
-    local ok, err = ds.try(actFn, s.ed, ev, s.evsend)
+    local ok, err = ds.try(actFn, self.ed, ev, self.evsend)
     if not ok then
-      s.ed.error('failed event %q. %q', ev, err)
+      self.ed.error('failed event %q. %q', ev, err)
     end
     ::cont::
   end
-  s.running = false
+  self.running = false
 end
 
 -- send chord of keys and play them (run events)
