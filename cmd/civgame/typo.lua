@@ -6,7 +6,8 @@ local M = mty.mod'civgame.typo'
 local et = require'ele.types'
 local egame = require'ele.game'
 local ds = require'ds'
-local concat = mty.from(string, 'concat')
+local concat = mty.from(table, 'concat')
+local vt100 = require'vt100'
 
 local push = mty.from(table, 'insert')
 
@@ -15,8 +16,8 @@ M.Typo = mty.extend(egame.Game, 'Typo', {
 })
 
 function M.Typo:draw(ed, isRight)
-  ds.clear(g.sprites)
-  push(g.sprites, egame.Sprite{l=1,c=1, txt=concat(self.user)})
+  ds.clear(self.sprites)
+  push(self.sprites, egame.Sprite{l=1,c=1, txt=concat(self.user)})
   return egame.Game.draw(self, ed, isRight)
 end
 
@@ -28,11 +29,11 @@ getmetatable(M).__call = function(_, ed)
   g.actions = {
     keyinput = function(ed, ev)
       local chr = ev[1]
+      chr = vt100.LITERALS[chr] or chr
       assert(1 == #chr)
       push(g.user, chr)
     end,
   }
   ed:focus(g)
 end
-
 return M

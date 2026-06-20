@@ -3,7 +3,9 @@ local shim = require'shim'
 
 --- Usage: [$ele path/to/file.txt][{br}]
 --- The ele commandline editor.
-local ele = shim.cmd'ele' {}
+local ele = shim.cmd'ele' {
+  'run [str]: lua module to call at start',
+}
 
 local lap = require'lap'
 local fd = require'fd'

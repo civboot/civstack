@@ -1,3 +1,6 @@
+TODO:
+* Throw error if you find PKG.lua
+
 Simple Typing Game
 
 Displays one or more words from words.txt which are in form `word  points`.

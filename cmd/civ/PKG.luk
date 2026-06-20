@@ -30,7 +30,6 @@ P.test = lua.test {
   }
 }
 
-
 -- local FILE = 'https://github.com/civboot/civstack/blob/main/'
 -- local FILE_LINE = FILE..'%s#L%s'
 -- local RENDERED = 'https://html-preview.github.io/'

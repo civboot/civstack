@@ -6,9 +6,12 @@ P.civgame = lua {
   mod = 'civgame',
   src = {
     'civgame.lua',
+    'typo.lua',
   },
   dep = {
     'civ:cmd/ele',
   },
   link = {['lua/civgame.lua'] = 'bin/civgame'},
 }
+
+return P

@@ -187,8 +187,8 @@ end
 
 function civ.run:__call()
   civ._pre()
-  info('run %q', self)
   local cmd = shim.popRaw(self) or {}
+  info('run %q', cmd)
   assert(#self == 1, 'usage: civ run hub:tgtname')
   local cv = core.Civ:load(self.config)
   local tgtnames = cv:expandAll(self)
