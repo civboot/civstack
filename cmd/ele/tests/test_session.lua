@@ -508,7 +508,7 @@ xxxxxxxxxxxxxxxxxxxx]]
 
 Test{'gameBasic', dat=CODE, function(tst)
   local s, ed = tst.s, tst.s.ed
-  local d = ed.display
+  local d, e = ed.display, ed.pane
 
   local keyEv
   local g = egame.Game{
@@ -530,6 +530,11 @@ Test{'gameBasic', dat=CODE, function(tst)
 
   s:play'H'
     T.eq(GAME_1, fmt(d))
+    T.eq({'H', action='keyinput'}, keyEv)
+
+  ed:focus(e.buf)
+    T.eq(true, g.closed)
+    T.eq(nil,  g.container)
 end}
 
 G.PWD = _PWD

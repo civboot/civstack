@@ -230,5 +230,5 @@ function fmtSub(f, before, after)
   f:styled('meta', end_, '\n')
 end
 
-if shim.isMain(FF) then FF:main(G.arg); end
+if shim.isMain(FF) then FF:main(G.arg) end
 return FF

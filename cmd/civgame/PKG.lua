@@ -1,0 +1,14 @@
+local lua = import'sys:lua.luk'
+
+local P = { summary = "play games to learn civboot" }
+
+P.civgame = lua {
+  mod = 'civgame',
+  src = {
+    'civgame.lua',
+  },
+  dep = {
+    'civ:cmd/ele',
+  },
+  link = {['lua/civgame.lua'] = 'bin/civgame'},
+}

@@ -54,6 +54,10 @@ function ele:__call()
       end
       s.ed:focus(self[1])
     end
+    if self.run then
+      log.info('ele --run=%q', self.run)
+      require(self.run)(s.ed)
+    end
     log.info'ele: end of setup'
   end,
   function() lap.async() -- setup: change to async()

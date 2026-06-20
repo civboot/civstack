@@ -241,10 +241,11 @@ end
 --- Focus the first edit view in container c (default self.view)
 function Editor:focusFirst(c)
   c = c or self.view
-  while mty.ty(c) ~= Edit do c = c[1] end
-  assert(mty.ty(c) == Edit)
+  while not et.isPane(c) do c = c[1] end
+  assert(et.isPane(c))
   self.pane = c
   if not self.view then self.view = c end
+  c:focus(self)
 end
 
 --- Replace the current edit view with the new [$self:buffer(b)].
@@ -264,10 +265,10 @@ function Editor:focus(p) --> Edit
   else p.container = self end
   self.pane = p
   if not self.view then self.view = p end
+  p:focus(self)
   return p
 end
 
-function Editor:close()
-end
+function Editor:close() end
 
 return Editor

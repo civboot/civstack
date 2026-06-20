@@ -58,6 +58,11 @@ getmetatable(M.BasePane).__call = function(T, t)
   return mty.construct(T, t)
 end
 
+--- Called after this pane is focused by Editor.
+function M.BasePane:focus(ed)
+end
+
+--- Called when this pane is closed by Editor.
 function M.BasePane:close(ed)
   assert(not self.container, 'close() before container removed')
   assert(ed, 'must provide Editor')
