@@ -102,4 +102,16 @@ function M.Luk:import(path, wd) --> lukMod?, ds.Error?
   return luk
 end
 
+--- The simplest API to load a single [$.luk] file.
+--- Imports the path and returns it's data.
+---
+--- [$wd] specifies the working directory to use.
+---
+--- Throws an error if there are any errors.
+function M.import(path, wd)
+  return assert(M.Luk{
+    pathFn = function(p) return pth.concat{wd, p} end
+  }:import(path, wd))
+end
+
 return M

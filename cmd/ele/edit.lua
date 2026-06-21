@@ -23,7 +23,6 @@ local info         = mty.from'ds.log  info'
 M.Edit = mty.extend(types.BasePane, 'Edit', {
   'buf [Buffer]',
   'yank [ds.Deq]: global yank deque',
-  'l[int]',  l=1,     'c[int]',  c=1,   -- cursor line, col
   'locations [ds.Stack[ele.types.EditLoc]]: a deq of locations visited.',
   'drawBars [fn[Edit] -> botHeight,leftWidth]',
   'lineStyle [str]: asciicolor style',

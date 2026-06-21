@@ -285,6 +285,11 @@ function M.trim(subj, pat, si) --> string
   return subj:match(pat, si)
 end
 
+function M.trimFront(subj, pat, si)
+  pat = pat and ('^'..pat..'*(.-)$') or '^%s*(.-)$'
+  return subj:match(pat, si)
+end
+
 --- Trim the end of the string by removing pat (default=[$%s])
 function M.trimEnd(subj, pat, index) --> string
   pat = pat and ('^(.-)'..pat..'*$') or '^(.-)%s*$'

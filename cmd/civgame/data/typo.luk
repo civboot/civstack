@@ -1,0 +1,92 @@
+-- Typo tutorial data.
+
+local T1 = {
+  title = 'Tutorial 1: type "SKIP!" to skip',
+  help = [[
+Home position:
+* thumbs over space
+* pointer fingers normally on "f" and "j"
+* middle fingers normally on "d" and "k"
+]],
+}
+
+push(T1, {
+  help='Put right pointer finger on "j" key and type',
+  want='j',
+})
+
+push(T1, {
+  help='Put left pointer finger on "f" key\n'
+  ..'thumb on space (note the space)',
+  want='f j',
+})
+
+push(T1, {
+  help='put non-pinkie fingers next to them\n'
+  ..'and type outside -> in',
+  want='sdf lkj',
+})
+
+push(T1, {
+  help='keeping pointers on f/j'
+  ..'use left and right middle',
+  want='e i',
+})
+
+push(T1, {
+  help='keeping middle on d/k'
+  ..'use left and right pointer.',
+  want='rtg uyh',
+})
+
+push(T1, {
+  help='Left hand circle',
+  want='ert gfds',
+})
+
+push(T1, {
+  help='Right hand circle',
+  want='iuy hjkl',
+})
+
+push(T1, {
+  help='left pointer then middle',
+  want='vc x',
+})
+
+push(T1, {
+  help='right pointer then middle',
+  want='bn m',
+})
+
+push(T1, {
+  help='left circle ',
+  want='ert gvc sdf',
+})
+
+push(T1, {
+  help='right circle',
+  want='iuy hbn lkj',
+})
+
+push(T1, {
+  help='left ring finger (next to pinkie)',
+  want='wsx',
+})
+
+push(T1, {
+  help='right ring finger (next to pinkie)',
+  want='olm',
+})
+
+push(T1, {
+  help='left pinkie (top to bottom)',
+  want='qaz',
+})
+
+push(T1, {
+  help='right pinkie (top to bottom)',
+  want='p;m',
+})
+
+return T1

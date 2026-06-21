@@ -150,6 +150,8 @@ function Session:highlight()
   local hl = mty.from'pegl.lua  highlighter'
   hl.styleColor = require'asciicolor'.dark
   local function highlight()
+    local p = self.ed.pane
+    if mty.ty(p) ~= edit.Edit then return end
     local buf = self.ed.pane.buf
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then

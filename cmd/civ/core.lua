@@ -259,6 +259,7 @@ getmetatable(M.Civ).__call = function(T, self)
   self.ENV = ds.update({
     'HOME='..pth.home(),
     'PATH='..os.getenv'PATH',
+    'DATA_PATH='      ..B..'data/',
     'LD_LIBRARY_PATH='..B..'lib/',
     'LUA_PATH='       ..B..'lua/?.lua',
     'LUA_CPATH='      ..B..'lib/lib?.so',

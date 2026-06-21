@@ -6,8 +6,26 @@ Most of luk's globals come from [@ds.dload]. In addition to those globals, Luk
 provides an (overrideable) [$import'name'] function which can import other Luk
 files (by path).
 
+
 [*Usage:][{$$ lang=lua}
-local flowers = import'path/to/flowers.luk'
+local luk = require'luk'
+local flowerMetrics = luk.import'path/to/flower_metrics.luk'
+]$
+
+[{$$ lang=lua}
+-- flowers.luk: a bunch of flower data.
+return {
+  { kind = 'rose', quality = 'good' },
+  { kind = 'rose', quality = 'great' },
+  { kind = 'tulip', quality = 'poor' },
+  -- ...
+}
+]$
+
+[{$$ lang=lua}
+-- flower_metrics.luk: analyze the flower data.
+
+local flowers = import'flowers.luk'
 
 -- Do normal lua stuff.
 local count = {}

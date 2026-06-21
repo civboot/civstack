@@ -34,7 +34,7 @@ function M.__call(l)
     tag = l.tag or {},
     run = 'sys:lua/build.lua',
   }
-  if not t.tag.builder    then t.tag.builder = 'direct' end
+  if not t.tag.builder then t.tag.builder = 'direct' end
 
   if l.lib then push(t.dep, l.lib) end
 

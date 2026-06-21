@@ -38,7 +38,10 @@ M.BasePane = mty'BasePane' {
   'id[int]',
   'container', -- parent (Editor/Split)
   'actions {string: fn}: override of actions, especially keyinput',
+  'hide [bool]: whether to hide cursor', hide = true,
+  'l [int]: cursor line', 'c [int]: cursor col', l=1, c=1,
 
+  -- FIXME: I don't think vl/vc is actually used...
   'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
   'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
@@ -69,7 +72,10 @@ function M.BasePane:close(ed)
   self.closed = true
 end
 
-M.BasePane.drawCursor = ds.noop
+function M.BasePane:drawCursor(ed)
+  if self.hide then return end
+  -- FIXME: this can auto-draw cursor using same trick as vim.
+end
 
 function M.isPane(v)
   if type(v) ~= 'table' then return false end

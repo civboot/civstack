@@ -6,19 +6,19 @@ local M = mty.mod'civgame.typo'
 local et = require'ele.types'
 local egame = require'ele.game'
 local ds = require'ds'
+local pth = require'ds.path'
 local vt100 = require'vt100'
+local luk = require'luk'
 
-local concat  = mty.from(table,   'concat')
-local push    = mty.from(table,   'insert')
-local sfmt    = mty.from(string,  'format')
-local info    = mty.from'ds.log    info'
-local Game, S = mty.from'ele.game  Game,Sprite'
+local concat     = mty.from(table,   'concat')
+local push, pop  = mty.from(table,   'insert, remove')
+local sfmt, srep = mty.from(string,  'format, rep')
+local info       = mty.from'ds.log    info'
+local Game, S    = mty.from'ele.game  Game,Sprite'
 
-local DONE = 'YOU WIN'
+local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
 
-local want = {
-  'do', 'so', 'hi', 'hello', 'at',
-}
+dbg('TUTORIAL', TUTORIAL)
 
 M.Typo = mty.extend(Game, 'Typo', {
   'user {chr}: the text the player has input.',
@@ -26,23 +26,49 @@ M.Typo = mty.extend(Game, 'Typo', {
   'wi [int]',    wi = 1,
 })
 
+function M.Typo:getData()
+  return TUTORIAL[self.wi] or {want='!! DONE !!'}
+end
+
 function M.Typo:draw(ed, isRight)
   local h = self.th
   ds.clear(self.sprites)
-  push(self.sprites, S{l=h-2,c=1, txt=sfmt('Score: %s', self.score)})
-  push(self.sprites, S{l=h-1,c=1, txt=want[self.wi] or DONE})
-  push(self.sprites, S{l=h  ,c=1, txt=concat(self.user)})
+  local title = TUTORIAL.title
+  local t = self:getData()
+  push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
+  push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
+  if t.help then push(self.sprites, S{l=h-4,c=1, txt=t.help}) end
+
+  local w = t.want
+  push(self.sprites, S{l=h-2,c=1, txt=w, fg=srep('c', #w) })
+
+  local u = concat(self.user)
+  u = u..srep(' ', #w - #u)
+  push(self.sprites, S{
+    l=h-1,c=1, txt=u, fg=srep('B', #u), bg=srep('W', #u),
+  })
+  push(self.sprites, S{l=h-1,c=1+#self.user, fg='W', bg='C'})
+
+  local score = sfmt('Score: %s', self.score)
+  push(self.sprites, S{l=h,c=1, txt=score, fg=srep('G', #score)})
   return Game.draw(self, ed, isRight)
+end
+
+function M.Typo:drawCursor(ed)
+  ed.display.hide = true
 end
 
 function M.Typo:keyinput(ed, ev)
   info('typo keyinput %q', ev)
   local chr = ev[1]
+  if chr == 'back' then
+    return pop(self.user)
+  end
   chr = vt100.LITERALS[chr] or chr
   assert(1 == #chr)
   push(self.user, chr)
   info('typo keyinput %q', ev)
-  local w = want[self.wi] or DONE
+  local w = assert(self:getData().want)
   if #self.user < #w then return end
   local score, u = 0, concat(self.user)
   info('scoring %q to %q', u, w)

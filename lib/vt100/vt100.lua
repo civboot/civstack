@@ -23,7 +23,7 @@ local log = require'ds.log'
 local d8  = require'ds.utf8'
 local ac = require'asciicolor'
 
-local min = math.min
+local min, max         = math.min, math.max
 local char, byte, slen = string.char, string.byte, string.len
 local lower, upper     = string.lower, string.upper
 local srep             = string.rep
@@ -52,6 +52,7 @@ local RESET, BOLD, UL, INV = 0, 1, 4, 7
 --- Requires [$vt100.start()] have been called to initiate raw mode.
 M.Term = mty'Term'{
   'fd [file]: file to write output to in draw()',
+  'hide [bool]: hide the cursor',
   'l [int]: cursor line', 'c [int]: cursor column', l=1, c=1,
   'h [int]: height', 'w [int]: width', h=40, w=80,
   'text [ds.Grid]: the text to display',
@@ -277,11 +278,10 @@ end
 function M.acwrite(f, colorFB, fg, bg, fgstr, bgstr, str, ...) --> fg,bg, ok,err?
   str, fgstr, bgstr = str or '', fgstr or ' ', bgstr or ' '
   bgstr = bgstr..srep(' ', #fgstr - #bgstr)
-  assert(#fgstr == #bgstr)
   local w1, w2, si, chr, fc, bc = true, nil, 1
   -- We find where the code changes in order to write the color code.
   -- After this loop we write using the current code.
-  for i=1,#fgstr do
+  for i=1,max(#fgstr, #bgstr) do
     chr = str:sub(i,i)
     fc, bc = acode(fgstr:sub(i,i)), acode(bgstr:sub(i,i))
     if fc ~= fg or bc ~= bg then
@@ -341,7 +341,10 @@ function M.Term:draw()
     if #txt < w               then cleareol(fd)      end
     if l < h                  then fd:write'\r\n'    end
   end
-  golc(fd, self.l, self.c); ctrl.show(fd) -- set cursor and show it
+  if not self.hide then -- set cursor and show it
+    golc(fd, self.l, self.c);
+    ctrl.show(fd)
+  end
 end
 
 --- function to run in a (LAP) coroutine.

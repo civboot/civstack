@@ -1,6 +1,11 @@
 local lua = import'sys:lua.luk'
+local data = import'sys:data.luk'
 
 local P = { summary = "play games to learn civboot" }
+
+P.data = data {
+  data = { ['data/typo.luk'] = 'civgame/typo.luk' }
+}
 
 P.civgame = lua {
   mod = 'civgame',
@@ -10,6 +15,7 @@ P.civgame = lua {
   },
   dep = {
     'civ:cmd/ele',
+    'civ:cmd/civgame#data',
   },
   link = {['lua/civgame.lua'] = 'bin/civgame'},
 }

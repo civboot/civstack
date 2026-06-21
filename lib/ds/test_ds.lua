@@ -172,6 +172,7 @@ four
   T.eq('  one\n\nthree\nfour\n\n', multi)
   T.eq('one\n\nthree\nfour', trim(multi))
 
+  T.eq('a b c', M.trimFront'  a b c')
   T.eq('  a b c', M.trimEnd'  a b c')
   T.eq('  a b c', M.trimEnd'  a b c\n  ')
 

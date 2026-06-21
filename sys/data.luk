@@ -1,0 +1,22 @@
+--- Data build rule
+---
+--- Call directly to create a target containing files to go in [$data/].
+
+return function(d)
+  local src = {}; for k,v in pairs(d.data) do
+    assert(type(k) == 'string' and type(v) == 'string',
+           "data must be ['local/path'] = 'path/in/data/'")
+    push(src, k)
+  end
+  assert(#src > 0, 'must specify src')
+  local tag = d.tag or {}
+  if not tag.builder    then tag.builder = 'direct' end
+  return Target {
+    kind = 'build',
+    src = src,
+    out = { data = d.data },
+    link = d.link,
+    tag = tag,
+    run = 'sys:data/build.lua',
+  }
+end

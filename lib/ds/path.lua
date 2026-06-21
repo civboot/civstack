@@ -13,6 +13,8 @@ local update = table.update
 local extend, splitList = ds.extend, ds.splitList
 local clear             = ds.clear
 
+G.DATA_PATH = G.DATA_PATH or os.getenv'DATA_PATH'
+
 --- read file at path or throw error
 function M.read(path) --!> string
   local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
@@ -65,6 +67,13 @@ end
 function M.cwd(dir) --> /...cwd/
   if dir then return M.cd(dir)
   else        return M.pathenv('PWD', 'CD') end
+end
+
+--- Get path to data in $DATA_PATH
+function M.data(relPath)
+  local d = assert(G.DATA_PATH, 'must export or set global DATA_PATH')
+  if not relPath then return d end
+  return M.concat{d, relPath}
 end
 
 --- Set the CWD, changing the result of [@ds.cwd].
