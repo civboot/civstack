@@ -44,8 +44,15 @@ function M.Typo:draw(ed, isRight)
 
   local u = concat(self.user)
   u = u..srep(' ', #w - #u)
+  local fg, bg = {}, {}
+  for i=1,#self.user do
+    local ok = u:sub(i,i)==w:sub(i,i)
+    push(fg, ok and 'B' or 'W')
+    push(bg, ok and 'W' or 'R')
+  end
+  bg = concat(bg)..srep('W', #w - #bg)
   push(self.sprites, S{
-    l=h-1,c=1, txt=u, fg=srep('B', #u), bg=srep('W', #u),
+    l=h-1,c=1, txt=u, fg=concat(fg), bg=bg,
   })
   push(self.sprites, S{l=h-1,c=1+#self.user, fg='W', bg='C'})
 
@@ -72,9 +79,10 @@ function M.Typo:keyinput(ed, ev)
   if #self.user < #w then return end
   local score, u = 0, concat(self.user)
   info('scoring %q to %q', u, w)
-  -- typed all the characters, calculate score
+  -- typed all the characters, check word and calculate score
   for i=1,#w do
-    if u:sub(i,i) == w:sub(i,i) then score = score + 1 end
+    if u:sub(i,i) ~= w:sub(i,i) then return end
+    score = score + 1
   end
   ds.clear(self.user)
   self.wi, self.score = self.wi + 1, self.score + score

@@ -268,6 +268,8 @@ end
 
 -- Called by model for only the focused editor
 function M.Edit:drawCursor(ed)
+  -- TODO: alternativelly, consider using d.hide and simply
+  -- reverting the fg/bg for the cursor.
   local d = ed.display
   local c = math.min(self.c, self:colEnd())
   d.l, d.c = self.tl + (self.l - self.vl), self.tc + (c - self.vc)

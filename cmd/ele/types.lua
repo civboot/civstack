@@ -70,10 +70,7 @@ function M.BasePane:close(ed)
   self.closed = true
 end
 
-function M.BasePane:drawCursor(ed)
-  if self.hide then return end
-  -- FIXME: this can auto-draw cursor using same trick as vim.
-end
+function M.BasePane:drawCursor(ed) end
 
 function M.isPane(v)
   if type(v) ~= 'table' then return false end
