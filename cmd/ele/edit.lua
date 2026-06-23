@@ -21,6 +21,9 @@ local info         = mty.from'ds.log  info'
 
 --- Ele Edit View for viewing and editing text files in a pane.
 M.Edit = mty.extend(types.BasePane, 'Edit', {
+  -- vl/vc are what (top-left)line/column are being VIEWED by the user.
+  -- They dynamically update during [$:draw()] as the cursor moves.
+  'vl[int]', vl=1,    'vc[int]', vc=1,
   'buf [Buffer]',
   'yank [ds.Deq]: global yank deque',
   'locations [ds.Stack[ele.types.EditLoc]]: a deq of locations visited.',

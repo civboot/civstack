@@ -41,8 +41,6 @@ M.BasePane = mty'BasePane' {
   'hide [bool]: whether to hide cursor', hide = true,
   'l [int]: cursor line', 'c [int]: cursor col', l=1, c=1,
 
-  -- FIXME: I don't think vl/vc is actually used...
-  'vl[int]', vl=1,    'vc[int]', vc=1,  -- view   line, col (top-left)
   'tl[int]', tl=-1,   'tc[int]', tc=-1, -- term   line, col (top-left)
   'th[int]', th=-1,   'tw[int]', tw=-1, -- term   height, width
   'closed [bool]', closed = false,
