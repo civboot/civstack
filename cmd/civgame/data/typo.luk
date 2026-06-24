@@ -11,72 +11,74 @@ Home position:
 }
 
 push(T1, {
-  help='Put right pointer finger on "j" key and type',
+  help='Home row: put right pointer finger on "j" key and press it',
   want='j',
 })
 
 push(T1, {
-  help='Put left pointer finger on "f" key\n'
-  ..'thumb on space (note the space)',
+  help='Home row: put left pointer finger on "f" key thumb on space.\n'
+     ..'Type: "f" "space" "j"',
   want='f j',
 })
 
 push(T1, {
-  help='put non-pinkie fingers next to them\n'
-  ..'and type outside -> in',
+  help='Home row: Put non-pinkie fingers next to "f" and "j"\n'
+  ..'Then, type outside -> in: "f" "d" "s" "space" "l"...',
   want='sdf lkj',
 })
 
 push(T1, {
-  help='keeping pointers on f/j'
-  ..'use left and right middle',
+  help='Top row: Keeping pointers on f/j, use left and right middle fingers.',
   want='e i',
 })
 
 push(T1, {
-  help='keeping middle on d/k'
-  ..'use left and right pointer.',
+  help='Top+home rows: Keeping middle on d/k use left then right pointer\n'
+     ..'to make a quarter circle around "f" and "j".',
   want='rtg uyh',
 })
 
 push(T1, {
-  help='Left hand circle',
+  help='Top+home row left: create a circle toward right,\n'
+     ..'then go through home row.',
   want='ert gfds',
 })
 
 push(T1, {
-  help='Right hand circle',
+  help='Top+home row right: create a circle toward left,\n',
+     ..'then go through home row.',
   want='iuy hjkl',
 })
 
 push(T1, {
-  help='left pointer then middle',
+  help='Bottom row left: use pointer on "vc" then middle on "x"',
   want='vc x',
 })
 
 push(T1, {
-  help='right pointer then middle',
-  want='bn m',
+  help='Bottom row right: use pointer on "bnm" then middle on ",".'
+  want='bnm ,',
 })
 
 push(T1, {
-  help='left circle ',
-  want='ert gvc sdf',
-})
-
-push(T1, {
-  help='right circle',
-  want='iuy hbn lkj',
-})
-
-push(T1, {
-  help='left ring finger (next to pinkie)',
+  help='left ring finger top to bottom',
   want='wsx',
 })
 
 push(T1, {
-  help='right ring finger (next to pinkie)',
-  want='olm',
+  help='right ring finger top to bottom',
+  want='ol,',
+})
+
+
+push(T1, {
+  help='All rows left: spiral top -> home (no pinkie)',
+  want='wert gvcx sdf',
+})
+
+push(T1, {
+  help='All rows right: spiral top -> home (no pinkie)',
+  want='oiuy hbn, lkj',
 })
 
 push(T1, {
@@ -86,12 +88,13 @@ push(T1, {
 
 push(T1, {
   help='right pinkie (top to bottom)',
-  want='p;m',
+  want='p;/',
 })
 
 push(T1, {
   help='go again?',
   want='AGAIN',
 })
+
 
 return T1
