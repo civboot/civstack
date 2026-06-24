@@ -51,8 +51,8 @@ local Test = mty.record'session.Test' {
   's [Session]',
 }
 getmetatable(Test).__call = function(Ty, t)
+  local srcloc = ds.srcloc(1)
   assert(not running); running = true
-  local path = ds.srcloc(1)
   t = mty.construct(Ty, t)
   t.s = t.s or Session:test{}; local ed = t.s.ed
   assert(ed.view == ed.pane)
@@ -69,7 +69,7 @@ getmetatable(Test).__call = function(Ty, t)
     ed.run = false
   end
   ixt.runAsyncTest(function()
-    local ok, err = ds.try(T.runTest, name, testFn, path)
+    local ok, err = ds.try(T.runTest, name, testFn, srcloc)
     if not ok then
       io.fmt:styled('error', 'Session Test error:', '\n')
       io.fmt(err)

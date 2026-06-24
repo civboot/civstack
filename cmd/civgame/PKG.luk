@@ -20,4 +20,12 @@ P.civgame = lua {
   link = {['lua/civgame.lua'] = 'bin/civgame'},
 }
 
+P.test = lua.test {
+  src = { 'test_civgame.lua' },
+  dep = {
+    'civ:lib#testing',
+    'civ:cmd/ele',
+  }
+}
+
 return P

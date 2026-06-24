@@ -13,18 +13,63 @@ local luk = require'luk'
 local concat     = mty.from(table,   'concat')
 local push, pop  = mty.from(table,   'insert, remove')
 local sfmt, srep = mty.from(string,  'format, rep')
+local isupper    = mty.from'ds        isupper'
 local info       = mty.from'ds.log    info'
 local Game, S    = mty.from'ele.game  Game,Sprite'
 
 local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
 
-dbg('TUTORIAL', TUTORIAL)
+-- Table of key => keyScore
+local SCORE = {}
+-- multiply score by this to get expected time in ms
+local EXPECTED_MS_MULTIPLIER
+do
+  local function set(chrs, v)
+    for c in chrs:gmatch'.' do SCORE[c] = v end
+  end
+  set("qzxc p;',./",  12) -- pinkie or hard
+  set('QZXC P:"<>/',  15) -- shift + pinkie or hard
+
+  set('12390',        14) -- easy numbers
+  set('!@#()',        17) -- shift + easy numbers
+
+  set('45678',        16) -- hard numbers
+  set('$%^&*',        19) -- shift + hard numbers
+
+  set('`-=[]\\',      18)  -- most hand movement
+  set('~_+{}|',       21)  -- shift + most hand movement
+
+  -- We expect hardest key to take ~half a second.
+  -- 0.5s = timeMultiplier * 21 ==> timeM = 0.5 / score
+  EXPECTED_MS_MULTIPLIER = 500 // 21
+end
+SCORE[' '] = 5
+
+--- Calculate the score of the string.
+function M.score(str)
+  local s = 5
+  for c in str:gmatch'.' do
+    s = s + (SCORE[c] or isupper(c) and 15 or 10)
+  end
+  return s
+end
 
 M.Typo = mty.extend(Game, 'Typo', {
   'user {chr}: the text the player has input.',
   'score [int]', score = 0,
   'wi [int]',    wi = 1,
+  'perfect [int]', perfect = 0,
+  mh = 3, mw = 10,
 })
+getmetatable(M.Typo).__call = function(T, t)
+  Game.__init(t)
+  t.user = {}
+  t.sprites = {}
+  t.actions = {
+    keyinput = function(ed, ev) t:keyinput(ed, ev) end,
+  }
+  return mty.construct(T, t)
+end
 
 function M.Typo:getData()
   return TUTORIAL[self.wi] or {want='!! DONE !!'}
@@ -89,13 +134,6 @@ function M.Typo:keyinput(ed, ev)
 end
 
 getmetatable(M).__call = function(_, ed)
-  local g = M.Typo{
-    mh = 3, mw = 10,
-    user = {},
-  }
-  g.actions = {
-    keyinput = function(ed, ev) g:keyinput(ed, ev) end,
-  }
-  ed:focus(g)
+  ed:focus(M.Typo{})
 end
 return M
