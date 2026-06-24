@@ -16,8 +16,9 @@ local Session = require'ele.Session'
 
 local typo   = require'civgame.typo'
 
-local info   = mty.from'ds.log  info'
-local print  = mty.from'fmt     print'
+local sfmt           = mty.from(string, 'format')
+local info           = mty.from'ds.log  info'
+local print, assertf = mty.from'fmt     print, assertf'
 
 local running = false
 
@@ -55,7 +56,26 @@ getmetatable(Test).__call = function(Ty, t)
   end)
 end
 
-Test{'typo', game=typo.Typo{}, function(tst)
+
+-------------
+-- typo
+
+T'typo'; do
+  -- Check that all non-alpha chars have a score assigned.
+  for c=32,126 do; local c = string.char(c)
+    assertf(c:match'[a-zA-Z]' or typo.SCORE[c], 'add to SCORE: %q', c)
+  end
+
+  T.eq(5 + 10*2 + 12, typo.rawScore'abc')
+
+  local t = typo.Typo{}
+  t.lvl = 0;  T.eq(483, t:expectedTimeMs(21))
+  t.lvl = 1;  T.eq(459, t:expectedTimeMs(21))
+  t.lvl = 2;  T.eq(435, t:expectedTimeMs(21))
+  t.lvl = 10; T.eq(242, t:expectedTimeMs(21))
+end
+
+Test{'typo session', game=typo.Typo{}, function(tst)
   local s, ed, g = tst.s, tst.s.ed, tst.s.ed.pane
   s:play'h'
     T.eq({'h'}, g.user)
