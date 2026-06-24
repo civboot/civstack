@@ -89,4 +89,9 @@ push(T1, {
   want='p;m',
 })
 
+push(T1, {
+  help='go again?',
+  want='AGAIN',
+})
+
 return T1

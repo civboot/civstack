@@ -145,7 +145,7 @@ function M.Typo:updateMult(want, durationMs, expectedMs) --> float, {Mult}
 end
 
 function M.Typo:getData()
-  return TUTORIAL[self.wi] or {want='!! DONE !!'}
+  return TUTORIAL[self.wi]
 end
 
 function M.Typo:draw(ed, isRight)
@@ -153,6 +153,9 @@ function M.Typo:draw(ed, isRight)
   ds.clear(self.sprites)
   local title = TUTORIAL.title
   local t = self:getData()
+  if not t then
+    self.wi = 1; t = self:getData()
+  end
   push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
   push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
   if t.help then push(self.sprites, S{l=h-4,c=1, txt=t.help}) end
