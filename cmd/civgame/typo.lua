@@ -9,14 +9,15 @@ local ds = require'ds'
 local pth = require'ds.path'
 local vt100 = require'vt100'
 local luk = require'luk'
+local ix = require'civix'
 
-local concat     = mty.from(table,   'concat')
-local push, pop  = mty.from(table,   'insert, remove')
-local sfmt, srep = mty.from(string,  'format, rep')
-local min, mwax  = mty.from(math,    'min, max')
-local isupper    = mty.from'ds        isupper'
-local info       = mty.from'ds.log    info'
-local Game, S    = mty.from'ele.game  Game,Sprite'
+local concat             = mty.from(table,   'concat')
+local push, pop          = mty.from(table,   'insert, remove')
+local sfmt, srep         = mty.from(string,  'format, rep')
+local min, max, abs      = mty.from(math,    'min, max, abs')
+local int, isupper       = mty.from'ds        int, isupper'
+local info               = mty.from'ds.log    info'
+local Game, S            = mty.from'ele.game  Game,Sprite'
 
 local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
 
@@ -67,8 +68,10 @@ M.Typo = mty.extend(Game, 'Typo', {
   'wi [int]',      wi = 1,
   'miss [int]: count of non-consecutive backspaces', miss = 0,
   'lastWasBackspace [bool]', lastWasBackspace = false,
-  'great [int]: rolling multiplier (percent)', great = 0,
-  'fast [int]: rolling multiplier (percent)', fast = 0,
+  'great [int]: rolling additional multiplier (permille)', great = 0,
+  'fast [int]: rolling additional multiplier (permille)', fast = 0,
+  'start [ds.Epoch]: time since epoch word was started',
+  'status [ds.Deq[Sprite]]: rolling multipliers applied',
   mh = 3, mw = 10,
 })
 getmetatable(M.Typo).__call = function(T, t)
@@ -78,6 +81,8 @@ getmetatable(M.Typo).__call = function(T, t)
   t.actions = {
     keyinput = function(ed, ev) t:keyinput(ed, ev) end,
   }
+  t.start = ix.epoch()
+  t.status = ds.Deq{}
   return mty.construct(T, t)
 end
 
@@ -87,33 +92,39 @@ function M.Typo:expectedTimeMs(score)
   return et - (et * self.lvl // (MAX_LEVEL * 2))
 end
 
+function M.Typo:missCost() return max(10, self.lvl) end
+
 M.Mult = mty'Mult' {
   'name [str]',
-  'mult [float]',
-  'change [float]',
+  'mult [int]: multiplier * 1000',
+  'change [int]: multipler change * 1000',
 }
+
+local function statusSprite(txt, fg)
+  return S{txt=txt, fg=srep(fg or ' ', #txt)}
+end
 
 function M.Mult:sprite()
   local n, m, c = self.name, self.mult, self.change
-  local txt = sfmt('%s%.1f %s (%s)', (c>0) and '+' or '-', c, n, m)
-  local fg = (c>0.5) and 'G' or (c>0) and 'g' or 'r'
-  return S{txt=txt, fg=srep(fg, #txt)}
+  local txt = sfmt('%s%.1f %s (%s)', (c>0) and '+' or '-', abs(c), n, m)
+  return statusSprite(txt, (c>0.5) and 'G' or (c>0) and 'g' or 'r')
 end
 
 --- Update the multipliers and get the final multiplier and Mult statuses
 --- to display.
 ---
 --- This uses Typo's current multipliers and miss count.
-function M.Typo:updateMult(want, durationMs, expectedMs) --> float, {Mult}
+function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
+  dbg('updateMult', txt, elapsedMs, expectedMs)
   local status, fast, great = {}, self.fast, self.great
   local fastMult = M.Mult{name='faster'}
-  if durationMs <= (expectedMs // 2) then
-    if fast < 2 then fast = min(2, fast + 0.5) end
-    if durationMs <= (expectedMs // 4) then
-      fast, fastMult.name = min(3, fast + 0.2), 'ludicrous'
+  if elapsedMs <= (expectedMs // 2) then
+    if fast < 2 then fast = min(2000, fast + 500) end
+    if elapsedMs <= (expectedMs // 4) then
+      fast, fastMult.name = min(3000, fast + 200), 'ludicrous'
     end
-  elseif fast > 0 and durationMs >= (expectedMs * 0.6) then
-    fast, fastMult.name = max(0, fast - 0.5), 'slowing'
+  elseif fast > 0 and elapsedMs >= (expectedMs * 0.6) then
+    fast, fastMult.name = max(0, fast - 500), 'slowing'
   end
   if self.fast ~= fast then
     ds.update(fastMult, {mult=fast, change=fast - self.fast})
@@ -122,13 +133,13 @@ function M.Typo:updateMult(want, durationMs, expectedMs) --> float, {Mult}
   end
 
   local miss, great, greatMult = self.miss, self.great, M.Mult{name='great'}
-  if miss / want <= 0.2 then
-    if great < 2 then great = min(2, great + 0.5) end
+  if miss / #txt <= 0.2 then
+    if great < 2 then great = min(2000, great + 500) end
     if miss == 0 then
-      great, greatMult.name = min(3, great + 0.2), 'perfect'
+      great, greatMult.name = min(3000, great + 200), 'perfect'
     end
-  elseif great > 0 and miss / want >= 0.3 then
-    great, greatMult.name = max(0, great - 0.5), 'missed a few!'
+  elseif great > 0 and miss / #txt >= 0.3 then
+    great, greatMult.name = max(0, great - 500), 'missed a few!'
   end
   if self.great ~= great then
     ds.update(greatMult, {mult=great, change=great - self.great})
@@ -137,9 +148,10 @@ function M.Typo:updateMult(want, durationMs, expectedMs) --> float, {Mult}
   end
 
   -- Compute final multiplier
-  local mult = min(4, 1 + great + fast)
-  if durationMs > expectedMs then 
-    mult = -min(4, (durationMs - expectedMs) / expectedMs)
+  dbg('great&fast', great, fast)
+  local mult = min(4000, 1000 + great + fast)
+  if elapsedMs > expectedMs then 
+    mult = -min(2000, int(1000 * (elapsedMs - expectedMs) / expectedMs))
   end
   return mult, status
 end
@@ -149,6 +161,8 @@ function M.Typo:getData()
 end
 
 function M.Typo:draw(ed, isRight)
+  -- FIXME: need to display mults
+  -- FIXME: score should be a bar that "fills up" to gain levels.
   local h = self.th
   ds.clear(self.sprites)
   local title = TUTORIAL.title
@@ -158,7 +172,15 @@ function M.Typo:draw(ed, isRight)
   end
   push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
   push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
-  if t.help then push(self.sprites, S{l=h-4,c=1, txt=t.help}) end
+  if t.help then push(self.sprites, S{l=h-4,c=20, txt=t.help}) end
+
+  -- Display status objects
+  while #self.status > 8 do self.status() end -- reduce to len 8
+  do local s = 1; for l=h-4, h-4-#self.status, -1 do
+    local sp = self.status[s]
+    sp.l,sp.c = l,20; push(self.sprites, sp)
+    s = s + 1
+  end end
 
   local w = t.want
   push(self.sprites, S{l=h-2,c=1, txt=w, fg=srep('c', #w) })
@@ -177,7 +199,8 @@ function M.Typo:draw(ed, isRight)
   })
   push(self.sprites, S{l=h-1,c=1+#self.user, fg='W', bg='C'})
 
-  local score = sfmt('Score: %s', self.score)
+  local score = sfmt('Score: %s  Fast: x%.1f  Great: x%.1f',
+                     self.score, self.fast, self.great)
   push(self.sprites, S{l=h,c=1, txt=score, fg=srep('G', #score)})
   return Game.draw(self, ed, isRight)
 end
@@ -190,23 +213,34 @@ function M.Typo:keyinput(ed, ev)
   info('typo keyinput %q', ev)
   local chr = ev[1]
   if chr == 'back' then
+    if not self.lastWasBackspace then
+      self.lastWasBackspace, self.miss = true, self.miss + 1
+    end
     return pop(self.user)
   end
+  self.lastWasBackspace = false
   chr = vt100.LITERALS[chr] or chr
   assert(1 == #chr)
   push(self.user, chr)
-  info('typo keyinput %q', ev)
-  local w = assert(self:getData().want)
-  if #self.user < #w then return end
-  local score, u = 0, concat(self.user)
+  local u, w = concat(self.user), assert(self:getData().want)
+  if u ~= w then return end -- Not done until identical
   info('scoring %q to %q', u, w)
-  -- typed all the characters, check word and calculate score
-  for i=1,#w do
-    if u:sub(i,i) ~= w:sub(i,i) then return end
-    score = score + 1
+  local now = ix.epoch()
+  local elapsed = now - self.start
+  local score = M.rawScore(u)
+  local mult, changes = self:updateMult(
+    u, elapsed:asMs(), 100 + self:expectedTimeMs(score))
+  score = int((score * mult) - (self.miss * self:missCost()))
+  dbg('score', score, mult, self.miss, self:missCost())
+  if score ~= 0 then
+    local scoreTxt = sfmt('Score %s%s (%s missed)',
+                          score>0 and '+' or '-', score, self.miss)
+    self.status:push(statusSprite(scoreTxt, score >= 0 and ' ' or 'r'))
   end
+  for _, ch in ipairs(changes) do self.status:push(ch:sprite()) end
   ds.clear(self.user)
   self.wi, self.score = self.wi + 1, self.score + score
+  self.start, self.miss, self.lastWasBackspace = now, 0, false
 end
 
 getmetatable(M).__call = function(_, ed)

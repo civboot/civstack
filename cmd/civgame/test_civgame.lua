@@ -19,6 +19,7 @@ local typo   = require'civgame.typo'
 local sfmt           = mty.from(string, 'format')
 local info           = mty.from'ds.log  info'
 local print, assertf = mty.from'fmt     print, assertf'
+local Mult = typo.Mult
 
 local running = false
 
@@ -73,10 +74,24 @@ T'typo'; do
   t.lvl = 1;  T.eq(459, t:expectedTimeMs(21))
   t.lvl = 2;  T.eq(435, t:expectedTimeMs(21))
   t.lvl = 10; T.eq(242, t:expectedTimeMs(21))
+
+  t.lvl = 1
+  T.eq({2200, {
+    Mult{ name="faster",  mult=500, change=500 }, 
+    Mult{ name="perfect", mult=700, change=700 },
+  }}, {t:updateMult("j", 250, 500)})
 end
 
 Test{'typo session', game=typo.Typo{}, function(tst)
   local s, ed, g = tst.s, tst.s.ed, tst.s.ed.pane
   s:play'h'
     T.eq({'h'}, g.user)
+    T.eq(0,     g.miss) -- miss not counted until backspace
+
+  s:play'back j'
+    T.eq({},    g.user) -- cleared for next
+    T.eq(0,     g.miss) -- miss okay
+    T.eq(0,     g.score)
 end}
+
+ds.yeet'ok'

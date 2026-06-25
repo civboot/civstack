@@ -45,7 +45,7 @@ push(T1, {
 })
 
 push(T1, {
-  help='Top+home row right: create a circle toward left,\n',
+  help='Top+home row right: create a circle toward left,\n'
      ..'then go through home row.',
   want='iuy hjkl',
 })
@@ -56,7 +56,7 @@ push(T1, {
 })
 
 push(T1, {
-  help='Bottom row right: use pointer on "bnm" then middle on ",".'
+  help='Bottom row right: use pointer on "bnm" then middle on ",".',
   want='bnm ,',
 })
 

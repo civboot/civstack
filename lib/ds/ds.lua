@@ -15,7 +15,7 @@ local move, sort, unpack = mty.from(table,  'move,sort,unpack')
 local sfmt, sfind, srep  = mty.from(string, 'format,find,rep')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
 local mathty, min, max   = mty.from(math,   'type,min,max')
-local floor              = mty.from(math,   'floor')
+local floor, tointeger   = mty.from(math,   'floor, tointeger')
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -216,7 +216,12 @@ G.dbg = M.dbg
 
 
 ---------------------
--- Order checking functions
+-- Numbers
+
+--- Convert the floor of the value to an integer.
+function M.int(v) --> int
+  return tointeger(floor(v))
+end
 
 --- Return whether [$min <= v <= max].
 function M.isWithin(v, min, max) --> bool
@@ -1138,6 +1143,7 @@ function M.Deq:popRight() --> v
   return val
 end
 M.Deq.push = M.Deq.pushRight --(d, v) --> nil
+M.Deq.extend = M.Deq.extendRight
 function M.Deq:__len() return self.right - self.left + 1 end --> #d
 M.Deq.pop = M.Deq.popLeft --> (d) -> v
 M.Deq.__call = M.Deq.pop  --> () -> v

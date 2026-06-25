@@ -113,6 +113,9 @@ M.Duration.__fmt = nil
 function M.Duration:__tostring() return self:asSeconds()..'s' end
 M.Duration.__toPod   = timeToPod
 M.Duration.__fromPod = timeFromPod
+function M.Duration:asMs() --> int
+  return (self.s * 1000) + (self.ns // MICRO)
+end
 
 M.ZERO = M.Duration(0, 0)
 
@@ -121,7 +124,7 @@ M.ZERO = M.Duration(0, 0)
 getmetatable(M.Epoch).__call = timeNew
 
 M.Epoch.fromSeconds = fromSeconds
-M.Epoch.asSeconds = asSeconds
+M.Epoch.asSeconds   = asSeconds
 function M.Epoch:__sub(r)
   assert(self);     assert(r)
   assertTime(self); assertTime(r)

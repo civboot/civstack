@@ -140,6 +140,10 @@ T'imm'; do
 end
 
 T'number'; do
+  T.eq(2,   math.tointeger(2.0))
+  T.eq(nil, math.tointeger(2.2))
+  T.eq(2,   ds.int(2.2))
+
   assert(0, absDec(1)); assert(0, absDec(-1))
 
   assert(1 == bound(0, 1, 5))
@@ -381,6 +385,7 @@ T'time'; do
   assert(not (Duration(2) < Duration(2)))
   T.eq(Duration(1.5), Duration(1, N // 2))
   T.eq('1.5s', tostring(Duration(1.5)))
+  T.eq(1500, Duration(1.5):asMs())
 
   T.eq(Epoch(1) - Duration(1), Epoch(0))
   T.eq(Epoch(1) - Epoch(0), Duration(1))
