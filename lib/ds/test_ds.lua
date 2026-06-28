@@ -143,6 +143,9 @@ T'number'; do
   T.eq(2,   math.tointeger(2.0))
   T.eq(nil, math.tointeger(2.2))
   T.eq(2,   ds.int(2.2))
+  T.throws('number expected', function() ds.int'hi' end)
+  T.throws('not a countable', function() ds.int(1/0) end)
+  T.throws('not a countable', function() ds.int(0 * (1/0)) end)
 
   assert(0, absDec(1)); assert(0, absDec(-1))
 

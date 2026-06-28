@@ -106,7 +106,7 @@ end
 
 function M.Mult:sprite()
   local n, m, c = self.name, self.mult, self.change
-  local txt = sfmt('%s%.1f %s (%s)', (c>0) and '+' or '-', abs(c), n, m)
+  local txt = sfmt('%s%.1f %s (=%s)', (c>0) and '+' or '-', abs(c/1000), n, m/1000)
   return statusSprite(txt, (c>0.5) and 'G' or (c>0) and 'g' or 'r')
 end
 
@@ -117,14 +117,14 @@ end
 function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
   dbg('updateMult', txt, elapsedMs, expectedMs)
   local status, fast, great = {}, self.fast, self.great
-  local fastMult = M.Mult{name='faster'}
+  local fastMult = M.Mult{name='speed is fast'}
   if elapsedMs <= (expectedMs // 2) then
     if fast < 2 then fast = min(2000, fast + 500) end
     if elapsedMs <= (expectedMs // 4) then
-      fast, fastMult.name = min(3000, fast + 200), 'ludicrous'
+      fast, fastMult.name = min(3000, fast + 200), 'speed is ludicrous'
     end
   elseif fast > 0 and elapsedMs >= (expectedMs * 0.6) then
-    fast, fastMult.name = max(0, fast - 500), 'slowing'
+    fast, fastMult.name = max(0, fast - 500), 'speed is slowing'
   end
   if self.fast ~= fast then
     ds.update(fastMult, {mult=fast, change=fast - self.fast})
@@ -163,7 +163,11 @@ end
 function M.Typo:draw(ed, isRight)
   -- FIXME: need to display mults
   -- FIXME: score should be a bar that "fills up" to gain levels.
-  local h = self.th
+  local h,w = self.th, self.tw
+  dbg('th,tw', h,w)
+  local d = ed.display
+  dbg('dh,dw', d.h,d.w)
+
   ds.clear(self.sprites)
   local title = TUTORIAL.title
   local t = self:getData()
@@ -172,13 +176,14 @@ function M.Typo:draw(ed, isRight)
   end
   push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
   push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
-  if t.help then push(self.sprites, S{l=h-4,c=20, txt=t.help}) end
+  if t.help then push(self.sprites, S{l=h-4,c=1, txt=t.help}) end
 
   -- Display status objects
   while #self.status > 8 do self.status() end -- reduce to len 8
-  do local s = 1; for l=h-4, h-4-#self.status, -1 do
+  do local s = 1; for l=h-5, h-4-#self.status, -1 do
+    dbg('status[s]', s, l, #self.status)
     local sp = self.status[s]
-    sp.l,sp.c = l,20; push(self.sprites, sp)
+    sp.l,sp.c = l,5; push(self.sprites, sp)
     s = s + 1
   end end
 
@@ -197,10 +202,11 @@ function M.Typo:draw(ed, isRight)
   push(self.sprites, S{
     l=h-1,c=1, txt=u, fg=concat(fg), bg=bg,
   })
+  -- draw cursor
   push(self.sprites, S{l=h-1,c=1+#self.user, fg='W', bg='C'})
 
   local score = sfmt('Score: %s  Fast: x%.1f  Great: x%.1f',
-                     self.score, self.fast, self.great)
+                     self.score, self.fast/1000, self.great/1000)
   push(self.sprites, S{l=h,c=1, txt=score, fg=srep('G', #score)})
   return Game.draw(self, ed, isRight)
 end
@@ -230,10 +236,10 @@ function M.Typo:keyinput(ed, ev)
   local score = M.rawScore(u)
   local mult, changes = self:updateMult(
     u, elapsed:asMs(), 100 + self:expectedTimeMs(score))
-  score = int((score * mult) - (self.miss * self:missCost()))
+  score = int((score * mult / 1000) - (self.miss * self:missCost()))
   dbg('score', score, mult, self.miss, self:missCost())
   if score ~= 0 then
-    local scoreTxt = sfmt('Score %s%s (%s missed)',
+    local scoreTxt = sfmt('%s%s score (%s missed)',
                           score>0 and '+' or '-', score, self.miss)
     self.status:push(statusSprite(scoreTxt, score >= 0 and ' ' or 'r'))
   end

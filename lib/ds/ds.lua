@@ -16,6 +16,7 @@ local sfmt, sfind, srep  = mty.from(string, 'format,find,rep')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
 local mathty, min, max   = mty.from(math,   'type,min,max')
 local floor, tointeger   = mty.from(math,   'floor, tointeger')
+local Fmt, assertf       = mty.from'fmt      Fmt, assertf'
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -25,8 +26,8 @@ local EMPTY = {}
 function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
-  io.user = fmt.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
-  io.fmt  = fmt.Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
+  io.user = Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
+  io.fmt  = Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
   G.IS_SETUP = true
 end
 
@@ -218,9 +219,13 @@ G.dbg = M.dbg
 ---------------------
 -- Numbers
 
---- Convert the floor of the value to an integer.
-function M.int(v) --> int
-  return tointeger(floor(v))
+--- Convert the floor of the number to an integer.
+--- Throws if n is not a number.
+function M.int(n) --> int
+  local i = tointeger(floor(n)); if not i then
+    error(sfmt('%q is not a countable number', n))
+  end
+  return i
 end
 
 --- Return whether [$min <= v <= max].
@@ -454,7 +459,7 @@ function M.last(t) return t[#t] end
 
 --- get the first (and assert only) element of the list
 function M.only(t) --> t[1]
-  local l = #t; fmt.assertf(l == 1, 'not only: len=%s', l)
+  local l = #t; assertf(l == 1, 'not only: len=%s', l)
   return t[1]
 end
 
@@ -820,7 +825,7 @@ end
 
 --- Write text to path or throw an error.
 function M.writePath(path, text) --!> nil
-  local f = fmt.assertf(io.open(path, 'w'), 'invalid %s', path)
+  local f = assertf(io.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
 end
 
@@ -1047,7 +1052,7 @@ local function _dagSort(out, id, parentMap, visited) --> cycle?
   local info = require'ds.log'.info
   push(visited, id); visited[id] = #visited
   for _, pid in ipairs(
-      fmt.assertf(parentMap[id], '%q missing parents', id)) do
+      assertf(parentMap[id], '%q missing parents', id)) do
     local cycle = _dagSort(out, pid, parentMap, visited)
     if cycle then return cycle end
   end

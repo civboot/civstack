@@ -2,6 +2,7 @@
 local G = G or _G
 local T      = require'civtest'
 local mty    = require'metaty'
+local fmt    = require'fmt'
 local ac     = require'asciicolor'
 local ds     = require'ds'
 local log    = require'ds.log'
@@ -24,17 +25,20 @@ local Mult = typo.Mult
 local running = false
 
 -- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
-local Test = mty.record'civgame.Test' {
-  'th', th=10, 'tw', tw=60,
+local Test = mty'civgame.Test' {
+  'th', th=20, 'tw', tw=60,
   's [Session]',
   'game [ele.types.BasePane]',
 }
 
 getmetatable(Test).__call = function(Ty, t)
+  t = mty.construct(Ty, t)
   local srcloc = ds.srcloc(1)
   assert(not running); running = true
   t.s = t.s or Session:test{}; local ed = t.s.ed
-  ed.display = Fake{h=t.th, w=t.tw, styler=ac.Styler{}}
+  local d = Fake{h=t.th, w=t.tw, styler=ac.Styler{}}
+  ed.display = d
+  T.eq({t.th,t.tw}, {d.h,d.w})
   local name = assert(t[1],   'need [1]=name')
   local game = assert(t.game, 'need game')
   print('## test_civgame', name)
@@ -77,7 +81,7 @@ T'typo'; do
 
   t.lvl = 1
   T.eq({2200, {
-    Mult{ name="faster",  mult=500, change=500 }, 
+    Mult{ name="speed is fast",  mult=500, change=500 }, 
     Mult{ name="perfect", mult=700, change=700 },
   }}, {t:updateMult("j", 250, 500)})
 end
@@ -89,9 +93,10 @@ Test{'typo session', game=typo.Typo{}, function(tst)
     T.eq(0,     g.miss) -- miss not counted until backspace
 
   s:play'back j'
-    T.eq({},    g.user) -- cleared for next
-    T.eq(0,     g.miss) -- miss okay
-    T.eq(0,     g.score)
+    T.eq({}, g.user) -- cleared for next
+    T.eq(0,  g.miss) -- miss cleared
+    T.eq(15, g.score)
+    T.eq('', fmt(ed.display))
 end}
 
 ds.yeet'ok'
