@@ -21,44 +21,57 @@ local Game, S            = mty.from'ele.game  Game,Sprite'
 
 local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
 
-local MAX_LEVEL = 10
+local MAX_LEVEL = 6
 
 -- Table of key => keyScore
 local SCORE = {}
 -- multiply score by this to get expected time in ms
 local EXPECTED_MS_MULTIPLIER
+local SHIFT, SPACE       = 3, 5
+local EASY               = 10
+local PINKIE             = 12
+local EASY_NUM, HARD_NUM = 14, 16
+local HARDEST            = 18
+
 do
   local function set(chrs, v)
     for c in chrs:gmatch'.' do SCORE[c] = v end
   end
-  set("qzxc p;',./",  12) -- pinkie or hard
-  set('QZXC P:"<>?',  15) -- shift + pinkie or hard
+  set("qzxc p;',./",  PINKIE)
+  set('QZXC P:"<>?',  PINKIE+SHIFT)
 
-  set('12390',        14) -- easy numbers
-  set('!@#()',        17) -- shift + easy numbers
+  set('12390',        EASY_NUM)
+  set('!@#()',        EASY_NUM+SHIFT)
 
-  set('45678',        16) -- hard numbers
-  set('$%^&*',        19) -- shift + hard numbers
+  set('45678',        HARD_NUM)
+  set('$%^&*',        HARD_NUM+SHIFT)
 
-  set('`-=[]\\',      18)  -- most hand movement
-  set('~_+{}|',       21)  -- shift + most hand movement
+  set('`-=[]\\',      HARDEST)
+  set('~_+{}|',       HARDEST+SHIFT)
 
   -- We expect hardest key to take ~half a second.
   -- 2.0s = timeMultiplier * 21 ==> timeM = 2.0 / score
   EXPECTED_MS_MULTIPLIER = 2000 // 21
 end
-SCORE[' '] = 5
+SCORE[' '] = SPACE
 M.SCORE = SCORE
 
---- Calculate the raw score of the string.
-function M.rawScore(str)
-  local s = 5
+--- Calculate the:
+--- * total raw score of the string
+--- * sum of unique scores
+--- * maximum character score
+function M.rawScore(str) --> int, int, int
+  local scores = {}
+  local s, u, m = 5, 0, 0
   for c in str:gmatch'.' do
-    local cs = SCORE[c] or isupper(c) and 13 or 10
-    dbg('%q score: %s', c, cs)
+    local cs = SCORE[c] or (LETTER + (isupper(c) and SHIFT or 0))
+    if not scores[cs] then
+      u = u + cs; scores[cs] = true;
+    end
     s = s + cs
+    m = max(m, cs)
   end
-  return s
+  return s, u, m
 end
 
 M.Typo = mty.extend(Game, 'Typo', {
@@ -261,9 +274,50 @@ function M.Typo:keyinput(ed, ev)
 end
 
 ----------------------------
--- Code Extraction
+-- ## Code Extraction
 
+-- Maximums for each phase of the game.
+local BEGIN = SPACE + EASY
+local EARLY = (BEGIN) + (EASY+SHIFT) + PINKIE
+local MID   = (EARLY) + (PINKIE+SHIFT) + EASY_NUM
+local LATE  = (MID)   + (SHIFT+EASY_NUM) + HARD_NUM + HARDEST
 
+M.Categorizer = mty'Categorizer' {
+  'begin {string}: beginning game lines',
+  'early {string}: early game lines',
+  'mid {string}: mid game lines',
+  'late {string}: late game lines',
+  'endGame {string}: end game lines',
+}
+
+function M.Categorizer:categorize(line)
+  line = ds.trim(line); if #line <= 3 then return end
+  local s, u, m = M.rawScore(line)
+  if     u <= BEGIN and m <= EASY_NUM then self.begin[line]   = s
+  elseif u <= EARLY and m <= HARD_NUM then self.early[line]   = s
+  elseif u <= MID   and m <= HARDEST  then self.mid[line]     = s
+  elseif u <= LATE                    then self.late[line]    = s
+  else self.endGame[line] = true end
+end
+
+local function sortedLines(lineScoreMap)
+  return ds.orderedKeys(lineScoreMap, function(a, b)
+    return lineScoreMap[a] < lineScoreMap[b]
+  end)
+end
+
+function M.Categorizer:finish()
+  return {
+    sortedLines(self.begin),
+    sortedLines(self.early),
+    sortedLines(self.mid),
+    sortedLines(self.late),
+    sortedLines(self.endGame),
+  }
+end
+
+----------------------------
+-- Shim Commandline
 getmetatable(M).__call = function(_, ed)
   ed:focus(M.Typo{})
 end
