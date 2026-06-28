@@ -44,8 +44,8 @@ do
   set('~_+{}|',       21)  -- shift + most hand movement
 
   -- We expect hardest key to take ~half a second.
-  -- 0.5s = timeMultiplier * 21 ==> timeM = 0.5 / score
-  EXPECTED_MS_MULTIPLIER = 500 // 21
+  -- 2.0s = timeMultiplier * 21 ==> timeM = 2.0 / score
+  EXPECTED_MS_MULTIPLIER = 2000 // 21
 end
 SCORE[' '] = 5
 M.SCORE = SCORE
@@ -107,7 +107,7 @@ end
 function M.Mult:sprite()
   local n, m, c = self.name, self.mult, self.change
   local txt = sfmt('%s%.1f %s (=%s)', (c>0) and '+' or '-', abs(c/1000), n, m/1000)
-  return statusSprite(txt, (c>0.5) and 'G' or (c>0) and 'g' or 'r')
+  return statusSprite(txt, (c>0.5) and 'G' or (c>0) and 'g' or 'y')
 end
 
 --- Update the multipliers and get the final multiplier and Mult statuses
@@ -149,8 +149,9 @@ function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
 
   -- Compute final multiplier
   dbg('great&fast', great, fast)
+  dbg('elapsed', elapsedMs, 'expected', expectedMs)
   local mult = min(4000, 1000 + great + fast)
-  if elapsedMs > expectedMs then 
+  if elapsedMs > expectedMs then
     mult = -min(2000, int(1000 * (elapsedMs - expectedMs) / expectedMs))
   end
   return mult, status
@@ -161,7 +162,6 @@ function M.Typo:getData()
 end
 
 function M.Typo:draw(ed, isRight)
-  -- FIXME: need to display mults
   -- FIXME: score should be a bar that "fills up" to gain levels.
   local h,w = self.th, self.tw
   dbg('th,tw', h,w)
@@ -180,12 +180,14 @@ function M.Typo:draw(ed, isRight)
 
   -- Display status objects
   while #self.status > 8 do self.status() end -- reduce to len 8
-  do local s = 1; for l=h-5, h-4-#self.status, -1 do
+  local l = h-5
+  local st = self.status
+  for s=st.right,st.left,-1 do
     dbg('status[s]', s, l, #self.status)
     local sp = self.status[s]
     sp.l,sp.c = l,5; push(self.sprites, sp)
-    s = s + 1
-  end end
+    l = l - 1
+  end
 
   local w = t.want
   push(self.sprites, S{l=h-2,c=1, txt=w, fg=srep('c', #w) })
@@ -224,6 +226,8 @@ function M.Typo:keyinput(ed, ev)
     end
     return pop(self.user)
   end
+  -- timer starts on first character
+  if not self.start then self.start = ix.epoch() end
   self.lastWasBackspace = false
   chr = vt100.LITERALS[chr] or chr
   assert(1 == #chr)
@@ -234,19 +238,21 @@ function M.Typo:keyinput(ed, ev)
   local now = ix.epoch()
   local elapsed = now - self.start
   local score = M.rawScore(u)
-  local mult, changes = self:updateMult(
-    u, elapsed:asMs(), 100 + self:expectedTimeMs(score))
+  local elapsed, expected = elapsed:asMs(), 200 + self:expectedTimeMs(score)
+  local mult, changes = self:updateMult(u, elapsed, expected)
   score = int((score * mult / 1000) - (self.miss * self:missCost()))
   dbg('score', score, mult, self.miss, self:missCost())
   if score ~= 0 then
-    local scoreTxt = sfmt('%s%s score (%s missed)',
-                          score>0 and '+' or '-', score, self.miss)
-    self.status:push(statusSprite(scoreTxt, score >= 0 and ' ' or 'r'))
+    local scoreTxt = sfmt('%s%s score (%s missed, time %.1f/%.1f)',
+                          score>0 and '+' or '-', score, self.miss,
+                          elapsed/1000, expected/1000)
+    self.status:push(statusSprite(scoreTxt, score >= 0 and 'c' or 'r'))
   end
   for _, ch in ipairs(changes) do self.status:push(ch:sprite()) end
   ds.clear(self.user)
   self.wi, self.score = self.wi + 1, self.score + score
-  self.start, self.miss, self.lastWasBackspace = now, 0, false
+  self.miss, self.lastWasBackspace = 0, false
+  self.start = nil
 end
 
 getmetatable(M).__call = function(_, ed)

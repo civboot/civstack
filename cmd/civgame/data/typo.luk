@@ -11,8 +11,8 @@ Home position:
 }
 
 push(T1, {
-  help='Home row: put right pointer finger on "j" key and press it',
-  want='j',
+  help='Home row: put right pointer finger on "j" key and press it twice',
+  want='jj',
 })
 
 push(T1, {

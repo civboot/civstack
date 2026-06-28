@@ -1113,8 +1113,8 @@ end
 ---   popLeft()   pop()  __call() -- pop on left side
 --- ]$
 M.Deq = mty'Deq'{
+  'left  [number]',
   'right [number]',
-  'left  [number]'
 }
 getmt(M.Deq).__call = function(T)
   return mty.construct(T, {right=0, left=1})

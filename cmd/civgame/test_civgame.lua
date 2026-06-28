@@ -65,6 +65,28 @@ end
 -------------
 -- typo
 
+local TYPO_EXPECTED = [[
+[mode:command]
+Tutorial 1: type "SKIP!" to skip
+Home position:
+* thumbs over space
+* pointer fingers normally on "f" and "j"
+* middle fingers normally on "d" and "k"
+
+
+
+
+
+
+
+    +32 score (1 missed, time 0.0/2.6)
+    +0.7 speed is ludicrous (=0.7)
+Home row: put left pointer finger on "f" key thumb on space.
+Type: "f" "space" "j"
+f j
+   
+Score: 32  Fast: x0.7  Great: x0.0]]
+
 T'typo'; do
   -- Check that all non-alpha chars have a score assigned.
   for c=32,126 do; local c = string.char(c)
@@ -74,29 +96,28 @@ T'typo'; do
   T.eq(5 + 10*2 + 12, typo.rawScore'abc')
 
   local t = typo.Typo{}
-  t.lvl = 0;  T.eq(483, t:expectedTimeMs(21))
-  t.lvl = 1;  T.eq(459, t:expectedTimeMs(21))
-  t.lvl = 2;  T.eq(435, t:expectedTimeMs(21))
-  t.lvl = 10; T.eq(242, t:expectedTimeMs(21))
+  t.lvl = 0;  T.eq(1995, t:expectedTimeMs(21))
+  t.lvl = 1;  T.eq(1896, t:expectedTimeMs(21))
+  t.lvl = 2;  T.eq(1796, t:expectedTimeMs(21))
 
   t.lvl = 1
   T.eq({2200, {
     Mult{ name="speed is fast",  mult=500, change=500 }, 
-    Mult{ name="perfect", mult=700, change=700 },
+    Mult{ name="perfect",        mult=700, change=700 },
   }}, {t:updateMult("j", 250, 500)})
 end
 
 Test{'typo session', game=typo.Typo{}, function(tst)
   local s, ed, g = tst.s, tst.s.ed, tst.s.ed.pane
   s:play'h'
+    T.eq(log.LogTable{}, ed.error)
     T.eq({'h'}, g.user)
     T.eq(0,     g.miss) -- miss not counted until backspace
 
-  s:play'back j'
+  s:play'back j j'
+    T.eq(log.LogTable{}, ed.error)
     T.eq({}, g.user) -- cleared for next
     T.eq(0,  g.miss) -- miss cleared
-    T.eq(15, g.score)
-    T.eq('', fmt(ed.display))
+    T.eq(32, g.score)
+    T.eq(TYPO_EXPECTED, fmt(ed.display))
 end}
-
-ds.yeet'ok'
