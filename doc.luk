@@ -18,9 +18,8 @@ function M.lua(l)
     src = l.src, dep = dep,
     extra = { lua = l.lua },
     out = {
-      doc = {
-        lua = { l.mod..'.cxt' },
-      },
+      readme = { lua = { l.mod..'.cxt' } },
+      doc    = { lua = { l.mod..'.cxt' } },
     },
     kind = 'build', run = 'civ:cmd/doc/build.lua',
   }

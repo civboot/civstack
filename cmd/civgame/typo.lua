@@ -260,6 +260,10 @@ function M.Typo:keyinput(ed, ev)
   self.start = nil
 end
 
+----------------------------
+-- Code Extraction
+
+
 getmetatable(M).__call = function(_, ed)
   ed:focus(M.Typo{})
 end
