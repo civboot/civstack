@@ -119,7 +119,7 @@ function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
   local status, fast, great = {}, self.fast, self.great
   local fastMult = M.Mult{name='speed is fast'}
   if elapsedMs <= (expectedMs // 2) then
-    if fast < 2 then fast = min(2000, fast + 500) end
+    if fast < 2000 then fast = min(2000, fast + 500) end
     if elapsedMs <= (expectedMs // 4) then
       fast, fastMult.name = min(3000, fast + 200), 'speed is ludicrous'
     end
@@ -134,15 +134,17 @@ function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
 
   local miss, great, greatMult = self.miss, self.great, M.Mult{name='great'}
   if miss / #txt <= 0.2 then
-    if great < 2 then great = min(2000, great + 500) end
+    if great < 2000 then great = min(2000, great + 500) end
     if miss == 0 then
       great, greatMult.name = min(3000, great + 200), 'perfect'
     end
-  elseif great > 0 and miss / #txt >= 0.3 then
+  elseif great > 0 and miss / #txt >= 0.5 then
     great, greatMult.name = max(0, great - 500), 'missed a few!'
   end
   if self.great ~= great then
+    dbg('great', great, great - self.great)
     ds.update(greatMult, {mult=great, change=great - self.great})
+    dbg('greatMult', greatMult)
     self.great = great
     push(status, greatMult)
   end
@@ -242,11 +244,14 @@ function M.Typo:keyinput(ed, ev)
   local mult, changes = self:updateMult(u, elapsed, expected)
   score = int((score * mult / 1000) - (self.miss * self:missCost()))
   dbg('score', score, mult, self.miss, self:missCost())
-  if score ~= 0 then
-    local scoreTxt = sfmt('%s%s score (%s missed, time %.1f/%.1f)',
-                          score>0 and '+' or '-', score, self.miss,
-                          elapsed/1000, expected/1000)
-    self.status:push(statusSprite(scoreTxt, score >= 0 and 'c' or 'r'))
+  local scoreTxt = sfmt('%s%s score (%s missed, time %.1f/%.1f)',
+                        score>=0 and '+' or '', score, self.miss,
+                        elapsed/1000, expected/1000)
+  self.status:push(statusSprite(scoreTxt, score >= 0 and 'c' or 'r'))
+  if self.lvl <= 0 and score < 0 then
+    self.status:push(statusSprite(
+      sfmt('TUTORIAL MODE: score %.1f cancelled', score), 'f'))
+    score = 0
   end
   for _, ch in ipairs(changes) do self.status:push(ch:sprite()) end
   ds.clear(self.user)

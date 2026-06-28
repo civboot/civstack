@@ -23,7 +23,8 @@ local log = require'ds.log'
 local d8  = require'ds.utf8'
 local ac = require'asciicolor'
 
-local min, max         = math.min, math.max
+local type             = G.type
+local min, max, mtype  = math.min, math.max, math.type
 local char, byte, slen = string.char, string.byte, string.len
 local lower, upper     = string.lower, string.upper
 local srep             = string.rep
@@ -354,6 +355,10 @@ function M.Term:input(send) --> infinite loop (run in coroutine)
   ::continue::
   if not self.run then return end
   b = getb()
+  if mtype(b) ~= 'integer' then
+    log.error('getb() returned %q', b)
+    goto continue;
+  end
   ::restart::
   ds.clear(dat)
   len = d8.decodelen(b)

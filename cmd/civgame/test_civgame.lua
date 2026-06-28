@@ -102,9 +102,14 @@ T'typo'; do
 
   t.lvl = 1
   T.eq({2200, {
-    Mult{ name="speed is fast",  mult=500, change=500 }, 
-    Mult{ name="perfect",        mult=700, change=700 },
+    Mult{ name="speed is fast", mult=500, change=500 }, 
+    Mult{ name="perfect",       mult=700, change=700 },
   }}, {t:updateMult("j", 250, 500)})
+
+  T.eq({3600, {
+    Mult{ name="speed is ludicrous", mult=1200, change=700 }, 
+    Mult{ name="perfect",            mult=1400, change=700 },
+  }}, {t:updateMult("j", 100, 500)})
 end
 
 Test{'typo session', game=typo.Typo{}, function(tst)
