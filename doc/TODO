@@ -1,5 +1,6 @@
 TODO:
 * Throw error if you find PKG.lua
+* [{$}$] doesn't render in html correctly.
 
 Simple Typing Game
 

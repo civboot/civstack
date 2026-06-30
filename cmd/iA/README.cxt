@@ -29,32 +29,31 @@ W, X, Y and Z are reserved for future use (probably thread-local values and
 flags).
 
 
-Any value can be declared "corruptable" (aka mutable) with $, which means that
-it can be modified within the scope declared. If it is ever declared
-"uncorruptable" (without $) then it cannot be modified within that scope.
+Any value can be declared "corruptable" (aka mutable) with [{$}$], which means
+that it can be modified within the scope declared. If it is ever declared
+"uncorruptable" (without [{$}$]) then it cannot be modified within that scope.
 
 You can declare a named variable and its type with:
 [{$$ lang=iA}
 const answer: Int = 42  \ a constant, not stored anywhere.
 
- A val1: Int = 41     \ register A, pre-initialized with 41, non-mutable
-$B val2: Int = answer \ register B, pre-initialized with const, mutable
-$V val3: Int = val1   \ mutable local value, increases return stack size
-$U val4: Int = 0      \ mutable universal value, stored on heap
+ A val1: Int = 41     \ register A, pre-initialized with 41, non-corruptable
+$B val2: Int = answer \ register B, pre-initialized with const, corruptable
+$V val3: Int = val1   \ mutable local value, increases local stack size
+$U val4: Int = 0      \ mutable universal (aka global) value, stored on heap
 ]$
 
 [{h3 :iA-fn}Functions]
 iA supports defining functions. Unlike many languages, function arguments must
-specify exactly what registers the function will be operating on (or V) and
+specify exactly which registers the function will be operating on (or [$V]) and
 which registers should be considered "return" values of the function. Functions
 cannot return local values (but can modify passed-in pointers or arrays).
 
-
-The simplest way to specify a function is via the #auto attribute.
+The simplest way to specify a function is via the [$#auto] macro.
 
 [{$$ lang=iA}
 \        name  inputs      outputs
-#auto fn fib  (V i: Int) -> Int    do
+#auto fn fib  (i: Int) -> Int    do
   ... expr1 or multi-assiment statements ...
 end
 ]$
@@ -65,105 +64,96 @@ This function declares the following: [+
 * The output types of the function.
 ]
 
-If the fn is #auto then the whole function must never specify specific
-registers (only use V inputs and locals). iA will automatically convert these
-to [@iA-reg-common] standards and may replace other V used with registers for
+If the fn is [$#auto] then the whole function must never specify specific
+registers or corruptability. iA will automatically convert these to
+[@iA-reg-common] standards and may replace other V used with registers for
 optimizations.
 
 Some notes: [+
-* #auto can be replaced with #link, which uses the platform-defined
+* [$#auto] can be replaced with [$#link], which uses the platform-defined
   calling convention instead of iA standards, which carries several
   performance and usability disadvantages.
-* only #auto or #link functions can be stored as a pointer and called.
+* only [$#auto] or [$#link] functions can be stored as a pointer and called.
 ]
 
-Without #auto, you may specify the specific registers to use and whether
+Without [$#auto], you may specify the specific registers to use and whether
 they are corruptable:
 [{$$ lang=iA}
 \  name  inputs        outputs   corrupts
-fn fib  ($A i: Int) -> C: Int    $$BD     do
+fn fib  ($C i: Int) -> C: Int    $$BD     do
   ... expr1 or multi-assignment statements ...
 end
 ]$
 
-A few notes: [+
-* The output registers will use the default ordering (C D A B) if
-  unspecified.
-]
-
 [{h3}Expressions]
-There are 3 types of what are called "single expressions" (expr1): [+
+There are 3 types of "single expressions" (expr1): [+
 * [*val]: a named variable [$var] or literal value such as 42, 0x4F, "string",
   c"counted", etc
 
 * [*eq1] single-assignment [$expr1 = expr1], i.e. [$A val1: Int = 4]. The
   register and type are optional if [$val1] is already defined.
-  i.e. [$$A val1: Int = 41]$ declares it in register A and of type Int.[+
+  i.e. [{$}$A val1: Int = 41] declares it in register A and of type Int.[+
   * the right-hand expression can be _ (an underscore), which does the
     operation with itself.
   * [$expr1 += expr1] where an operation is after = is also eq1.
 ]
 
-* [*fn1]: [$fn foo(...) -> Int], calls to functions which return a single
-  register.
+* [*fn1]: [$foo(...)], calls to functions which return a single register.
 ]
 
 expr1's effectively "return" their leftmost value, so you can write something
 like below. Note that you can be explicit about the registers like below,
-or they can be inferred.
-
-
-All expressions are evaluate from right to left (TODO: I think this will be
-changed to left->right and an optional [$>>] left-to-right assignment operator
-will be added, stay tuned). Once a variable is assigned as a function input it
-is considered "locked" and attempts to mutate it will result in a corruption
-error.
+or they can be inferred. All expressions are evaluated from left to right,
+with the right side of any equal sign evaluated first. Once a variable is
+assigned as a function input it is considered "locked" and attempts to mutate
+it will result in a corruption error.
 
 [{$$ lang=iA}
-(a=10) += (C c: Int = foo($A a=5, $B b = bar($A a=6)))
+(A=10) += (C=foo($A=bar($A=7, $C=6), $C=5))
 ]$
-In the example above the A register is modified twice but is not locked until
-[$a=5], so the above code compiles. The above code is very explicit with
-what registers are modified and could be rewritten as:
+
+In the example above the [$C] register is modified twice but is not locked
+for the [$foo] call until [$C=5], so the above code compiles. The above code is
+overly very explicit with what registers are being modified and could be
+rewritten as:
 
 [{$$ lang=iA}
-(a=10) += foo(5, bar(a))
+(A=10) += foo(bar(7,6), 5)
 ]$
 
-An example of a corruption error is below. Register B is locked with
-[$b=3] (remember, right-to-left evaluation) and then is corrupted
-by [$bar(a=1, b=2)].
+An example of a corruption error is below. Register A is locked with
+[$A=3] and then is corrupted by [$bar(A=1, C=2)].
 
 [{$$ lang=iA}
-foo(a=bar(a=1, b=2), b=3)
+foo(A=3, C=bar(A=1, C=2))
 ]$
+
 From the above you can see the general rule when calling functions in iA:
-the functions called must be progressively simpler as they go from right to
-left, since more registers will be locked.
+the argument calculations must be progressively simpler as they go from left to
+right since more registers will be locked as the calling progresses.
 
 [{h3}Types]
 iA supports the following native types: [+
-* Int: processor-defined integer with the width of one register.
+* UR: unsigned register, aka positive integer that fits in a register.
 
-* UInt: processor-defined unsigned integer with the width of one register.
-
-* I1 I2 I4 I8: signed integer of a specific byte-width.
+* SR: signed register, aka positive or negative integer that fits in a
+  register.
 
 * U1 U2 U4 U8: unsigned integer of a specific byte-width.
 
+* S1 S2 S4 S8: signed integer of a specific byte-width.
+
 * [$&Type]: pointer to Type. [$&&Type] is a double-pointer, etc.
 
-* [$$[Type]]$: array of Type, which is len and capacity U4 values directly
-  followed by the data (the data itself, NOT a pointer). Used for function
-  arguments or when allocating on the heap.
+* [$$[Type]]$: array of Type, which is effectively a struct of
+  [$UR capacity,len] and a pointer to the data.
 
-* [$$[Type, 16]]$: array of Type with a declared maximum capacity of 16 (the
-  capacity is still stored in a slot though), used for declaring array
-  variables on the local stack.
+* [$$[Type, 16]]$: local array of Type with a maximum capacity of 16.
 
-* CStr: counted string. A byte length and byte capacity followed by 0-254 bytes
-  of binary data and a 0 byte. Commonly used for efficient storage of names and
-  many cases where long strings are not necessary.
+* CStr: [$c"counted string"]. A [$U1 capacity,len] followed directly (not a
+  pointer) by 0-252 bytes of binary data and a 0 byte. Commonly used for
+  efficient storage of names and many cases where long strings are not
+  necessary.
 ]
 
 ["Note that a conventional Str is just [$$[U1]]$.]
@@ -175,11 +165,10 @@ of known-size typed fields.
 iA is implemented as a Lua library and it can be extended by other Lua
 libraries.
 
-
 iA code can be defined in one of two types of files: [+
 * If ending in [$.iA] it is 100% iA syntax. It should define
   the modules it requires and use iA syntax to define functions,
-  globals, etc. It can call to Lua code via $macros
+  globals, etc. It can call to Lua code via [$#macros]
 
 * If ending in [$.lua] it is a Lua file which can directly compile
   iA code, but also extend the iA compiler with macros or inspect
@@ -187,16 +176,16 @@ iA code can be defined in one of two types of files: [+
   it into a target platforms actual assembly).
 ]
 
-Symbols prefixed with # such as #auto are considered "macros". They are defined
-in Lua and are passed a single expression (which can be (inside, parens)). They
-are executed from right -> left, so [$#mymacro #auto fn myFn()] would first
-execute #auto and then execute #mymacro.
-
+Symbols prefixed with [$#] such as [$#auto] are considered "macros". They are
+defined in Lua and are passed the single expression which follows them(which
+can be [$(inside, parens)].
 
 Macros modify the AST directly, including: adding flags or debugigng info,
-reorganizing nodes, changing operations, re-organizing registers, etc. A
-common use for macros is to inline code.  Macro expansion happens before type
-or corruption checking, but all macros must be valid code.
+reorganizing nodes, changing operations, re-organizing registers, etc. The most
+common macro [$#auto] simply auto-assigns registers to meet the iA standard.
+The most common user-defined macros simply inline some code. Macro expansion
+happens before type or corruption checking, but all macros must use valid
+iA syntax.
 
 [{h3}iA package API]
 Use [$local iA = require"iA"] to get the iA Lua package. It has the following
@@ -332,21 +321,33 @@ cleanly.
 registers are used for both inputs and outputs of functions,
 and will therefore be corrupted.
 
+[$C, A, B, D] should be the output registers, in that order. These are the only
+registers that can be function outputs (unless the platform is constrained),
+additional outputs must be represented as mutable pointer inputs.
 
-A B D: inputs should use these registers, in this order, then non-corruptable
-registers or local values.
+[$D, B, A, C] should be the LAST four input registers, in that order. If
+additional arguments are needed, they should be the non-corruptable registers
+from last -> first [$I-P], followed by using the stack w/[$V].
 
+[{$$ lang=iA}
+-- Note: SR is the "signed register" type, aka an integer.
+fn twoArgs(                            $A a:SR, $C c:SR) -> C:SR;
+fn fourArgs(P p:SR, $D d: SR, $B b:SR, $A a:SR, $C c:SR) -> C:SR;
+]$
 
-Outputs should use C A B D (in that order). These are the only registers that
-can be function outputs (unless the platform is constrained), additional
-outputs must be represented as mutable pointer inputs.
+["Why? Registers become locked from left -> right. Without this convention
+  we couldn't do [$foo(A=bar(a), C=baz(b))] - if poorly designed we would need
+  to locally cache the result of both [$bar(a)] and [$baz(b)].
 
+  We use [$P] instead of [$I-K] because we want to use the latter for tight
+  loops which call functions.
+]
 
 Additionally, these registers should be chosen to work with the following: [+
-* [$A low: int, D high: int = mul($A a: int, V b: int)] defines
+* [$A low: int, D high: int = #mul($A a: int, V b: int)] defines
   cross-platform multiplication.
 
-* [$A quot: int, D rem: int = div($D high: int, $A low: int, V div: int)]
+* [$A quot: int, D rem: int = #div($D high: int, $A low: int, V div: int)]
   defines cross-platform division.
 
 * [$A] should be the "accumulator" register, or the most common result of
@@ -363,16 +364,14 @@ Additionally, these registers should be chosen to work with the following: [+
 ["Note: On some supported architectures like the Z80 there are only 4 general
   purpose registers, so the rest of these will be converted to V]
 
-E F G H: corruptable registers, commonly used as additional function
-inputs after A B D.
+Additionally: [*
+* [$E F G H]: corruptable registers.
 
+* [$I J K L M N O P]: non-corruptable registers for general use. [$I J K] are
+  very common for loop registers.
 
-I J K L M N O P: non-corruptable registers for general use. I J K are
-very common for loop registers.
-
-
-Q R S T: corruptable registers, typically used for temporary values.
-
+* [$Q R S T]: corruptable registers. [$T] is the most common temporary.
+]
 
 [*Other registers]: the following are special registers and cannot be assigned
 to a variable name. However, they can be accessed directly.
