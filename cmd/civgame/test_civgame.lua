@@ -97,8 +97,8 @@ T'typo'; do
 
   local t = typo.Typo{}
   t.lvl = 0;  T.eq(1995, t:expectedTimeMs(21))
-  t.lvl = 1;  T.eq(1896, t:expectedTimeMs(21))
-  t.lvl = 2;  T.eq(1796, t:expectedTimeMs(21))
+  t.lvl = 1;  T.eq(1829, t:expectedTimeMs(21))
+  t.lvl = 2;  T.eq(1663, t:expectedTimeMs(21))
 
   t.lvl = 1
   T.eq({2200, {
@@ -110,9 +110,25 @@ T'typo'; do
     Mult{ name="speed is ludicrous", mult=1200, change=700 }, 
     Mult{ name="perfect",            mult=1400, change=700 },
   }}, {t:updateMult("j", 100, 500)})
+
+  local c = typo.Categorizer{}
+  c:categorize'easy'
+  c:categorize'beginer'
+  c:categorize'Early qweasy'
+  c:categorize'more points is last.'
+  c:categorize'mid - game()'
+  c:categorize'if(y ~= ~LATE());'
+  c:categorize'x == f[](&END_GAME)? / 65'
+  T.eq({
+    {"easy", "beginer"},
+    {"Early qweasy", "more points is last."},
+    {"mid - game()"},
+    {"if(y ~= ~LATE());"},
+    {"x == f[](&END_GAME)? / 65"}
+  }, c:finish())
 end
 
-Test{'typo session', game=typo.Typo{}, function(tst)
+Test{'typo tutorial', game=typo.Typo{}, function(tst)
   local s, ed, g = tst.s, tst.s.ed, tst.s.ed.pane
   s:play'h'
     T.eq(log.LogTable{}, ed.error)
@@ -126,3 +142,4 @@ Test{'typo session', game=typo.Typo{}, function(tst)
     T.eq(32, g.score)
     T.eq(TYPO_EXPECTED, fmt(ed.display))
 end}
+

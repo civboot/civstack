@@ -64,7 +64,7 @@ function M.rawScore(str) --> int, int, int
   local scores = {}
   local s, u, m = 5, 0, 0
   for c in str:gmatch'.' do
-    local cs = SCORE[c] or (LETTER + (isupper(c) and SHIFT or 0))
+    local cs = SCORE[c] or (EASY + (isupper(c) and SHIFT or 0))
     if not scores[cs] then
       u = u + cs; scores[cs] = true;
     end
@@ -289,6 +289,12 @@ M.Categorizer = mty'Categorizer' {
   'late {string}: late game lines',
   'endGame {string}: end game lines',
 }
+getmetatable(M.Categorizer).__call = function(T, t)
+  t.begin, t.early = t.begin or {}, t.early or {}
+  t.mid, t.late    = t.mid or {},   t.late or {}
+  t.endGame        = t.endGame or {}
+  return mty.construct(T, t)
+end
 
 function M.Categorizer:categorize(line)
   line = ds.trim(line); if #line <= 3 then return end
