@@ -22,7 +22,29 @@ local int, isupper, paint = mty.from'ds        int, isupper, paint'
 local info                = mty.from'ds.log    info'
 local Game, S             = mty.from'ele.game  Game,Sprite'
 
-local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
+local SHIFTED = {
+  ['['] = '{', [']'] = '}',
+  [';'] = ':', ['"'] = "'",
+  [','] = '<', ['.'] = ">",
+  ['/'] = '?',
+}
+function M.shifted(s)
+  local o = {}
+  for s in s:gmatch'.' do
+    push(o, SHIFTED[s] or s:upper())
+  end
+  return table.concat(o)
+end
+
+M.TUTORIAL = ds.copy(luk.import('civgame/typo.luk', pth.data()))
+for i=1,#M.TUTORIAL do
+  local t = M.TUTORIAL[i]
+  push(M.TUTORIAL, {
+    help=t.help and ('With shift '..t.help),
+    want=M.shifted(t.want),
+  })
+end
+
 M.LEVEL_SCORE = 5000
 
 local MENU = {
@@ -99,7 +121,7 @@ M.Typo = mty.extend(Game, 'Typo', {
   mh = 3, mw = 10,
   'menu [int]: menu index',
   'r [Rand]', r=Rand{state=ix.epoch().s},
-  'winner [bool]', winner = true,
+  'winner [bool]',
 })
 getmetatable(M.Typo).__call = function(T, t)
   Game.__init(t)
@@ -201,7 +223,7 @@ end
 
 function M.Typo:getData()
   if self.lvl == 0 then
-    local t = TUTORIAL[self.wi]; if not t then return end
+    local t = M.TUTORIAL[self.wi]; if not t then return end
     return t.want, t.help
   end
   local level = self.levels[self.lvl]; if not level then return end
@@ -217,11 +239,11 @@ function M.Typo:draw(ed, isRight)
   dbg('dh,dw', d.h,d.w)
 
   ds.clear(self.sprites)
-  local title = TUTORIAL.title
+  local title = M.TUTORIAL.title
   local txt, thelp = self:getData()
   txt = txt or '!! WINNER - press any key !!'
   push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
-  push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
+  push(self.sprites, S{l=2,c=1, txt=M.TUTORIAL.help})
   if thelp then push(self.sprites, S{l=h-4,c=1, txt=thelp}) end
 
   -- Display status objects
@@ -303,6 +325,7 @@ function M.Typo:keyinput(ed, ev)
       self.menu = M.wrap(MENU, self.menu + 1)
     elseif chr == 'enter' then
       self.winner = false
+      self.score  = 0
       if     self.menu == 1 then self.lvl, self.wi = 0, 1
       elseif self.menu == 2 then self.lvl, self.wi = 1, nil
       else   ed:remove(self); self:close() end
@@ -325,10 +348,7 @@ function M.Typo:keyinput(ed, ev)
   self.lastWasBackspace = false
   push(self.user, chr)
   local u, w = concat(self.user), self:getData()
-  if not w then
-    self.winner = true
-    self.menu = 1
-  end
+  if not w then return  end
   if u ~= w then return end -- Not done until identical
   info('scoring %q to %q', u, w)
   local now = ix.epoch()
@@ -357,6 +377,9 @@ function M.Typo:keyinput(ed, ev)
   end
   self.miss, self.lastWasBackspace = 0, false
   self.start = nil
+  if not self:getData() then
+    self.winner, self.menu = true, 1
+  end
 end
 
 ----------------------------

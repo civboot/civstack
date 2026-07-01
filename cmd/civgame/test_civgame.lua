@@ -102,6 +102,15 @@ T'typo'; do
     assertf(c:match'[a-zA-Z]' or typo.SCORE[c], 'add to SCORE: %q', c)
   end
 
+  T.eq('A', typo.shifted'a')
+  T.eq('<', typo.shifted',')
+
+  local function tt(i, want) T.eq(want, typo.TUTORIAL[i].want) end
+  T.eq(32, #typo.TUTORIAL)
+  tt(1,  'jj')
+  tt(16, 'done, good job')
+  tt(32, 'DONE< GOOD JOB')
+
   T.eq(5 + 10*2 + 12, typo.rawScore'abc')
 
   T.eq({'one', 'two', 'two2', 'three'}, typo.sortedLines{
