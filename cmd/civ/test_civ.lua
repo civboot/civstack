@@ -14,7 +14,6 @@ local Epoch = mty.from'ds.time  Epoch'
 local D = pth.resolve(ds.srcdir()..'../..')
 local O = D..'.out/civ/'
 
-
 local HUBS = { civ = D, sys = D..'sys/' }
 
 local CFG_PATH = O..'civconfig.lua'
@@ -27,6 +26,8 @@ return {
   },
 }
 ]]):format(O, D, D..'sys/')
+
+ix.mkDirs(O); pth.write(CFG_PATH, CFG)
 
 local cfg = core.Cfg:load(CFG_PATH)
 local function newCiv()

@@ -117,6 +117,7 @@ return C
 
 local BASH_ADD = [[
 CIV=%s
+export DATA_PATH=$CIV/data/
 export PATH=$PATH:$CIV/bin:$CIV/lua
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CIV/lib
 export LUA_PATH="$LUA_PATH;$CIV/lua/?.lua"
@@ -126,9 +127,11 @@ export LUA_SETUP=vt100
 
 function civ.init:__call()
   civ._pre()
-  info('civ init', self)
+  info('civ %q', self)
+  info('base config: %q', self)
   local cfg
   if not ix.exists(core.BASE_CONFIG) then
+    info('creating base config:', core.BASE_CONFIG)
     local luaFlags = ds.splitList(ds.trim(
       ( ix.sh('pkg-config --cflags --libs '..self.llua) )
     ))
@@ -138,10 +141,17 @@ function civ.init:__call()
     io.fmt:styled('path', core.BASE_CONFIG, '\n')
   end
   if not ix.exists(self.config) then
+    info('creating local config:', self.config)
     pth.write(self.config, CONFIG_TEMPL)
     io.fmt:styled('notify', 'Wrote project config to: ')
     io.fmt:styled('path', self.config, '\n')
   end
+  local cv = core.Civ:load(self.config)
+  local D = cv.cfg.installDir
+  io.fmt:styled('notify',
+    'Add (something like) the following to your ~/.bashrc', '\n')
+  local d = pth.toNonDir(D)
+  io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
 function civ._build(base, cv, tgtnames)
@@ -239,10 +249,6 @@ function civ.install:__call()
   for _, tgtname in ipairs(tgtnames) do
     io.fmt:write(sfmt('  %s\n', tgtname))
   end
-  io.fmt:styled('notify',
-    'Add (something like) the following to your ~/.bashrc', '\n')
-  local d = pth.toNonDir(D)
-  io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
 if shim.isMain(civ) then civ:main(arg) end
