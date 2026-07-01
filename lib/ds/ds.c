@@ -253,13 +253,14 @@ static int l_bytearray_write(LS* L) {
   size_t len; const uint8_t* s;
   size_t write_len = 0;
   for(int i=2; i <= top; i++) {
-    lua_tolstring(L, 2, &len);
+    lua_tolstring(L, i, &len);
     write_len += len;
   }
   ASSERT(L, bytearray_grow(b, b->pos + write_len), "OOM");
   uint8_t* dat = b->dat + b->pos;
   for(int i=2; i <= top; i++) {
-    s = lua_tolstring(L, 2, &len);
+    s = lua_tolstring(L, i, &len);
+    // fprintf(stderr, "@@ ds.c: %.*s\n", s, len);
     memcpy(dat, s, len);
     dat += len;
   }

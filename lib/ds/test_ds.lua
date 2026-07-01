@@ -904,7 +904,7 @@ T'bytearray'; do
   b:len(9);       T.eq('fun. data',    b:sub())
   b:len(12, 'z'); T.eq('fun. datazzz', b:sub())
   
-  b:write" That's what programming in lua is!"
+  b:write(" That's what", " programming in lua is!")
   T.eq("fun. That's what programming in lua is!", b:sub())
   b:len(4); b:replace(1, "Wow"); T.eq("Wow.", b:sub())
   b:pos(0); T.eq("Wo", b:read(2)); T.eq("w.", b:read'*a');
