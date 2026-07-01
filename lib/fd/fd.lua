@@ -89,10 +89,12 @@ M.newFDT = S.newFDT
 
 M.PIPE_BUF = 512 -- POSIX.1
 
-S.FD.__close  = S.FD.__index.close
+S.FD.__close          = S.FD.__index.close
+S.FD.__index.__close  = S.FD.__index.close
 S.FD.__name = 'fd.FD'
 function S.FD:__tostring() return sfmt('FD(%s)', self:fileno()) end
-S.FDT.__close = S.FDT.__index.close
+S.FDT.__close         = S.FDT.__index.close
+S.FDT.__index.__close = S.FDT.__index.close
 S.FDT.__name = 'fd.FDT'
 S.FDT.__tostring = S.FD.__tostring
 
@@ -315,6 +317,7 @@ function M.read(...)
   return inp:read(...)
 end
 function M.lines(path, mode)
+  dbg('fd.lines', path, mode)
   mode = mode or 'l'
   if not path then return M.input():lines(mode) end
   local fd = M.open(path)

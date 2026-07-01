@@ -1,6 +1,7 @@
 TODO:
 * Throw error if you find PKG.lua
 * [{$}$] doesn't render in html correctly.
+* fd.lines() doesn't work in lua 5.5
 
 Simple Typing Game
 

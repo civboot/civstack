@@ -1,7 +1,7 @@
 -- Typo tutorial data.
 
 local T1 = {
-  title = 'Tutorial 1: type "SKIP!" to skip',
+  title = 'Tutorial 1:',
   help = [[
 Home position:
 * thumbs over space

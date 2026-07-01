@@ -1,4 +1,6 @@
 local mty = require'metaty'
+-- FIXME: level 1 is TERRIBLE
+-- FIXME: enter broke the game
 
 --- Typo game: learn how to type!
 local M = mty.mod'civgame.typo'
@@ -10,6 +12,7 @@ local pth = require'ds.path'
 local vt100 = require'vt100'
 local luk = require'luk'
 local ix = require'civix'
+local lap = require'lap'
 
 local concat             = mty.from(table,   'concat')
 local push, pop          = mty.from(table,   'insert, remove')
@@ -21,7 +24,13 @@ local Game, S            = mty.from'ele.game  Game,Sprite'
 
 local TUTORIAL = luk.import('civgame/typo.luk', pth.data())
 
-local MAX_LEVEL = 6
+local MENU = {
+  'Tutorial',
+  'Play Game',
+  'Exit',
+}
+
+M.MAX_LEVEL = 5
 
 -- Table of key => keyScore
 local SCORE = {}
@@ -77,6 +86,7 @@ end
 M.Typo = mty.extend(Game, 'Typo', {
   'user {chr}: the text the player has input.',
   'lvl [int]: current level', lvl=0,
+  'levels {{string}}: level data',
   'score [int]',   score = 0,
   'wi [int]',      wi = 1,
   'miss [int]: count of non-consecutive backspaces', miss = 0,
@@ -86,9 +96,11 @@ M.Typo = mty.extend(Game, 'Typo', {
   'start [ds.Epoch]: time since epoch word was started',
   'status [ds.Deq[Sprite]]: rolling multipliers applied',
   mh = 3, mw = 10,
+  'menu [int]: menu index',
 })
 getmetatable(M.Typo).__call = function(T, t)
   Game.__init(t)
+  t.menu = (t.menu==nil) and 1 or false
   t.user = {}
   t.sprites = {}
   t.actions = {
@@ -96,13 +108,25 @@ getmetatable(M.Typo).__call = function(T, t)
   }
   t.start = ix.epoch()
   t.status = ds.Deq{}
-  return mty.construct(T, t)
+  t = mty.construct(T, t)
+
+  -- FIXME:
+  -- lap.schedule(function()
+  --   local ok, err = ds.try(function()
+      t.levels = t.levels or M.Categorizer{}
+             :walk(pth.data'../lua')
+             :walk(pth.data'../readme')
+             :finish()
+  --    end)
+  --     if not ok then t.levels = err end
+  -- end)
+  return t
 end
 
 --- Get the expected time in milliseconds.
 function M.Typo:expectedTimeMs(score)
   local et = EXPECTED_MS_MULTIPLIER * score
-  return et - (et * self.lvl // (MAX_LEVEL * 2))
+  return et - (et * self.lvl // (M.MAX_LEVEL * 2))
 end
 
 function M.Typo:missCost() return max(10, self.lvl) end
@@ -173,7 +197,15 @@ function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
 end
 
 function M.Typo:getData()
-  return TUTORIAL[self.wi]
+  if self.lvl == 0 then
+    self.wi = M.wrap(TUTORIAL, self.wi)
+    local t = TUTORIAL[self.wi]
+    return t.want, t.help
+  end
+  local level = self.levels[self.lvl]
+  self.wi = M.wrap(level, self.wi)
+  -- FIXME: make semi-random instead.
+  return level[self.wi]
 end
 
 function M.Typo:draw(ed, isRight)
@@ -185,13 +217,10 @@ function M.Typo:draw(ed, isRight)
 
   ds.clear(self.sprites)
   local title = TUTORIAL.title
-  local t = self:getData()
-  if not t then
-    self.wi = 1; t = self:getData()
-  end
+  local txt, thelp = self:getData()
   push(self.sprites, S{l=1,c=1, txt=title, fg=srep('W', #title)})
   push(self.sprites, S{l=2,c=1, txt=TUTORIAL.help})
-  if t.help then push(self.sprites, S{l=h-4,c=1, txt=t.help}) end
+  if thelp then push(self.sprites, S{l=h-4,c=1, txt=thelp}) end
 
   -- Display status objects
   while #self.status > 8 do self.status() end -- reduce to len 8
@@ -204,18 +233,17 @@ function M.Typo:draw(ed, isRight)
     l = l - 1
   end
 
-  local w = t.want
-  push(self.sprites, S{l=h-2,c=1, txt=w, fg=srep('c', #w) })
+  push(self.sprites, S{l=h-2,c=1, txt=txt, fg=srep('c', #txt)})
 
   local u = concat(self.user)
-  u = u..srep(' ', #w - #u)
+  u = u..srep(' ', #txt - #u)
   local fg, bg = {}, {}
   for i=1,#self.user do
-    local ok = u:sub(i,i)==w:sub(i,i)
+    local ok = u:sub(i,i)==txt:sub(i,i)
     push(fg, ok and 'B' or 'W')
     push(bg, ok and 'W' or 'R')
   end
-  bg = concat(bg)..srep('W', #w - #bg)
+  bg = concat(bg)..srep('W', #txt - #bg)
   push(self.sprites, S{
     l=h-1,c=1, txt=u, fg=concat(fg), bg=bg,
   })
@@ -225,6 +253,18 @@ function M.Typo:draw(ed, isRight)
   local score = sfmt('Score: %s  Fast: x%.1f  Great: x%.1f',
                      self.score, self.fast/1000, self.great/1000)
   push(self.sprites, S{l=h,c=1, txt=score, fg=srep('G', #score)})
+
+  if self.menu then
+    local spc = srep(' ', 12)
+    for l=5,9 do
+      push(self.sprites, S{l=l, c=5, txt=spc, fg=spc, bg=srep('n', 12)})
+    end
+    push(self.sprites, S{l=5, c=7, txt='MENU', fg='BBBB', bg='NNNN'})
+    for i, m in ipairs(MENU) do
+      local bg = srep((i==self.menu) and 'Y' or 'n', #m)
+      push(self.sprites, S{l=5+i,c=7, txt=m, bg=bg})
+    end
+  end
   return Game.draw(self, ed, isRight)
 end
 
@@ -232,22 +272,51 @@ function M.Typo:drawCursor(ed)
   ed.display.hide = true
 end
 
+--- Make i above the max go to the start and vice-versa.
+function M.wrap(t, i, si, ei)
+  si,ei = si or 1, ei or #t
+  if i < si then return ei end
+  if i > ei then return si end
+  return i
+end
+
 function M.Typo:keyinput(ed, ev)
   info('typo keyinput %q', ev)
   local chr = ev[1]
+  if chr == 'esc' then
+    if self.menu then self.menu = nil
+    else              self.menu = 1 end
+    ed.redraw = true
+    return
+  end
+  if self.menu then
+    info('menu %q', self.menu)
+    if     chr == 'up' or chr == 'k' then
+      self.menu = M.wrap(MENU, self.menu - 1)
+    elseif chr == 'down' or chr == 'j' then
+      self.menu = M.wrap(MENU, self.menu + 1)
+    elseif chr == 'enter' then
+      if     self.menu == 1 then self.lvl, self.wi = 0, 1
+      elseif self.menu == 2 then self.lvl, self.wi = 2, 1
+      else   ed:remove(self); self:close() end
+      self.menu = nil
+    end
+    return
+  end
   if chr == 'back' then
     if not self.lastWasBackspace then
       self.lastWasBackspace, self.miss = true, self.miss + 1
     end
     return pop(self.user)
   end
+  assert(1 == #chr)
+
   -- timer starts on first character
   if not self.start then self.start = ix.epoch() end
   self.lastWasBackspace = false
   chr = vt100.LITERALS[chr] or chr
-  assert(1 == #chr)
   push(self.user, chr)
-  local u, w = concat(self.user), assert(self:getData().want)
+  local u, w = concat(self.user), assert(self:getData())
   if u ~= w then return end -- Not done until identical
   info('scoring %q to %q', u, w)
   local now = ix.epoch()
@@ -277,10 +346,10 @@ end
 -- ## Code Extraction
 
 -- Maximums for each phase of the game.
-local BEGIN = SPACE + EASY
+local BEGIN = SPACE   + EASY
 local EARLY = (BEGIN) + (EASY+SHIFT) + PINKIE
 local MID   = (EARLY) + (PINKIE+SHIFT) + EASY_NUM
-local LATE  = (MID)   + (SHIFT+EASY_NUM) + HARD_NUM + HARDEST
+local LATE  = (MID)   + (SHIFT+EASY_NUM) + HARD_NUM
 
 M.Categorizer = mty'Categorizer' {
   'begin {string}: beginning game lines',
@@ -297,7 +366,9 @@ getmetatable(M.Categorizer).__call = function(T, t)
 end
 
 function M.Categorizer:categorize(line)
-  line = ds.trim(line); if #line <= 3 then return end
+  line = ds.trim(line);
+  if #line <= 3 or line:match'^return %w%w?%w?$'
+  then return end
   local s, u, m = M.rawScore(line)
   if     u <= BEGIN and m <= EASY_NUM then self.begin[line]   = s
   elseif u <= EARLY and m <= HARD_NUM then self.early[line]   = s
@@ -306,20 +377,49 @@ function M.Categorizer:categorize(line)
   else self.endGame[line] = true end
 end
 
-local function sortedLines(lineScoreMap)
+function M.Categorizer:categorizePath(path) --> self
+  local f = assert(io.open(path))
+  -- TODO: use io.lines() when it works in lua 5.5
+  for ln in f:lines'l' do
+    self:categorize(ln)
+    for _, word in mty.split(ln) do
+      self:categorize(word)
+    end
+    ::continue::
+  end
+  f:close()
+  return self
+end
+
+function M.sortedLines(lineScoreMap)
   return ds.orderedKeys(lineScoreMap, function(a, b)
-    return lineScoreMap[a] < lineScoreMap[b]
+    local sa, sb = lineScoreMap[a], lineScoreMap[b]
+    if sa == sb then return a < b else return sa < sb end
   end)
 end
 
 function M.Categorizer:finish()
   return {
-    sortedLines(self.begin),
-    sortedLines(self.early),
-    sortedLines(self.mid),
-    sortedLines(self.late),
-    sortedLines(self.endGame),
+    M.sortedLines(self.begin),
+    M.sortedLines(self.early),
+    M.sortedLines(self.mid),
+    M.sortedLines(self.late),
+    M.sortedLines(self.endGame),
   }
+end
+
+function M.Categorizer:walk(...) --> self
+  local w = ix.Walk{...}
+  for path, pathTy in w do
+    if pathTy == 'dir' then
+      if path:match'^%.' then w:skip() end
+    else -- file
+      if path:match'%.lu[ak]$' or path:match'%.cxt$' then
+        self:categorizePath(path)
+      end
+    end
+  end
+  return self
 end
 
 ----------------------------

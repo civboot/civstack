@@ -6,6 +6,7 @@ local fmt    = require'fmt'
 local ac     = require'asciicolor'
 local ds     = require'ds'
 local log    = require'ds.log'
+local Iter   = require'ds.Iter'
 
 local ixt    = require'civix.testing'
 local Fake   = require'vt100.testing'.Fake
@@ -65,9 +66,17 @@ end
 -------------
 -- typo
 
+local TYPO_LEVELS = {
+  {'level1'},
+  {'level2'},
+  {'level3'},
+  {'level4'},
+  {'level5'},
+}
+
 local TYPO_EXPECTED = [[
 [mode:command]
-Tutorial 1: type "SKIP!" to skip
+Tutorial 1:
 Home position:
 * thumbs over space
 * pointer fingers normally on "f" and "j"
@@ -95,10 +104,17 @@ T'typo'; do
 
   T.eq(5 + 10*2 + 12, typo.rawScore'abc')
 
-  local t = typo.Typo{}
+  T.eq({'one', 'two', 'two2', 'three'}, typo.sortedLines{
+    one = 1,
+    two = 2,
+    three = 3,
+    two2 = 2,
+  })
+
+  local t = typo.Typo{levels=TYPO_LEVELS}
   t.lvl = 0;  T.eq(1995, t:expectedTimeMs(21))
-  t.lvl = 1;  T.eq(1829, t:expectedTimeMs(21))
-  t.lvl = 2;  T.eq(1663, t:expectedTimeMs(21))
+  t.lvl = 1;  T.eq(1796, t:expectedTimeMs(21))
+  t.lvl = 2;  T.eq(1596, t:expectedTimeMs(21))
 
   t.lvl = 1
   T.eq({2200, {
@@ -112,6 +128,7 @@ T'typo'; do
   }}, {t:updateMult("j", 100, 500)})
 
   local c = typo.Categorizer{}
+  c:categorize'no' -- skipped
   c:categorize'easy'
   c:categorize'beginer'
   c:categorize'Early qweasy'
@@ -126,9 +143,17 @@ T'typo'; do
     {"if(y ~= ~LATE());"},
     {"x == f[](&END_GAME)? / 65"}
   }, c:finish())
+
+  t = typo.Typo{} -- asserts that levels load
+  T.eq(#t.levels, typo.MAX_LEVEL)
+  -- uncomment to help balance levels (if needed)
+  -- 1225, 6431, 11628, 9401, 1221
+  -- T.eq({128, 430, 4605, 5926, 1098},
+  --      Iter:ofList(t.levels):mapV(ds.len):to())
 end
 
-Test{'typo tutorial', game=typo.Typo{}, function(tst)
+Test{'typo tutorial', game=typo.Typo{levels=TYPO_LEVELS, menu=false},
+function(tst)
   local s, ed, g = tst.s, tst.s.ed, tst.s.ed.pane
   s:play'h'
     T.eq(log.LogTable{}, ed.error)
@@ -141,5 +166,8 @@ Test{'typo tutorial', game=typo.Typo{}, function(tst)
     T.eq(0,  g.miss) -- miss cleared
     T.eq(32, g.score)
     T.eq(TYPO_EXPECTED, fmt(ed.display))
-end}
 
+  s:play'enter'
+    T.eq("failed event %q. %q", ed.error[1][1])
+    ds.clear(ed.error)
+end}

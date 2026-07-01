@@ -73,7 +73,7 @@ M.push    = lib.push --(t, v) --> index
 
 -- add missing globals
 string.concat = rawget(string, 'concat') or lib.string_concat
-table.update  = rawget(table, 'update')  or lib.update
+table.update  = rawget(table,  'update') or lib.update
 table.push    = rawget(table,  'push')   or lib.push
 local push, sconcat = M.push, M.sconcat
 
@@ -166,6 +166,8 @@ function M.retFalse() return false end --> false
 function M.newTable() return {}    end --> {}
 --- Function that returns [$a == b].
 function M.eq(a, b) return a == b end --> bool
+--- Function that returns [$#t].
+function M.len(t) return #t end --> int
 
 local retTrue = M.retTrue
 

@@ -59,6 +59,7 @@ function ele:__call()
     if self.run then
       log.info('ele --run=%q', self.run)
       require(self.run)(s.ed)
+      s.ed.redraw = true
     end
     log.info'ele: end of setup'
   end,
