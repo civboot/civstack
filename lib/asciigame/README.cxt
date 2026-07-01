@@ -1,4 +1,6 @@
-[{h1}acs: asciicolor sprite library]
+[{h1}asciigame: library for making ascii-colored games]
+
+[{h2}acs: write ascii sprites]
 
 [$.acs] files contain a series of named "sprites" which are lines of
 text, followed by their asciicolor foreground style and asciicolor

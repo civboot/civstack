@@ -6,6 +6,7 @@ P.asciigame = lua {
   mod = 'asciigame',
   src = {
     'asciigame.lua',
+    'acs.lua',
     'Rand.lua',
   },
   dep = {
