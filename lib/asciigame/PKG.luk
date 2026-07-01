@@ -1,0 +1,28 @@
+local lua = import'sys:lua.luk'
+
+local P = { summary = "Simple but effective Lua type system." }
+
+P.asciigame = lua {
+  mod = 'asciigame',
+  src = {
+    'asciigame.lua',
+    'Rand.lua',
+  },
+  dep = {
+    'civ:lib/ds',
+    'civ:lib/lines',
+    'civ:lib/asciicolor',
+  },
+}
+
+P.test = lua.test {
+  src = {
+    'test_asciigame.lua',
+  },
+  dep = {
+    'civ:lib/asciigame',
+    'civ:lib/civtest',
+  },
+}
+
+return P

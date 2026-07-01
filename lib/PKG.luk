@@ -8,6 +8,7 @@ local P = {}
 P.lib = Target {
   dep = {
     'civ:lib/asciicolor',
+    'civ:lib/asciigame',
     'civ:lib/civix',
     'civ:lib/civtest',
     'civ:lib/ds',

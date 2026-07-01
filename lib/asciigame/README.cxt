@@ -1,0 +1,69 @@
+[{h1}acs: asciicolor sprite library]
+
+[$.acs] files contain a series of named "sprites" which are lines of
+text, followed by their asciicolor foreground style and asciicolor
+background style.
+
+[{$$ lang=acs}
+-- The below is typically put at the top of all acs sheets as a color
+-- reference and is ignored by the parser.
+
+-- Color Pallet:
+> Z B D L W R P Y H G T C A N S M F I
+--e l a i h e i e o r e y q a k a u n
+--r a r g i d n l n e a a u v y g s v
+--o c k h t   k l e e   n a y   e c i
+--  k   g e     o y n           n h s
+--      t       w               t i i
+--                              a a b
+--                                  l
+--                                  e
+
+-- An example 3x3 sprite named "man"
+# 3x3 man
+'  O
+' /|\
+' / \
+-- The foreground colors: yellow skin, blue clothes.
+>  y
+> yny
+> n n
+-- No background is specified for "man", which means
+-- he adopts the backround he is on.
+
+
+-- An example 3x3 sprite named "woman" wearing a dress.
+# 3x3 woman
+'  O=
+' /|\
+' /~\
+-- The foreground colors: pink skin, patterned red clothes, brown hair
+>  pb
+> plp
+> rlr
+-- The background colors: fills in the inside of the dress.
+<
+<  r
+<  r
+]$
+
+The sprite text "consumes" the next foreground/background line below it,
+allowing for user-control of how they lay out the colors.  For instance, you
+could draw the man like this, with the foreground colors directly below to the
+text.
+
+[{$$ lang=acs}
+# 3x3 man
+'  O
+>  y
+
+' /|\
+> yny
+
+' / \
+> n n
+]$
+
+Each line starts with one of [$' < >] indicating text, background or
+foreground. The character following it sets the "default style" for that line,
+which replaces any spaces or missing characters.

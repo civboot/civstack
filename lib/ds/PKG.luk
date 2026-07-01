@@ -26,7 +26,6 @@ P.ds = lua {
     'load.lua',
     'IFile.lua',
     'Stack.lua',
-    'Rand.lua',
   },
   lib = 'civ:lib/ds#dslib',
   dep = {

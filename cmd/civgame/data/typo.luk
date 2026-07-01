@@ -92,8 +92,7 @@ push(T1, {
 })
 
 push(T1, {
-  help='go again?',
-  want='AGAIN',
+  want="done, good job",
 })
 
 
