@@ -30,7 +30,7 @@ function M.highlight(path, lf, fgFile, bgFile)
     l = l + 1
     return l-1, ln
   end
-  local fl, bl = 0, 0
+  local fl, bl = 1, 1
   local function fw(ln) fgFile:write(ln, '\n'); fl = fl + 1 end
   local function bw(ln) bgFile:write(ln, '\n'); bl = bl + 1 end
   local function catchup(l)

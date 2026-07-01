@@ -260,7 +260,6 @@ static int l_bytearray_write(LS* L) {
   uint8_t* dat = b->dat + b->pos;
   for(int i=2; i <= top; i++) {
     s = lua_tolstring(L, i, &len);
-    // fprintf(stderr, "@@ ds.c: %.*s\n", s, len);
     memcpy(dat, s, len);
     dat += len;
   }

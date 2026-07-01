@@ -4,6 +4,8 @@ local ds = require'ds'
 local I = require'ds.Iter'
 local lines = require'lines'
 local acs = require'asciigame.acs'
+local Gap = require'lines.Gap'
+local fmt = require'fmt'
 
 local push               = mty.from(table, 'insert')
 local s, bytearray       = mty.from'ds  simplestr, bytearray'
@@ -37,6 +39,67 @@ T'acs'; do
     return o
   end
 
+  do -- fire
+  local txt = s[[
+  # 1x4 fire
+  ' fire
+  > wyyr
+  < rpyb
+  ]]
+
+  local expect = {
+    AcsSprite{
+      name="fire",
+      h=1, w=4,
+      l=1, le=4,
+      AcsLine{
+        txt="fire", tl=2,
+        fg="wyyr",  fl=3,
+        bg="rpyb",  bl=4,
+        fgDefault=" ",
+        bgDefault=" ",
+      },
+    },
+  }
+
+  T.eq(expect, p(txt))
+
+  local fg, bg = bytearray(), bytearray()
+  acs.highlight(ds.srcloc(), lines(txt), fg, bg)
+
+  local expectFg = "Z\
+  wyyr \
+  wyyr \n\n"
+  T.eq(expectFg, tostring(fg))
+
+  local expectBg = "\
+  rpyb \
+\
+  rpyb \n"
+  T.eq(expectBg, tostring(bg))
+
+  local fg, bg = Gap{}, Gap{}
+  acs.highlight(ds.srcloc(), lines(txt), fg, bg)
+  T.eq(expectFg, fmt(fg))
+  T.eq(expectBg, fmt(bg))
+
+  end -- fire
+
+  do -- sprites
+  local txt = s[[
+  -- comment
+  # 3x3 sprite
+  ' some text
+  < some bg
+  > some fg
+  ' more text
+  ' last text
+  > more fg
+  > last fg
+
+  # x small
+  ' little
+  ]]
   local expect = {
     AcsSprite{
       name="sprite",
@@ -60,24 +123,25 @@ T'acs'; do
       AcsLine{txt='little', tl=12},
     },
   }
-  local txt = s[[
-  -- comment
-  # 3x3 sprite
-  ' some text
-  < some bg
-  > some fg
-  ' more text
-  ' last text
-  > more fg
-  > last fg
-
-  # x small
-  ' little
-  ]]
   T.eq(expect, p(txt))
   local fg, bg = bytearray(), bytearray()
   acs.highlight(ds.srcloc(), lines(txt), fg, bg)
 
-  T.eq('', tostring(fg))
-
+  local expectFg = "\
+Z\
+  some fg \
+\
+  some fg \
+  more fg \
+  last fg \
+  more fg \
+  last fg \
+\
+Z\
+\
+"
+  T.eq(expectFg, tostring(fg))
+  local expectBg = "\n\n  some bg \n  some bg "..('\n'):rep(9)
+  T.eq(expectBg, tostring(bg))
+  end -- sprites
 end

@@ -148,6 +148,7 @@ end
 function Session:highlight()
   local Gap = require'lines.Gap'
   local hl = mty.from'pegl.lua  highlighter'
+  local hlAcs = mty.from'asciigame.acs  highlight'
   hl.styleColor = require'asciicolor'.dark
   local function highlight()
     local p = self.ed.pane
@@ -155,12 +156,15 @@ function Session:highlight()
     local buf = self.ed.pane.buf
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then
-      local lf = buf.dat:reader()
       local fg,bg = Gap{}, Gap{}
-      hl:highlight(lf, fg,bg)
+      hl:highlight(buf.dat:reader(), fg,bg)
       if #buf == #fg then
         buf.fg, buf.bg = fg, bg
       end
+    elseif path and path:find'%.acs$' then
+      local fg,bg = Gap{}, Gap{}
+      hlAcs(path, buf.dat:reader(), fg,bg)
+      buf.fg, buf.bg = fg, bg
     end
   end
   while self.ed.run do
