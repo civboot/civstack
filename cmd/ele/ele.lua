@@ -10,18 +10,26 @@ local ele = shim.cmd'ele' {
 local lap = require'lap'
 local fd = require'fd'
 local ds = require'ds'
+local pth = require'ds.path'
 local log = require'ds.log'
 local ac = require'asciicolor'
 local vt = require'vt100'
+local ix = require'civix'
+local lson = require'lson'
 
 local ioopen = io.open
 local iostdout, iostderr = io.stdout, io.stderr
 local sysprint = G.print
 
+local ELE_STATE = './.elestate'
+
 function ele:__call()
   local savedmode
   log.info('ele exe', self)
   local s = require'ele.Session':user{}
+  if #self == 0 and ix.exists'.elestate' then
+    s.ed:loadState(lson.load(ELE_STATE))
+  end
   local keysend = s.keys:sender()
   local iofmt   = io.fmt
 
@@ -55,6 +63,11 @@ function ele:__call()
         s.ed:buffer(path)
       end
       s.ed:focus(self[1])
+    else
+      lap.schedule(function() while s.ed.run do
+        lap.sleep(1)
+        pth.write(ELE_STATE, s.ed:state())
+      end end)
     end
     if self.run then
       log.info('ele --run=%q', self.run)

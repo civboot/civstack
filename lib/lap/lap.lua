@@ -288,6 +288,9 @@ function M.Any:restart(i)
   self.done[i] = nil
 end
 
+--- Yield a sleep signal for the number of  seconds (float).
+function M.sleep(s) return yield('sleep', s) end
+
 ----------------------------------
 -- Lap
 local function lt1(a, b) return a[1] < b[1] end

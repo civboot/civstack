@@ -140,7 +140,7 @@ Session.draw = function(s)
        s.ed:draw()
        s.ed.display:draw()
      end
-     yield('sleep', FRAME)
+     lap.sleep(FRAME)
    end
 end
 
@@ -168,7 +168,7 @@ function Session:highlight()
     end
   end
   while self.ed.run do
-    yield('sleep', 1)
+    lap.sleep(1)
     local ok, err = ds.try(highlight)
     if not ok then log.warn('highlight error:\n%q', err) end
   end

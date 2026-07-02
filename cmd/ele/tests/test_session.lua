@@ -297,8 +297,6 @@ local BUF_1 = [[
  4b#5        ./data/small.lua
 | TMP:1.1 b#nav ( ]]
 
-
-
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
   s:play'g .'

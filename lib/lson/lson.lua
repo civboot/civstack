@@ -52,6 +52,9 @@ function M.decode(s, podder, pset) --> value
   return De(s)(podder, pset)
 end
 
+--- Decode a file.
+function M.load(path, ...) return M.decode(lines.load(path), ...) end
+
 ------------------
 -- JSON Encoder
 
