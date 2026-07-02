@@ -63,7 +63,7 @@ end
 Gap.load = function(T, f, close) --> Gap?, err?
   if type(f) == 'string' then f = pth.abs(f) end
   local dat, err = lload(f, close)
-  if not dat then return nil, err end
+  if not dat then dat = {} end
   return T(dat, type(f) == 'string' and f or nil)
 end
 

@@ -7,6 +7,7 @@ local log    = require'ds.log'
 local lines  = require'lines'
 local Gap    = require'lines.Gap'
 local Buffer = require'lines.buffer'.Buffer
+local ix     = require'civix'
 local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
 local push, pop, concat = table.insert, table.remove, table.concat
@@ -45,9 +46,15 @@ local Editor = mty'Editor' {
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
-  'newDat [callable(text)]: function to create new buffer',
-    newDat = function(f) return f and Gap:load(f) or Gap({}, f) end,
+  'newDat [callable(path)]: function to create new buffer',
+    newDat = function(f)
+      if not f then
+        f = os.tmpname(); info('creating tmp', f)
+      end
+      return Gap:load(f)
+    end,
   'redraw [boolean]: set to true to force a redraw',
+  DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},
 }
 
 getmetatable(Editor).__call = function(T, self)
@@ -275,11 +282,12 @@ end
 function Editor:close() end
 
 function Editor:state() --> ele.types.State
-  local bufs = {}; for i, b in ipairs(self.buffers) do
-    if not b.tmp then
+  local bufs = {}; for i, b in pairs(self.buffers) do
+    if not self.DEFAULT_BUFFERS[b.name] then
       push(bufs, et.BufState{id=b.id, name=b.name, path=b:path()})
     end
   end
+  table.sort(bufs, function(a, b) return a.id < b.id end)
   return et.State {
     ID = et.ID,
     buffers=bufs,
@@ -290,21 +298,33 @@ end
 
 function Editor:loadState(st) --> self
   et.ID = st.ID
-
+  self:rmTmp()
   ds.clear(self.buffers)
   for _, b in ipairs(st.buffers) do
     local buf = self:_buffer(b.id, b.path)
     buf.name = b.name
   end
-  self.view.container = nil; self.view:close()
+  self.view.container = nil; self.view:close(self)
   self.view = st.view:load(self)
   self:focusFirst()
   ds.walk(self.view, nil, function(key, p)
-    if p.id == st.pane then
+    dbg('walking', key)
+    if type(key) ~= 'number' then return ds.SKIP end
+    if rawget(p, 'id') == st.pane then
       self:focus(p); return true -- stop
     end
   end)
   return self
+end
+
+--- Cleanup all temporary files. Used for tests.
+function Editor:rmTmp()
+  for _, b in pairs(self.buffers) do
+    if b:path():find'^/tmp/lua_' then
+      info('removing tmp', b:path())
+      ix.rm(b:path())
+    end
+  end
 end
 
 return Editor

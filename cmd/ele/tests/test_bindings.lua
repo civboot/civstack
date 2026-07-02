@@ -34,10 +34,13 @@ local function newEditor(mode)
   return ed
 end
 
+local function cleanup(d) d:rmTmp() end
+
 T'bindings'; do
   local data = newEditor'insert'
   et.checkBindings(M.insert)
   et.checkBindings(M.command)
+  cleanup(data)
 end
 
 local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
@@ -51,6 +54,7 @@ local function assertKeys(keyinputs, mode, expectKeys, expectEvents)
   if expectKeys == false then T.eq(nil, data.ext.keys.keep)
   elseif expectKeys then T.eq(expectKeys, data.ext.keys) end
   T.eq(expectEvents or {}, events:drain())
+  cleanup(data)
   return data
 end
 

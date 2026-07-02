@@ -45,6 +45,10 @@ end
 
 local running = false
 
+local function noTmp(s)
+  return s:gsub('/tmp/lua_%w+', 'TMP')
+end
+
 -- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
 local Test = mty.record'session.Test' {
   'th', th=4, 'tw', tw=20,
@@ -78,6 +82,7 @@ getmetatable(Test).__call = function(Ty, t)
       error'Session Test error'
     end
   end)
+  ed:rmTmp()
   assert(running); running = false
 end
 
@@ -239,23 +244,23 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| (b#4:1.1) ==================]]
+| TMP:1.1 (b#4) ==]]
 local INSERTED_3 = [[
  0inserted
   
   
-| (b#4:1.9) ==================]]
+| TMP:1.9 (b#4) ==]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local g = e.buf.dat
   T.eq(require'lines.Gap', mty.ty(g))
   s:play''
-    T.eq(SC..'\n'..LINES3_wLN, fmt(ed.display))
+    T.eq(SC..'\n'..LINES3_wLN, noTmp(fmt(ed.display)))
 
   e:clear(); T.eq({''}, ds.icopy(g))
     e:insert'inserted'
     T.eq({'inserted'}, ds.icopy(g))
-    s:play''; T.eq(SC..'\n'..INSERTED_3, fmt(ed.display))
+    s:play''; T.eq(SC..'\n'..INSERTED_3, noTmp(fmt(ed.display)))
 end}
 
 
@@ -265,7 +270,7 @@ local NAV_1 = [[
  2  * small.lua
   
   
-| b#nav:1.8 (b#2) ============]]
+| TMP:1.8 b#nav ( ]]
 
 local NAV_2 = [[
  1./data/
@@ -273,7 +278,7 @@ local NAV_2 = [[
  1    * thing1.txt
  2    * thing2.txt
  3  * small.lua
-| b#nav:2.8 (b#2) ============]]
+| TMP:2.8 b#nav ( ]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
@@ -282,22 +287,23 @@ local NAV_3 = [[
  1  * small.lua
  0
   
-| b#nav:4.8 (b#2) ============]]
+| TMP:4.8 b#nav ( ]]
 
 local BUF_1 = [[
- 0b#search   (tmp)
- 1b#nav      (tmp)
- 2b#find     (tmp)
- 3b#4        (tmp)
+ 0b#search   TMP
+ 1b#nav      TMP
+ 2b#find     TMP
+ 3b#4        TMP
  4b#5        ./data/small.lua
-| b#nav:1.1 (b#2) ============]]
+| TMP:1.1 b#nav ( ]]
+
 
 
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
   s:play'g .'
   local e = tst.s.ed.pane
-    T.eq(SS..'\n'..NAV_1, fmt(ed.display))
+    T.eq(SS..'\n'..NAV_1, noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
     T.eq({1,8}, {e.l,e.c})
     T.eq(1, ed.pane.locations.max)
@@ -307,11 +313,11 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
 
   s:play's j l' -- expand seuss
     T.eq('system', ed.mode)
-    T.eq(SS..'\n'..NAV_2, fmt(ed.display))
+    T.eq(SS..'\n'..NAV_2, noTmp(fmt(ed.display)))
     T.eq({2,8}, {e.l,e.c})
 
   s:play'2 j h' -- go down, but then unexpand
-    T.eq(SS..'\n'..NAV_3, fmt(ed.display))
+    T.eq(SS..'\n'..NAV_3, noTmp(fmt(ed.display)))
     T.eq({4,8}, {e.l,e.c})
 
   s:play'2 k l j enter' -- go to thing1.txt
@@ -320,12 +326,12 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.eq('command', ed.mode)
 
   s:play'g b'
-    T.eq(SS..'\n'..BUF_1, fmt(ed.display))
+    T.eq(SS..'\n'..BUF_1, noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
   s:play'4 j enter'
     T.matches('data/small.lua$', ed.pane:path())
   s:play'g b' -- should be same as before
-    T.eq(SS..'\n'..BUF_1, fmt(ed.display))
+    T.eq(SS..'\n'..BUF_1, noTmp(fmt(ed.display)))
 end}
 
 Test{'overlay', dat=LINES3, function(tst)

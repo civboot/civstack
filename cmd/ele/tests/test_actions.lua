@@ -15,6 +15,8 @@ local Edit = require'ele.edit'.Edit
 local Editor = require'ele.Editor'
 
 local info = mty.from'ds.log  info'
+local State, BufState, PaneState = mty.from'ele.types\
+      State, BufState, PaneState'
 
 local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
@@ -27,6 +29,8 @@ local function newEditor(lines)
   e.buf:insert(lines, 1)
   return ed
 end
+
+local function cleanup(ed) ed:rmTmp() end
 
 local lines3 =
   '1 3 5 7 9\n'
@@ -63,6 +67,7 @@ T'move'; do
   assertMove('find',     {find=' '},     1, 6)
   assertMove('find',     {find='9'},     1, 9)
   assertMove('findback', {findback='1'}, 1, 1)
+  cleanup(d)
 end
 
 T'remove'; do
@@ -94,6 +99,8 @@ T'remove'; do
     T.eq('7 9\n', fmt(b.dat))
 
   info'removing first line'
+  cleanup(d)
+
   d = newEditor(lines3); local e, b = d.pane, d.pane.buf
   e.l, e.c = 1,1
   assertRemove('lines', {lines=0, times=1}, 1,1) -- remove one lines
@@ -101,6 +108,7 @@ T'remove'; do
     T.eq({'1 3 5 7 9', ''}, d.yank[d.yank.right])
   M.paste(d, {action='paste', index=1})
     T.eq('  3 5\n1 3 5 7 9\n1 3 5 7 9\n', fmt(b.dat))
+  cleanup(d)
 
   info'join lines'
   d = newEditor'ab\ncd\n  z\n'; local e, b = d.pane, d.pane.buf
@@ -110,6 +118,7 @@ T'remove'; do
   e.c = 5
   assertRemove('nextLineText', {cols=-1}, 1,1)
     T.eq('abcdz\n', fmt(b.dat))
+  cleanup(d)
 end
 
 T'insert'; do
@@ -124,10 +133,13 @@ T'insert'; do
     T.eq('4 5 6',     b:get(2))
   assertInsert('6 7\n', {}, 2, 1)
     T.eq('4 5 6 7\n1 2 3\n4 5 6', fmt(b.dat))
+  cleanup(d)
+
   d = newEditor'a b\n  c\nd'; e, b = d.pane, d.pane.buf
   e.l,e.c = 3,1
   M.autoIndent(d, {})
     T.eq('a b\n  c\n  d', fmt(b.dat))
+  cleanup(d)
 end
 
 local NAV1 = [[
@@ -198,12 +210,54 @@ T'nav'; do
   local content = 'some text\ninserted from actions'
   e:insert(content); e:save(d)
   T.path(test_txt, content)
+  cleanup(d)
 end
 
 T'namedBuffer'; do
   local d = newEditor''
-  T.eq({'find', 'nav', 'overlay', 'search'}, ds.sort(ds.keys(d.namedBuffers)))
+  T.ieq(d.DEFAULT_BUFFERS, ds.sort(ds.keys(d.namedBuffers)))
   local n = d:namedBuffer'nav'
   T.eq(et.INIT_BUFS - 1, n.id)
+  cleanup(d)
 end
 
+T'state'; do
+  local d1 = newEditor''
+  local e1, b1 = d1.pane, d1.pane.buf
+  local spath = pth.abs(O..'state.txt')
+  local b2 = d1:namedBuffer('a', O..'state.txt')
+  local e2 = d1:focus(b2)
+  b2:insert('line in state\n', 1)
+  e2:save(d1)
+  e2:split(et.VSplit)
+  d1:focus(e1)
+
+  local st = d1:state()
+  local expect = State{
+    ID=et.ID, pane=e1.id,
+    buffers={
+      BufState{id=b1.id,           path=b1:path()},
+      BufState{id=b2.id, name="a", path=spath},
+    },
+    view=PaneState{
+      ty="ele.types.VSplit",
+      dat={
+        PaneState{
+          ty="ele.edit.Edit",
+          dat={ vc=1, vl=1, path=b1:path() }
+        }, PaneState{
+          ty="ele.edit.Edit",
+          dat={ vc=1, vl=1, path=spath }
+        }
+      }
+    },
+  }
+  T.eq(expect, st)
+
+  local d2 = newEditor'':loadState(st)
+  T.eq(d2.pane:path(),    b1:path())
+  T.eq(d2.view[2]:path(), b2:path())
+
+  info('cleaning up d1'); cleanup(d1)
+  info('cleaning up d2'); cleanup(d2)
+end

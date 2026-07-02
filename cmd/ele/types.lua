@@ -139,10 +139,10 @@ function M.VSplit:draw(ed, isRight)
 end
 function M.VSplit:state()
   local dat = {}; for _, p in ipairs(self) do push(dat, p:state()) end
-  return M.PaneState { id=self.id, ty=mty.name(self), dat=dat }
+  return M.PaneState { ty=mty.fullname(self), dat=dat }
 end
 function M.VSplit.fromState(T, ed, s)
-  local self = T{id=s.id}; for i, paneState in ipairs(s) do
+  local self = T{}; for i, paneState in ipairs(s) do
     self:insert(i, paneState:load(ed))
   end
   return self
@@ -228,8 +228,8 @@ M.PaneState = pod(mty'PaneState' {
   'dat [table]: the data to pass to the ty',
 })
 function M.PaneState:load(ed)
-  local ty = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
-  return ty:fromState(ed, self.dat)
+  local T = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
+  return T:fromState(ed, self.dat)
 end
 
 --- Editor state for caching/reloading the current

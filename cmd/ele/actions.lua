@@ -652,7 +652,6 @@ function M.window(ed, ev)
     local v = ed.pane; local c = v.container
     if mty.ty(c) == et.HSplit then
       v, c = c, c.container
-      -- FIXME:
     end
     if mty.ty(c) == et.VSplit then
       local i = assert(ds.indexOf(c, v)) + ev.moveH

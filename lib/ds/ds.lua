@@ -1078,7 +1078,6 @@ end
 ---------------------
 -- BiMap
 
--- CXT HERE BAD
 --- Bidirectional Map.
 --- Maps both [$key -> value] and [$value -> key].
 --- Must use [$:remove] (instead of [$$bm[k] = nil]$ to handle deletions.
@@ -1098,6 +1097,7 @@ function M.BiMap:__newindex(k, v)
   rawset(self, k, v); rawset(self, v, k)
 end
 getmt(M.BiMap).__index = nil
+M.BiMap.get = rawget
 function M.BiMap:remove(k) --> v
   local v = self[k]; self[k] = nil; self[v] = nil; return v
 end

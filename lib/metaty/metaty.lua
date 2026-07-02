@@ -181,6 +181,16 @@ function M.name(o)
       or ty
 end
 
+--- Get the fullname of the object's type. This is typically
+--- the same as looking it up in [$PKG_NAMES].
+function M.fullname(o)
+  local ty = type(o)
+  return ty == 'function' and G.PKG_NAMES[o]
+      or ty == 'table'    and G.PKG_NAMES[getTy(o)]
+      or ty == 'userdata' and G.PKG_NAMES[getmt(o)]
+      or ty
+end
+
 --- Return whether obj is callable (function or has [$mt.__call]).
 function M.callable(obj) --> bool
   if type(obj) == 'function' then return true end

@@ -9,7 +9,7 @@ local motion = require'lines.motion'
 local ix = require'civix'
 local lines = require'lines'
 local Gap   = require'lines.Gap'
-local types = require'ele.types'
+local et    = require'ele.types'
 
 local unpack       = table.unpack
 local push, concat = table.insert, table.concat
@@ -20,7 +20,7 @@ local assertf      = mty.from'fmt  assertf'
 local info         = mty.from'ds.log  info'
 
 --- Ele Edit View for viewing and editing text files in a pane.
-M.Edit = mty.extend(types.BasePane, 'Edit', {
+M.Edit = mty.extend(et.BasePane, 'Edit', {
   -- vl/vc are what (top-left)line/column are being VIEWED by the user.
   -- They dynamically update during [$:draw()] as the cursor moves.
   'vl[int]', vl=1,    'vc[int]', vc=1,
@@ -41,10 +41,10 @@ getmetatable(M.Edit).__call = function(T, t)
   return self
 end
 
-M.Edit.getEditor = types.getEditor
+M.Edit.getEditor = et.getEditor
 
 function M.Edit:close(ed)
-  types.BasePane.close(self, ed)
+  et.BasePane.close(self, ed)
   local b = self.buf
   if b.tmp then
     b.tmp[self] = nil; if #b.tmp == 0 then
@@ -277,7 +277,7 @@ end
 function M.Edit:copy()
   self.tl,self.tc, self.tw,self.th = -1,-1, -1,-1
   local e2 = ds.copy(self)
-  e2.id, e2.container = types.uniqueId(), nil
+  e2.id, e2.container = et.uniqueId(), nil
   e2.modes = self.modes and ds.copy(self.modes) or nil
   return e2
 end
@@ -320,7 +320,7 @@ function M.Edit:path() return self.buf:path() end --> path?
 
 function M.Edit:state()
   return et.PaneState {
-    ty = 'ele.edit.Edit',
+    ty = mty.fullname(self),
     dat = {
       vl=self.vl, vc=self.vc,
       path=self.buf:path(),
