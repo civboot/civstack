@@ -27,7 +27,6 @@ M.Edit = mty.extend(types.BasePane, 'Edit', {
   'buf [Buffer]',
   'yank [ds.Deq]: global yank deque',
   'locations [ds.Stack[ele.types.EditLoc]]: a deq of locations visited.',
-  'drawBars [fn[Edit] -> botHeight,leftWidth]',
   'lineStyle [str]: asciicolor style',
     lineStyle = 'bar:line',
 })
@@ -318,5 +317,19 @@ function M.Edit:autoIndent()
 end
 
 function M.Edit:path() return self.buf:path() end --> path?
+
+function M.Edit:state()
+  return et.PaneState {
+    ty = 'ele.edit.Edit',
+    dat = {
+      vl=self.vl, vc=self.vc,
+      path=self.buf:path(),
+    }
+  }
+end
+
+function M.Edit.fromState(T, ed, s)
+  return T{ id=s.id, vl=s.vl, vc=s.vc, buf=ed:buffer(s.path) }
+end
 
 return M

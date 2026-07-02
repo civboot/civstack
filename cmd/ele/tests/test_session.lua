@@ -81,7 +81,7 @@ getmetatable(Test).__call = function(Ty, t)
   assert(running); running = false
 end
 
-Test{'session', dat='', function(tst)
+Test{'insert', dat='', function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b, t = ed.pane.buf, ed.display
   T.eq('command', ed.mode)
@@ -102,8 +102,11 @@ Test{'session', dat='', function(tst)
     T.eq(SI..'\n9 8\n\n', fmt(t))
   T.eq(log.LogTable{}, ed.error)
 
-  s:play'space 7 enter 6'
+  s:play'space 7 enter 6' -- write ' 7\n6'
     T.eq(SI..'\n9 8 7\n6\n', fmt(t))
+
+  s:play'esc h r space' -- replace 6 w/space
+    T.eq(SC..'\n9 8 7\n \n', fmt(t))
 end}
 
 Test{'move', dat=LINES3, function(tst)

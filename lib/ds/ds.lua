@@ -749,7 +749,7 @@ end
 --- ]
 ---
 --- If tableFn [$stop==ds.SKIP] (i.e. 'skip') then that table is not recursed.
---- Else if stop then the walk is halted immediately
+--- Else if [$stop=true] then the walk is halted immediately
 function M.walk(t, fieldFn, tableFn, maxDepth, state) --> nil
   if maxDepth then
     maxDepth = maxDepth - 1; if maxDepth < 0 then return end

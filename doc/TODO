@@ -1,16 +1,17 @@
+Ele:
+* Save the current Editor state (file buffers, edit views) every second.
+  --restore will auto-open them.
+
+* Every draw(), store the edit l,c in buffer l,c. When opening a buffer, go to
+  this l,c immediately.
+
+  * Buf is just {path, l,c}. The edits will just be {{split=, path=, l,c}.  Tmp
+  * or game buffers will be ignored.
+
 TODO:
 * Throw error if you find PKG.lua
 * [{$}$] doesn't render in html correctly.
 * fd.lines() doesn't work in lua 5.5
-
-Simple Typing Game
-
-Displays one or more words from words.txt which are in form `word  points`.
-
-As you advance you are asked to earn more points.
-
-The game itself just shows the line, then you type below the line
-and it highlights text that is correct (blue) vs wrong (red).
 
 General
 * I need io.open/etc to respect G.PWD

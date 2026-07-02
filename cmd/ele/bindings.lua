@@ -247,7 +247,7 @@ function M.replace(keySt)
   if ev.replace then
     return {action='chain',
       {action='remove', off=0, times=ev.times},
-      {ds.last(keySt.chord), action='insert', times=ev.times},
+      {M.literal(ds.last(keySt.chord)), action='insert', times=ev.times},
     }
   end
   ev.replace = 1

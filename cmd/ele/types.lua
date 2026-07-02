@@ -7,6 +7,7 @@ local G      = mty.G
 local ds     = require'ds'
 local fmt    = require'fmt'
 local log    = require'ds.log'
+local pod    = require'pod'
 M._term      = require'vt100'
 local assertf = fmt.assertf
 local sfmt = string.format
@@ -14,6 +15,11 @@ local toint = math.tointeger
 local push, pop, concat = table.insert, table.remove, table.concat
 local getp = ds.getp
 local getmt = G.getmetatable
+
+M.ID = 1
+function M.uniqueId()
+  local id = M.ID; M.ID = M.ID+1; return id
+end
 
 M.INIT_BUFS = 3 -- the default number of bufs on init (for testing)
 
@@ -34,6 +40,11 @@ function M.getEditor(c)
 end
 
 --- The base record for Edit/Game.
+---
+--- These should be implemented: [{$$ lang=lua}
+--- function M.BasePane:state() --> PaneState
+--- function M.BasePane.fromState(T, ed, s) --> new self
+--- ]$
 M.BasePane = mty'BasePane' {
   'id[int]',
   'container', -- parent (Editor/Split)
@@ -51,7 +62,7 @@ M.BasePane = mty'BasePane' {
 }
 
 function M.BasePane.__init(t)
-  t.id = M.uniqueId()
+  t.id = t.id or M.uniqueId()
 end
 
 getmetatable(M.BasePane).__call = function(T, t)
@@ -60,8 +71,7 @@ getmetatable(M.BasePane).__call = function(T, t)
 end
 
 --- Called after this pane is focused by Editor.
-function M.BasePane:focus(ed)
-end
+function M.BasePane:focus(ed) end
 
 --- Called when this pane is closed by Editor.
 function M.BasePane:close(ed)
@@ -71,6 +81,7 @@ function M.BasePane:close(ed)
 end
 
 function M.BasePane:drawCursor(ed) end
+
 
 function M.isPane(v)
   if type(v) ~= 'table' then return false end
@@ -87,65 +98,70 @@ M.VSplit = mty'VSplit' {
 }
 M.VSplit.getEditor = M.getEditor
 M.VSplit.close = ds.noop
-M.VSplit.insert = function(sp, i, v)
+function M.VSplit:insert(i, v)
   assert(not v.container)
-  table.insert(sp, i, v); v.container = sp
+  table.insert(self, i, v); v.container = self
 end
 
-M.VSplit.replace = function(sp, from, to) --> from
-  local i = assert(ds.indexOf(sp, from), 'from not found in Split')
-  assert(from.container == sp)
+function M.VSplit:replace(from, to) --> from
+  local i = assert(ds.indexOf(self, from), 'from not found in Split')
+  assert(from.container == self)
   assert(not to.container)
-  sp[i], to.container, from.container = to, sp, nil
+  self[i], to.container, from.container = to, self, nil
   return from
 end
-M.VSplit.remove = function(sp, v) --> v
-  local i = assertf(ds.indexOf(sp, v), '%q not found in Split', v)
-  table.remove(sp, i); v.container = nil
-  if #sp == 0 then -- no items, this shouldn't happen
-    log.warning('zero items left in %s', mty.name(sp))
-    sp.container:remove(sp)
-  elseif #sp == 1 then -- only 1 item left, close self
-    sp[1].container = nil
-    sp.container:replace(sp, sp[1]):close(sp:getEditor())
-    sp[1] = nil
+function M.VSplit:remove(v) --> v
+  local i = assertf(ds.indexOf(self, v), '%q not found in Split', v)
+  table.remove(self, i); v.container = nil
+  if #self == 0 then -- no items, this shouldn't happen
+    log.warning('zero items left in %s', mty.name(self))
+    self.container:remove(self)
+  elseif #self == 1 then -- only 1 item left, close self
+    self[1].container = nil
+    self.container:replace(self, self[1]):close(self:getEditor())
+    self[1] = nil
   end
   return v
 end
-M.VSplit.draw = function(sp, ed, isRight)
+function M.VSplit:draw(ed, isRight)
   local d = ed.display
-  local len = #sp; if len == 0 then return end
-  local l,c = sp.tl, sp.tc
-  local w,h = sp.tw // len, sp.th -- divide up the available width
+  local len = #self; if len == 0 then return end
+  local l,c = self.tl, self.tc
+  local w,h = self.tw // len, self.th -- divide up the available width
   -- First view gets any extra width, the rest are even
-  local v = sp[1]; v.tl,v.tc, v.tw,v.th = l,c, w + (sp.tw % len), h
+  local v = self[1]; v.tl,v.tc, v.tw,v.th = l,c, w + (self.tw % len), h
   v:draw(ed, isRight)
   for i=2,len do
     c = c + v.tw -- increment the col# by previous width
-    v = sp[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
+    v = self[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
     v:draw(ed, false) -- note: not right-most.
   end
+end
+function M.VSplit:state()
+  local dat = {}; for _, p in ipairs(self) do push(dat, p:state()) end
+  return M.PaneState { id=self.id, ty=mty.name(self), dat=dat }
+end
+function M.VSplit.fromState(T, ed, s)
+  local self = T{id=s.id}; for i, paneState in ipairs(s) do
+    self:insert(i, paneState:load(ed))
+  end
+  return self
 end
 
 --- A container with windows split horizontally (i.e. wide windows)
 M.HSplit = mty.extend(M.VSplit, 'HSplit')
-M.HSplit.draw = function(sp, ed, isRight)
+function M.HSplit:draw(ed, isRight)
   local d = ed.display
-  local len = #sp; if len == 0 then return end
-  local l,c = sp.tl, sp.tc
-  local w,h = sp.tw, sp.th // len -- divide up the available height
+  local len = #self; if len == 0 then return end
+  local l,c = self.tl, self.tc
+  local w,h = self.tw, self.th // len -- divide up the available height
   -- First view gets any extra height, the rest are even
-  local v = sp[1]; v.tl,v.tc, v.tw,v.th = l,c, w, h + (sp.th % len)
+  local v = self[1]; v.tl,v.tc, v.tw,v.th = l,c, w, h + (self.th % len)
   for i=2,len do
     l = l + v.th -- increment the line# by previous height
-    v = sp[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
+    v = self[i];     v.tl,v.tc, v.tw,v.th = l,c, w,h
   end
-  for _, v in ipairs(sp) do v:draw(ed, isRight) end
-end
-
-M.ID = 1
-function M.uniqueId()
-  local id = M.ID; M.ID = M.ID+1; return id
+  for _, v in ipairs(self) do v:draw(ed, isRight) end
 end
 
 function M.checkBinding(b)
@@ -201,5 +217,28 @@ function M.EditLoc.parse(T, str, defaultBuf)
   assertf(l and c and b, 'invalid EditLoc: %s b=%s', str, b)
   return T{b=b, l=toint(l), c=toint(c)}
 end
+
+M.BufState = pod(mty'BufState' {
+  'id [int]: buffer id', 'name [str]: buffer name',
+  'path [string]: buffer path',
+})
+
+M.PaneState = pod(mty'PaneState' {
+  'ty [string]: the type to ds.wantpath, i.e. "ele.edit.Edit"',
+  'dat [table]: the data to pass to the ty',
+})
+function M.PaneState:load(ed)
+  local ty = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
+  return ty:fromState(ed, self.dat)
+end
+
+--- Editor state for caching/reloading the current
+--- buffer view.
+M.State = pod(mty'State' {
+  'ID [int]: current uniqueId() state.',
+  'buffers {ele.types.BufState}',
+  'view [ele.types.PaneState]',
+  'pane [int]: the currently focused pane',
+})
 
 return M

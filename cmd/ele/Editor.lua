@@ -31,8 +31,8 @@ local Editor = mty'Editor' {
   'modes [table]: keyboard bindings per mode (see: bindings.lua)',
   'actions [table]: actions which events can trigger (see: actions.lua)',
   'resources [table]: resources to close when shutting down',
-  'buffers [list[Buffer]]', 'bufferId[map[Buffer, id]]',
-  'namedBuffers [map[string,Buffer]]',
+  'buffers {Buffer}', 'bufferId{Buffer: id}',
+  'namedBuffers {string: Buffer}',
   'overlay [Buffer]: the overlay buffer',
   'pane [Buffer]: the currently active pane.',
   'view [RootView]: the root view',
@@ -50,22 +50,22 @@ local Editor = mty'Editor' {
   'redraw [boolean]: set to true to force a redraw',
 }
 
-getmetatable(Editor).__call = function(T, t)
-  t = ds.merge({
+getmetatable(Editor).__call = function(T, self)
+  self = ds.merge({
     s=EdSettings{},
     mode='command', modes={},
     actions=ds.rawcopy(require'ele.actions'),
-    buffers={}, bufferId={},
+    buffers={}, bufferId=ds.WeakK{},
     namedBuffers=ds.WeakV{},
     overlay = Buffer{id=-1, dat=Gap{}},
     resources={}, ext={},
     yank=ds.Deq{},
     redraw = true,
-  }, t)
-  t = mty.construct(T, t)
-  t.namedBuffers.overlay = t.overlay
-  t.namedBuffers.search  = t:namedBuffer'search'
-  return t
+  }, self)
+  self = mty.construct(T, self)
+  self.namedBuffers.overlay = self.overlay
+  self.namedBuffers.search  = self:namedBuffer'search'
+  return self
 end
 
 function Editor:getEditor() return self end
@@ -142,20 +142,23 @@ function Editor:buffer(idOrPath) --> Buffer
   if idOrPath ~= nil then
     local b = self:getBuffer(idOrPath); if b then return b end
   end
-  log.info('creating buffer %q', idOrPath)
-  local dat = self.newDat(idOrPath) -- do first to allow yield
-  local id = #self.buffers + 1
-  local b = Buffer{id=id, dat=dat, tmp=not idOrPath and {} or nil}
+  return self:_buffer(#self.buffers + 1, idOrPath)
+end
+
+function Editor:_buffer(id, path)
+  log.info('creating buffer %s %q', id, path)
+  local dat = self.newDat(path) -- do first to allow yield
+  local b = Buffer{id=id, dat=dat, tmp=not path and {} or nil}
   self.buffers[id] = b
   self.bufferId[b] = id
   return self.buffers[id]
 end
 
---- Get or create a named buffer (NOT a path).
+--- Get or create a named buffer.
 function Editor:namedBuffer(name, path)
   local b = self.namedBuffers[name]; if b then return b end
   b = self:buffer(path)
-  b.name                = name
+  b.name = name
   self.namedBuffers[name] = b
   return b
 end
@@ -270,5 +273,38 @@ function Editor:focus(p) --> Edit
 end
 
 function Editor:close() end
+
+function Editor:state() --> ele.types.State
+  local bufs = {}; for i, b in ipairs(self.buffers) do
+    if not b.tmp then
+      push(bufs, et.BufState{id=b.id, name=b.name, path=b:path()})
+    end
+  end
+  return et.State {
+    ID = et.ID,
+    buffers=bufs,
+    view = self.view:state(),
+    pane = self.pane.id,
+  }
+end
+
+function Editor:loadState(st) --> self
+  et.ID = st.ID
+
+  ds.clear(self.buffers)
+  for _, b in ipairs(st.buffers) do
+    local buf = self:_buffer(b.id, b.path)
+    buf.name = b.name
+  end
+  self.view.container = nil; self.view:close()
+  self.view = st.view:load(self)
+  self:focusFirst()
+  ds.walk(self.view, nil, function(key, p)
+    if p.id == st.pane then
+      self:focus(p); return true -- stop
+    end
+  end)
+  return self
+end
 
 return Editor
