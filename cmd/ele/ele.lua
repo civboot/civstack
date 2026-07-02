@@ -16,6 +16,7 @@ local ac = require'asciicolor'
 local vt = require'vt100'
 local ix = require'civix'
 local lson = require'lson'
+local et = require'ele.types'
 
 local ioopen = io.open
 local iostdout, iostderr = io.stdout, io.stderr
@@ -28,7 +29,7 @@ function ele:__call()
   log.info('ele exe', self)
   local s = require'ele.Session':user{}
   if #self == 0 and ix.exists'.elestate' then
-    s.ed:loadState(lson.load(ELE_STATE))
+    s.ed:loadState(lson.load(ELE_STATE, et.State))
   end
   local keysend = s.keys:sender()
   local iofmt   = io.fmt
@@ -66,7 +67,7 @@ function ele:__call()
     else
       lap.schedule(function() while s.ed.run do
         lap.sleep(1)
-        pth.write(ELE_STATE, s.ed:state())
+        pth.write(ELE_STATE, lson.lson(s.ed:state(), true))
       end end)
     end
     if self.run then

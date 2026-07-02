@@ -133,7 +133,7 @@ the argument calculations must be progressively simpler as they go from left to
 right since more registers will be locked as the calling progresses.
 
 [{h3}Types]
-iA supports the following native types: [+
+iA supports the following primitive types: [+
 * UR: unsigned register, aka positive integer that fits in a register.
 
 * SR: signed register, aka positive or negative integer that fits in a

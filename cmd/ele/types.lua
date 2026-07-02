@@ -219,13 +219,14 @@ function M.EditLoc.parse(T, str, defaultBuf)
 end
 
 M.BufState = pod(mty'BufState' {
-  'id [int]: buffer id', 'name [str]: buffer name',
-  'path [string]: buffer path',
+  'id [int]  #1: buffer id',
+  'name [str]#2: buffer name',
+  'path [str]#3: buffer path',
 })
 
 M.PaneState = pod(mty'PaneState' {
-  'ty [string]: the type to ds.wantpath, i.e. "ele.edit.Edit"',
-  'dat [table]: the data to pass to the ty',
+  'ty [string]#1: the type to ds.wantpath, i.e. "ele.edit.Edit"',
+  'dat [table]#2: the data to pass to the ty',
 })
 function M.PaneState:load(ed)
   local T = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
@@ -235,10 +236,10 @@ end
 --- Editor state for caching/reloading the current
 --- buffer view.
 M.State = pod(mty'State' {
-  'ID [int]: current uniqueId() state.',
-  'buffers {ele.types.BufState}',
-  'view [ele.types.PaneState]',
-  'pane [int]: the currently focused pane',
+  'ID [int]#1: current uniqueId() state.',
+  'buffers {ele.types.BufState}#2',
+  'view [ele.types.PaneState]#3',
+  'pane [int]#4: the currently focused pane',
 })
 
 return M

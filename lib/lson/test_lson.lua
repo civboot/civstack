@@ -89,7 +89,7 @@ end
 
 T'lson_pod'; do
   Tm.A = mty'A' { 'a1 [builtin]', 'a2 [Tm.A]', 'ls {str}' }
-  pod(Tm.A)
+  T.eq(Tm.A, pod(Tm.A))
   local a = Tm.A{ a1='hi'}
   ltest(a, nil, [[{"a1":"hi"}]], Tm.A)
   a = Tm.A{a1={key='bye'}}

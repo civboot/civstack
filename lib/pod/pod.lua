@@ -10,6 +10,7 @@ local sfmt = string.format
 local getmt = getmetatable
 local info = require'ds.log'.info
 
+local assertf = mty.from'fmt  assertf'
 local CONCRETE, BUILTIN = mty.CONCRETE, mty.BUILTIN
 local ty = mty.ty
 
@@ -39,28 +40,28 @@ M.Pod = mty'Pod'{
 local Pod = M.Pod
 Pod.DEFAULT = Pod{}
 
-local function _isPod(v, isPodFn)
+local function _isPrim(v, isPrimFn) --> isPrim, notPrimV
   local mt = type(v); if mt ~= 'table' then return BUILTIN[mt] end
-  mt = ty(v);         if mt ~= 'table' then return isPodFn(v) end
+  mt = ty(v);         if mt ~= 'table' then return isPrimFn(v), v end
   for k, v in pairs(v) do
-    if not (_isPod(k, isPodFn) and _isPod(v, isPodFn)) then
-      return false
-    end
+    if not _isPrim(k, isPrimFn) then return false, k end
+    if not _isPrim(v, isPrimFn) then return false, v end
   end
   return true
 end
 
-local isPod
---- return true if the value is "plain old data".
+local isPrim
+--- return true if the value is primitive "plain old data" that can be decrypted
+--- without type information.
 ---
---- Plain old data is defined as any native type or a table with no metatable
---- and who's pairs() are only POD.
+--- A primitive is defined as a concrete type (bool, num, string) or a
+--- metatable-less table containing only primitive types.
 ---
---- The [$isPodFn] fn takes [$v] and should return true if it is pod.
-function M.isPod(v, isPodFn)
-  return _isPod(v, isPodFn or ds.retFalse)
+--- The [$isPrimFn] fn takes [$v] and should return true if it is primitive pod.
+function M.isPrim(v, isPrimFn) --> isPrim, whyNotTy
+  return _isPrim(v, isPrimFn or ds.retFalse)
 end
-isPod = M.isPod
+isPrim = M.isPrim
 
 --- A type who's sole job is converting values to/from POD.
 M.Podder = mty'Podder' {
@@ -77,7 +78,7 @@ function M.isPodder(P) --> isPodder, whyNot?
   return true
 end
 
-local function makeNativePodder(ty)
+local function makePrimPodder(ty)
   local expected = 'expected '..ty
   local f = function(self, pod, v)
     if v == nil then return end
@@ -95,11 +96,11 @@ local function tpInt(self, pod, i)
 end
 
 M.BUILTIN_PODDER = {
-  ['nil'] = makeNativePodder'nil',
-  boolean = makeNativePodder'boolean',
-  number = makeNativePodder'number',
-  string = makeNativePodder'string',
-  table = makeNativePodder'table',
+  ['nil'] = makePrimPodder'nil',
+  boolean = makePrimPodder'boolean',
+  number = makePrimPodder'number',
+  string = makePrimPodder'string',
+  table = makePrimPodder'table',
   integer = M.Podder{
     name='integer', __toPod=tpInt, __fromPod=tpInt,
   },
@@ -107,8 +108,10 @@ M.BUILTIN_PODDER = {
 local BUILTIN_PODDER = M.BUILTIN_PODDER
 function M.tableToPod(T, pod, t)
   if type(t) ~= 'table' then error('expected table got '..type(t)) end
-  return isPod(t, pod.mtPodFn) and t
-      or error(mty.name(t)..' is not plain-old-data')
+  local ok, whyNot = isPrim(t, pod.mtPodFn)
+  if ok then return t end
+  error(sfmt('table contains value of type %q that is not primitive pod',
+    mty.fullname(whyNot)))
 end
 
 BUILTIN_PODDER.table.__toPod = M.tableToPod
@@ -127,7 +130,7 @@ end
 M.key.__fromPod = M.key.__toPod
 BUILTIN_PODDER.key = M.key
 
---- Handles all native types (nil, boolean, number, string, table)
+--- Handles all primitive types (nil, boolean, number, string, table)
 M.builtin = mty'builtin' {}; local builtin = M.builtin
 
 assert(PKG_LOOKUP['pod.builtin'] == M.builtin)
@@ -135,10 +138,10 @@ assert(PKG_LOOKUP['pod.builtin'] == M.builtin)
 function builtin:__toPod(pod, v)
   local ty = type(v)
   if ty == 'table' then
-    assert(isPod(v, pod.mtPodFn), 'table is not plain-old-data')
+    assert(isPrim(v, pod.mtPodFn), 'table is not plain-old-data')
     return v
   elseif BUILTIN[ty]   then return v end
-  error('nonnative type: '..type(v))
+  error('nonprimitive type: '..type(v))
 end
 function builtin:__fromPod(pod, v)
   if BUILTIN[type(v)] then return v end
@@ -147,6 +150,8 @@ end
 BUILTIN_PODDER.builtin = builtin
 
 --- Poder for a list of items with a type.
+--- Note that this defines the mechanism to decrypt a list, you should not
+--- use this to directly contain any data.
 M.List = mty'List' {'I [Podder]: the type of each list item'}
 function M.List.__toPod(T, pod, l)
   local I, p = T.I, {}
@@ -155,11 +160,13 @@ function M.List.__toPod(T, pod, l)
 end
 function M.List.__fromPod(T, pod, p)
   local I, l = T.I, {}
-  for i, v in ipairs(p) do l[i] = v end
+  for i, v in ipairs(p) do l[i] = I:__fromPod(pod, v) end
   return l
 end
 
 --- Poder for a map of key/value pairs.
+--- Note that this defines the mechanism to decrypt a map, you should not
+--- use this to directly contain any data.
 M.Map = mty'Map' {
   'K [Podder]: keys type', K=M.key,
   'V [Podder]: values type',
@@ -222,7 +229,7 @@ function M.mty_fromPod(T, pod, p)
   return T(t)
 end
 
---- lookup podder from types, native, PKG_LOOKUP
+--- lookup podder from types, primitive, PKG_LOOKUP
 local function lookupPodder(T, types, name)
   if G.PKG_NAMES[T] == name then return T end
   local p = types[name] or BUILTIN_PODDER[name] or G.PKG_LOOKUP[name]

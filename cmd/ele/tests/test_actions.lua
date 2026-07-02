@@ -7,6 +7,8 @@ local ds = require'ds'
 local pth = require'ds.path'
 local Buffer = require'lines.buffer'.Buffer
 local Gap = require'lines.Gap'
+local pod = require'pod'
+local lson = require'lson'
 local ix = require'civix'
 local et = require'ele.types'
 local B = require'ele.bindings'
@@ -253,6 +255,15 @@ T'state'; do
     },
   }
   T.eq(expect, st)
+
+  -- FIXME:
+  -- T.eq(true, pod.isPod(BufState{}))
+  -- T.eq(true, pod.isPod(st.buffers[1]))
+  -- T.eq(true, pod.isPod(st))
+
+  -- pth.write(O..'elestate.lson', lson.lson(st))
+  -- T.eq(st, lson.load(O..'elestate.lson', lson.load(st, et.State)))
+
 
   local d2 = newEditor'':loadState(st)
   T.eq(d2.pane:path(),    b1:path())

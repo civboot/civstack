@@ -11,7 +11,7 @@ local info = require'ds.log'.info
 local push, pop, sfmt    = table.insert, table.remove, string.format
 
 --- iA submodule containing all modules
---- (both user-defined and native).
+--- (both user-defined and primitive).
 ---
 --- Modules contain their own types.
 M.mod = G.mod and G.mod'iA.mod' or {}
@@ -68,14 +68,14 @@ M.Reg = mty.enum'Reg' {
 
 M.TyKind = mty.enum'TyKind' {
   UNKNOWN = 0, -- an unknown type.
-  NATIVE  = 1, -- a native type such as an integer.
+  NATIVE  = 1, -- a primitive type such as an integer.
   CSTR    = 2, -- a counted string.
   ARRAY   = 3, -- an array with a U4 len, U4 cap, then the data.
   ENUM    = 4, -- a user-defined enum.
   STRUCT  = 5, -- a user-defined struct.
 }
 
---- iA Type, either user-defined (i.e. struct, enum) or native.
+--- iA Type, either user-defined (i.e. struct, enum) or primitive.
 M.Ty = mty'Ty' {
   'mod  [iA.Mod]: the module the type is defined in.',
   'name [str]: the name of the type.',
@@ -88,21 +88,21 @@ function M.Ty:__fmt(f)
   f:write(sfmt('Ty(%s.%s)', self.mod.name, self.name))
 end
 
-local function native(name, sz)
+local function prim(name, sz)
   return M.Ty{mod=C, name=name, sz=sz, ref=0, kind=M.TyKind.NATIVE}
 end
 
-C.U1, C.U2 = native('U1', 1), native('U2', 2)
-C.U4, C.U8 = native('U4', 4), native('U8', 8)
+C.U1, C.U2 = prim('U1', 1), prim('U2', 2)
+C.U4, C.U8 = prim('U4', 4), prim('U8', 8)
 
-C.I1, C.I2 = native('I1', 1), native('I2', 2)
-C.I4, C.I8 = native('I4', 4), native('I8', 8)
-
---- Note: platforms may mutate this size
-C.Int = native('Int', 4)
+C.I1, C.I2 = prim('I1', 1), prim('I2', 2)
+C.I4, C.I8 = prim('I4', 4), prim('I8', 8)
 
 --- Note: platforms may mutate this size
-C.UInt = native('UInt', 4)
+C.Int = prim('Int', 4)
+
+--- Note: platforms may mutate this size
+C.UInt = prim('UInt', 4)
 
 local function userTyCheck(t)
   assert(t.fields, 'user type must have fields table')
