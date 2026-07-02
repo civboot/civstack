@@ -7,7 +7,6 @@ P.asciigame = lua {
   src = {
     'asciigame.lua',
     'acs.lua',
-    'Rand.lua',
   },
   dep = {
     'civ:lib/ds',

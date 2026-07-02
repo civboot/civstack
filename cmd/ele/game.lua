@@ -8,20 +8,10 @@ local types = require'ele.types'
 local push = mty.from(table, 'push')
 local getmt = G.getmetatable
 
---- A sprite with a location. Used by games to more easily write
---- to the Game grid by simply appending the txt/fg/bg.
-M.Sprite = mty'Sprite' {
-  'l [int]: line number', 'c [int]: column number',
-  'txt [str]',
-  'fg  [str]',
-  'bg  [str]',
-}
-
 --- A Game window which renders a list of sprites.
 M.Game = mty.extend(types.BasePane, 'Game', {
-  --- Sprites to render.[{br}]
-  --- Sprites are written first -> last (last wins).
-  'sprites {Sprite}: list of sprites to render',
+ [[sprites {asciigame.Sprite}: list of sprites to render.
+   sprites are written first -> last (last wins).]],
   'mh [int]: minimum height', 'mw: minimum width',
 })
 
@@ -29,7 +19,6 @@ getmt(M.Game).__call = function(T, t)
   t.sprites = t.sprites or {}
   return getmt(types.BasePane).__call(T, t)
 end
-
 
 function M.Game:draw(ed, isRight)
   local d = ed.display

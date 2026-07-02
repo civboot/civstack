@@ -12,6 +12,7 @@ local log    = require'ds.log'
 local path   = require'ds.path'
 local Grid   = require'ds.Grid'
 local ac     = require'asciicolor'
+local agame  = require'asciigame'
 local Buffer = require'lines.buffer'.Buffer
 local ixt    = require'civix.testing'
 local Fake   = require'vt100.testing'.Fake
@@ -517,13 +518,13 @@ Test{'gameBasic', dat=CODE, function(tst)
       keyinput = function(ed, ev) keyEv = ev end,
     },
   }
-  push(g.sprites, egame.Sprite{l=1,c=1,
+  push(g.sprites, agame.Sprite{l=1,c=1,
     txt=ds.paint('x', 4, 20),
     bg =ds.paint(' ', 4, 20),
     bg =ds.paint(' ', 4, 20),
   })
-  push(g.sprites, egame.Sprite{l=1,c=3, txt='(1,3)'})
-  push(g.sprites, egame.Sprite{l=2,c=2, txt='(2,2)'})
+  push(g.sprites, agame.Sprite{l=1,c=3, txt='(1,3)'})
+  push(g.sprites, agame.Sprite{l=2,c=2, txt='(2,2)'})
   ed:focus(g)
     T.eq(g, ed.pane)
     T.eq(g, ed.view)

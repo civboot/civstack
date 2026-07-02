@@ -12,7 +12,7 @@ local vt100 = require'vt100'
 local luk = require'luk'
 local ix = require'civix'
 local lap = require'lap'
-local Rand = require'asciigame.Rand'
+local agame = require'asciigame'
 
 local concat              = mty.from(table,   'concat')
 local push, pop           = mty.from(table,   'insert, remove')
@@ -20,7 +20,8 @@ local sfmt, srep          = mty.from(string,  'format, rep')
 local min, max, abs       = mty.from(math,    'min, max, abs')
 local int, isupper, paint = mty.from'ds        int, isupper, paint'
 local info                = mty.from'ds.log    info'
-local Game, S             = mty.from'ele.game  Game,Sprite'
+local S                   = mty.from'asciigame Sprite'
+local Game                = mty.from'ele.game  Game'
 
 local SHIFTED = {
   ['['] = '{', [']'] = '}',
@@ -120,7 +121,7 @@ M.Typo = mty.extend(Game, 'Typo', {
   'status [ds.Deq[Sprite]]: rolling multipliers applied',
   mh = 3, mw = 10,
   'menu [int]: menu index',
-  'r [Rand]', r=Rand{state=ix.epoch().s},
+  'r [asciigame.Rand]', r=agame.Rand{state=ix.epoch().s},
   'winner [bool]',
 })
 getmetatable(M.Typo).__call = function(T, t)

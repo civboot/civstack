@@ -5,9 +5,11 @@ local mty = require'metaty'
 --- [%.acs] files 
 local M = mty.mod'asciigame.acs'
 
-local sfmt     = string.format
-local push     = mty.from(table, 'insert')
+local sfmt          = string.format
+local push          = mty.from(table, 'insert')
+local concat        = mty.from(string, 'concat')
 local get, Deq, int = mty.from'ds  get, Deq, int'
+local Sprite        = mty.from'asciigame  Sprite'
 
 function M.load(path)
   local o = {}
@@ -81,6 +83,23 @@ M.AcsSprite = mty'AcsSprite' {
   'l [int]: line number of header',
   'le [int]: end line before next sprite (or EoF)',
 }
+
+-- FIXME: need to test
+function M.AcsSprite:sprite()
+  local tc, fc, bc = 0, 0, 0
+  local txt, fg, bg = {}, {}, {}
+  for _, aln in ipairs(self) do
+    local t, f, b = aln.txt, aln.fg, aln.bg
+    tc = tc + (t and 1 or 0)
+    fc = fc + (f and 1 or 0); bc = bc + (b and 1 or 0)
+    push(txt, t or ''); push( fg, f or ''); push( bg, b or '')
+  end
+  local s = Sprite{}
+  if tc > 0 then s.txt = concat(txt, '\n') end
+  if fc > 0 then s.fg  = concat(fg,  '\n') end
+  if bc > 0 then s.bg  = concat(bg,  '\n') end
+  return s
+end
 
 function M.matchHeader(line)
   local h,w, name = line:match"^#%s*(%d*)x(%d*)%s+(..-)%s*$"
