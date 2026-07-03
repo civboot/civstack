@@ -129,6 +129,7 @@ T'insert'; do
     ev[1] = txt; M.insert(d, ev)
     T.eq({l, c}, {e.l, e.c})
   end
+  T.eq(d, e:getEditor())
   T.eq({1, 1}, {e.l, e.c})
   assertInsert('4 5 ', {}, 1, 5)
     T.eq('4 5 1 2 3', b:get(1))
@@ -258,10 +259,19 @@ T'state'; do
 
   pth.write(O..'elestate.lson', lson.lson(st))
   T.eq(st, lson.load(O..'elestate.lson', et.State))
+  T.eq(d1, d1.pane:getEditor())
 
   local d2 = newEditor'':loadState(st)
+  local v = d2.view
+  T.eq(d2.pane, v[1])
+  T.eq(v, d2.pane.container)
+  T.eq(d2, v.container)
+  T.eq(d2, d2.pane:getEditor())
+  
   T.eq(d2.pane:path(),    b1:path())
   T.eq(d2.view[2]:path(), b2:path())
+
+  assert(d2:namedBuffer'nav')
 
   info('cleaning up d1'); cleanup(d1)
   info('cleaning up d2'); cleanup(d2)

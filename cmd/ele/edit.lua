@@ -208,6 +208,7 @@ function M.Edit:draw(ed, isRight)
   self.tw = self.tw - bw
   self.tc = self.tc + bw
   local buf = self.buf
+  buf.l,buf.c = self.l,self.c
   self:_drawBox(d.text, buf.dat)
   if buf.fg then -- use color
     self:_drawBox(d.fg, buf.fg)

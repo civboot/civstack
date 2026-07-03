@@ -307,13 +307,18 @@ end
 function Editor:loadState(st) --> self
   et.ID = st.ID
   self:rmTmp()
-  ds.clear(self.buffers)
+  for k,b in pairs(self.buffers) do
+    if not self.DEFAULT_BUFFERS[b.name] then
+      self.buffers[k] = nil
+    end
+  end
   for _, b in ipairs(st.buffers) do
     local buf = self:_buffer(b.id, b.path)
     buf.name = b.name
   end
   self.view.container = nil; self.view:close(self)
   self.view = st.view:load(self)
+  self.view.container = self
   self:focusFirst()
   ds.walk(self.view, nil, function(key, p)
     dbg('walking', key)

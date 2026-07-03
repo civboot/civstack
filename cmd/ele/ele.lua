@@ -32,6 +32,7 @@ function ele:__call()
   if #self == 0 and ix.exists(ELE_STATE) then
     info('loading ele state from %s', ELE_STATE)
     s.ed:loadState(lson.load(ELE_STATE, et.State))
+    assert(s.ed:namedBuffer'nav')
   end
   local keysend = s.keys:sender()
   local iofmt   = io.fmt

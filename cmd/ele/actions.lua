@@ -150,6 +150,7 @@ M.DOMOVE = {
 local DOMOVE = M.DOMOVE
 local function domove(e, ev, actual)
   if ev.move then
+    -- FIXME: e:getEditor() returning nil on reload.
     if actual and LARGE_MOVE[ev.move] then e:getEditor():pushLocation() end
     local fn = DOMOVE[ev.move]
     if fn      then fn(e, e.buf:get(e.l), ev) end
@@ -501,8 +502,9 @@ function nav.expandEntry(b, l, ls) --> numEntries
   if #entries == 0 then return end
   local line = b:get(l)
   local ind = #(getEntry(line) or '')
+  ind = srep(' ', ind+2)
   for i, e in ipairs(entries) do
-    entries[i] = sconcat('', srep(' ',ind+2), '* ', e)
+    entries[i] = sconcat('', ind, '* ', e)
   end
   b:insert('\n', l,#line+1)
   b:insert(concat(entries, '\n'), l+1,1)

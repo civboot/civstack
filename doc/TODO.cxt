@@ -1,16 +1,11 @@
 Ele:
-* Save the current Editor state (file buffers, edit views) every second.
-  --restore will auto-open them.
-
-* Every draw(), store the edit l,c in buffer l,c. When opening a buffer, go to
-  this l,c immediately.
-
-  * Buf is just {path, l,c}. The edits will just be {{split=, path=, l,c}.  Tmp
-  * or game buffers will be ignored.
+* multi-expand nav
+* visual mode
+* commands
 
 TODO:
 * Throw error if you find PKG.lua
-* [{$}$] doesn't render in html correctly.
+* cxt [{$}$] doesn't render in html correctly.
 * fd.lines() doesn't work in lua 5.5
 
 General
