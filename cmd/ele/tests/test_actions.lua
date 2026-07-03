@@ -151,6 +151,7 @@ local NAV1 = [[
   * d/
     * d/
     * f
+/some/other/path
 ]]
 T'nav'; do
   local d = newEditor(NAV1)
@@ -164,7 +165,7 @@ T'nav'; do
   T.eq(1, nav.findFocus(b, 2))
   T.eq(1, nav.findFocus(b, 5))
   T.eq(5, nav.findEnd(b, 1))
-  T.eq(5, nav.findEnd(b, 4))
+  T.eq(4, nav.findEnd(b, 4))
   T.eq(5, nav.findEnd(b, 5))
 
   T.eq('/focus/path/',     nav.getPath(b, 1))
@@ -173,17 +174,18 @@ T'nav'; do
   T.eq('/focus/path/d/d/', nav.getPath(b, 4))
   T.eq('/focus/path/d/f',  nav.getPath(b, 5))
 
-  T.eq(nil, nav.findEntryEnd(b, 1))
-  T.eq(2,   nav.findEntryEnd(b, 2))
-  T.eq(5,   nav.findEntryEnd(b, 3))
-  T.eq(4,   nav.findEntryEnd(b, 4))
-  T.eq(5,   nav.findEntryEnd(b, 5))
+  T.eq(5,   nav.findEnd(b, 1))
+  T.eq(2,   nav.findEnd(b, 2))
+  T.eq(5,   nav.findEnd(b, 3))
+  T.eq(4,   nav.findEnd(b, 4))
+  T.eq(5,   nav.findEnd(b, 5))
+  T.eq(6,   nav.findEnd(b, 6))
 
   nav.backEntry(b, 4)
-  T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
+  T.eq('/focus/path/\n  * f\n  * d/\n/some/other/path\n', fmt(b.dat))
 
   nav.backEntry(b, 3)
-  T.eq('/focus/path/\n', fmt(b.dat))
+  T.eq('/focus/path/\n/some/other/path\n', fmt(b.dat))
 
   b.dat:set(2, '  * f')
   nav.backEntry(b, 1)
@@ -195,9 +197,20 @@ T'nav'; do
   b.dat:set(1, '/focus/path/')
 
   local r, entries = nil, {'f', 'd/'}
+  info'expanding entries'
   nav.expandEntry(b, 1, function(p) r = p; return entries end)
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
+  T.eq('/focus/path/', b:get(1))
+  T.eq({3, 2}, {nav.findEnd(b, 1)})
+
+  nav.expandEntry(b, 1, function(p)
+    if p:find'/d/$' then return entries end
+  end)
+  T.eq('/focus/path/\n  * f\
+  * d/\
+    * f\
+    * d/\n', fmt(b.dat))
 
   T.eq(et.INIT_BUFS + 1, #d.buffers)
   local test_txt = O..'test.txt'

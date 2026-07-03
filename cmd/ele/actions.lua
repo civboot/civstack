@@ -150,7 +150,6 @@ M.DOMOVE = {
 local DOMOVE = M.DOMOVE
 local function domove(e, ev, actual)
   if ev.move then
-    -- FIXME: e:getEditor() returning nil on reload.
     if actual and LARGE_MOVE[ev.move] then e:getEditor():pushLocation() end
     local fn = DOMOVE[ev.move]
     if fn      then fn(e, e.buf:get(e.l), ev) end
@@ -364,13 +363,13 @@ local nav = M.nav
 M.DO_NAV = {
   cwd = function(ed, e1, e)
     e:clear(); e:insert(pth.small(pth.cwd())); e.l = 1
-    nav.expandEntry(e.buf, 1, ix.ls)
+    nav.expandEntry(e.buf, 1)
   end,
   cbd = function(ed, e1, e)
     e:clear(); local p = e1.buf.dat.path
     if p then
       e:insert(pth.small(pth.dir(p))); e.l = 1
-      nav.expandEntry(e.buf, 1, ix.ls)
+      nav.expandEntry(e.buf, 1)
     else e:insert(sfmt('b#%s', e.buf.id)); e.l,e.c = 1,1 end
   end,
   buf = function(ed, e1, e)
@@ -400,7 +399,7 @@ local getFocus, getEntry = nav.getFocus, nav.getEntry
 function nav.findParent(b, l) --> linenum, line
   local line = b:get(l);
   if getFocus(line) then return l, line, true  end
-  local ind = getEntry(line); if not ind then return end
+  local ind = getEntry(line); if not ind  then return end
   ind = #ind
   for l = l, 1, -1 do
     local line = b:get(l);
@@ -417,16 +416,6 @@ function nav.findFocus(b, l) --> linenum, line
     if getFocus(line)     then return l, line end
     if not getEntry(line) then return end
   end
-end
-
---- Find the last line of the focus's entities (or itself).
---- invariant: line l is an entry or focus.
-function nav.findEnd(b, l) --> linenum
-  while l + 1 <= #b do
-    l = l + 1
-    if not getEntry(b:get(l)) then return l - 1 end
-  end
-  return l
 end
 
 --- Find the view (focusLineNum, endLineNum, focusLine)
@@ -460,13 +449,24 @@ function nav.getPath(b, l,c) --> string
   return ln:sub(si,ei)
 end
 
-function nav.findEntryEnd(b, l) --> linenum
-  local ind = getEntry(b:get(l)); if not ind then return end
-  ind = #ind
+--- find the last line of a focus or entry.
+function nav.findEnd(b, l) --> linenum, maxChildInd
+  local ln = b:get(l)
+  local ind; if getFocus(ln) then ind = 0
+  else
+    ind = getEntry(ln); if not ind then return end
+    ind = #ind
+  end
+  dbg('entryEnd', l, ind)
+  if not ind then return end
+  local m = ind
+  dbg('entryEnd ind', ind)
   for l=l+1, #b do
     local i = getEntry(b:get(l))
-    if not i or #i <= ind then return l-1 end
+    if not i or #i <= ind then return l-1, m end
+    m = max(m, #i)
   end
+  return #b, m
 end
 
 function nav.backFocus(b, l)
@@ -484,11 +484,11 @@ end
 --- For entry, this will collapse parent (and move to it).
 function nav.backEntry(b, l) --> ln
   ::start::
-  local le = nav.findEntryEnd(b, l)
-  if not le then
+  local ln = b:get(l); if getFocus(ln) then
     nav.backFocus(b, l)
-    return l
+    return 
   end
+  local le = nav.findEnd(b, l); if not le then return end
   if l == le then
     l = nav.findParent(b, l)
     goto start
@@ -497,18 +497,35 @@ function nav.backEntry(b, l) --> ln
   return l
 end
 
-function nav.expandEntry(b, l, ls) --> numEntries
-  local entries = ls(nav.getPath(b, l))
-  if #entries == 0 then return end
-  local line = b:get(l)
-  local ind = #(getEntry(line) or '')
-  ind = srep(' ', ind+2)
-  for i, e in ipairs(entries) do
-    entries[i] = sconcat('', ind, '* ', e)
+function nav.expandEntry(b, l, ls) --> numExpanded
+  ls = ls or ix.ls
+  local line, ind = b:get(l), ''
+  dbg('expandEntry', line)
+  if not getFocus(line) then
+    ind = getEntry(line); if not ind then return end
   end
-  b:insert('\n', l,#line+1)
-  b:insert(concat(entries, '\n'), l+1,1)
-  return #entries - 2
+  local x, ind = 0, #ind -- x=expandedCount
+  local le, maxChildInd = nav.findEnd(b, l)
+  le = le or l
+  dbg('* range', l, le)
+  if le <= l then
+    local entries = ls(nav.getPath(b, l))
+    dbg('ls entries', entries)
+    if not entries or #entries == 0 then return x end
+    x = #entries
+    local es = {}; for i, e in ipairs(entries) do
+      es[i] = sconcat('', srep(' ', ind+2), '* ', e)
+    end
+    b:insert('\n', l,#line+1)
+    b:insert(concat(es, '\n'), l+1,1)
+  else -- recursively expand all children by 1
+    for i=le,l+1,-1 do
+      if #getEntry(b:get(i)) == ind+2 then
+        x = x + nav.expandEntry(b, i, ls)
+      end
+    end
+  end
+  return x
 end
 
 function nav.doBack(b, l, times)
@@ -524,9 +541,9 @@ function nav.doExpand(b, l, times, ls)
   if not path or not pth.isDir(path) then return end
   ::expand::
   ls = ls or ix.ls
-  local numEntries = nav.expandEntry(b, l, ls)
-  times = times - 1; if times <= 0 then return end
-  for l=l+1, l+numEntries do nav.doExpand(b, l, times, ls) end
+  for _=1,times or 1 do
+    if nav.expandEntry(b, l, ls) == 0 then break end
+  end
 end
 
 --- go to path at l,c. If op=='create' then create the path

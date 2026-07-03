@@ -1,7 +1,8 @@
 Ele: [+
-* multi-expand nav
 * visual mode
 * commands
+* replay last '.'
+* system: <number> b - go to buffer number
 ]
 
 TODO: [+
