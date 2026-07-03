@@ -243,27 +243,21 @@ T'state'; do
     },
     view=PaneState{
       ty="ele.types.VSplit",
-      dat={
+      chld={
         PaneState{
           ty="ele.edit.Edit",
-          dat={ vc=1, vl=1, path=b1:path() }
+          dat={ id=10, vc=1, vl=1, l=1,c=1, path=b1:path() }
         }, PaneState{
           ty="ele.edit.Edit",
-          dat={ vc=1, vl=1, path=spath }
+          dat={ id=12, vc=1, vl=1, l=1,c=1, path=spath }
         }
       }
     },
   }
   T.eq(expect, st)
 
-  -- FIXME:
-  -- T.eq(true, pod.isPod(BufState{}))
-  -- T.eq(true, pod.isPod(st.buffers[1]))
-  -- T.eq(true, pod.isPod(st))
-
-  -- pth.write(O..'elestate.lson', lson.lson(st))
-  -- T.eq(st, lson.load(O..'elestate.lson', lson.load(st, et.State)))
-
+  pth.write(O..'elestate.lson', lson.lson(st))
+  T.eq(st, lson.load(O..'elestate.lson', et.State))
 
   local d2 = newEditor'':loadState(st)
   T.eq(d2.pane:path(),    b1:path())

@@ -31,6 +31,35 @@ Press ^q (ctrl-q) twice at any time to exit.
 This page will have more help message in the future.
 ]]
 
+--- Cached buffer state
+M.BufState = pod(mty'BufState' {
+  'id [int]  #1: buffer id',
+  'name [str]#2: buffer name',
+  'path [str]#3: buffer path',
+})
+
+--- Cached window/pane state.
+M.PaneState = mty'PaneState' {
+  'ty [string]: the type to ds.wantpath, i.e. "ele.edit.Edit"',
+  'dat [table]: the data to pass to the ty',
+  'chld {ele.types.PaneState}: children',
+}; pod(M.PaneState)
+
+function M.PaneState:load(ed)
+  local T = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
+  return T:fromState(ed, self)
+end
+
+--- Editor state for caching/reloading the current
+--- editor state.
+M.State = pod(mty'State' {
+  'ID [int]#1: current uniqueId() state.',
+  'buffers {ele.types.BufState}#2',
+  'view [ele.types.PaneState]#3',
+  'pane [int]#4: the currently focused pane',
+})
+
+
 function M.getEditor(c)
   local Editor = require'ele.Editor'
   while c and mty.ty(c) ~= Editor do
@@ -104,6 +133,7 @@ function M.VSplit:insert(i, v)
 end
 
 function M.VSplit:replace(from, to) --> from
+  -- TODO: This should recursively walk the containers.
   local i = assert(ds.indexOf(self, from), 'from not found in Split')
   assert(from.container == self)
   assert(not to.container)
@@ -138,11 +168,11 @@ function M.VSplit:draw(ed, isRight)
   end
 end
 function M.VSplit:state()
-  local dat = {}; for _, p in ipairs(self) do push(dat, p:state()) end
-  return M.PaneState { ty=mty.fullname(self), dat=dat }
+  local chld = {}; for _, p in ipairs(self) do push(chld, p:state()) end
+  return M.PaneState { ty=mty.fullname(self), chld=chld }
 end
 function M.VSplit.fromState(T, ed, s)
-  local self = T{}; for i, paneState in ipairs(s) do
+  local self = T{}; for i, paneState in ipairs(s.chld) do
     self:insert(i, paneState:load(ed))
   end
   return self
@@ -217,29 +247,5 @@ function M.EditLoc.parse(T, str, defaultBuf)
   assertf(l and c and b, 'invalid EditLoc: %s b=%s', str, b)
   return T{b=b, l=toint(l), c=toint(c)}
 end
-
-M.BufState = pod(mty'BufState' {
-  'id [int]  #1: buffer id',
-  'name [str]#2: buffer name',
-  'path [str]#3: buffer path',
-})
-
-M.PaneState = pod(mty'PaneState' {
-  'ty [string]#1: the type to ds.wantpath, i.e. "ele.edit.Edit"',
-  'dat [table]#2: the data to pass to the ty',
-})
-function M.PaneState:load(ed)
-  local T = assertf(ds.wantpath(self.ty), 'unknown type: %q', self.ty)
-  return T:fromState(ed, self.dat)
-end
-
---- Editor state for caching/reloading the current
---- buffer view.
-M.State = pod(mty'State' {
-  'ID [int]#1: current uniqueId() state.',
-  'buffers {ele.types.BufState}#2',
-  'view [ele.types.PaneState]#3',
-  'pane [int]#4: the currently focused pane',
-})
 
 return M

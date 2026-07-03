@@ -322,14 +322,20 @@ function M.Edit:state()
   return et.PaneState {
     ty = mty.fullname(self),
     dat = {
+      id=self.id, path=self.buf:path(),
+      l=self.l,   c=self.c,
       vl=self.vl, vc=self.vc,
-      path=self.buf:path(),
     }
   }
 end
 
 function M.Edit.fromState(T, ed, s)
-  return T{ id=s.id, vl=s.vl, vc=s.vc, buf=ed:buffer(s.path) }
+  local d = s.dat
+  return T{
+    id=d.id, buf=ed:buffer(d.path),
+    l=d.l,    c=d.c,
+    vl=d.vl, vc=d.vc,
+  }
 end
 
 return M

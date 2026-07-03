@@ -271,8 +271,16 @@ function Editor:focus(p) --> Edit
     end
   end
   if cur then
-    cur.container:replace(cur, p):close(self)
-  else p.container = self end
+    if p.container then
+      -- TODO assert that p is part of self.view
+      self.pane = p
+    else
+      cur.container:replace(cur, p):close(self)
+    end
+  else
+    assert(not p.container, 'no root view, yet p has container')
+    p.container = self
+  end
   self.pane = p
   if not self.view then self.view = p end
   p:focus(self)
