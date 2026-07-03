@@ -239,8 +239,8 @@ T'state'; do
   local expect = State{
     ID=et.ID, pane=e1.id,
     buffers={
-      BufState{id=b1.id,           path=b1:path()},
-      BufState{id=b2.id, name="a", path=spath},
+      BufState{id=b1.id,           path=b1:path(), l=1,c=1},
+      BufState{id=b2.id, name="a", path=spath,     l=1,c=1},
     },
     view=PaneState{
       ty="ele.types.VSplit",

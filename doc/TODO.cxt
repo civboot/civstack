@@ -1,27 +1,31 @@
-Ele:
+Ele: [+
 * multi-expand nav
 * visual mode
 * commands
+]
 
-TODO:
+TODO: [+
 * Throw error if you find PKG.lua
 * cxt [{$}$] doesn't render in html correctly.
 * fd.lines() doesn't work in lua 5.5
+]
 
-General
+General: [+
 * I need io.open/etc to respect G.PWD
 * The cxt info boxes are rendering very far away from the next
   element, i.e. in pvc.at
+]
 
-Review Docs
+Review Docs: [+
 * pegl
 * pod
 * shim
 * vcds
 * vt100
+]
 
-## Bug
-yank EoL -> paste -> undo -> move -> paste
+[*Bug]
+yank EoL > paste -> undo -> move -> paste
 
 I 07:40:45 ele/Session.lua:65: run event {action="paste", index=1}
 E 07:40:45 ele/Session.lua:85: failed event {action="paste", index=1}. [ERROR] assertion failed!

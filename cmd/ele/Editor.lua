@@ -292,7 +292,10 @@ function Editor:close() end
 function Editor:state() --> ele.types.State
   local bufs = {}; for i, b in pairs(self.buffers) do
     if not self.DEFAULT_BUFFERS[b.name] then
-      push(bufs, et.BufState{id=b.id, name=b.name, path=b:path()})
+      push(bufs, et.BufState{
+        id=b.id, name=b.name, path=b:path(),
+        l=b.l,c=b.c,
+      })
     end
   end
   table.sort(bufs, function(a, b) return a.id < b.id end)

@@ -36,6 +36,7 @@ M.BufState = pod(mty'BufState' {
   'id [int]  #1: buffer id',
   'name [str]#2: buffer name',
   'path [str]#3: buffer path',
+  'l [int]', 'c [int]',
 })
 
 --- Cached window/pane state.
