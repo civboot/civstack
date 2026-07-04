@@ -397,6 +397,13 @@ function nav.getEntry(line) --> (indent, kind, entry)
 end
 local getFocus, getEntry = nav.getFocus, nav.getEntry
 
+--- Return the arguments for navigation at the top of the file.
+function nav.getArgs(b)
+  local ln = b:get(1)
+  local strArgs = ln:match'^%%%s*(.*)$'; if not strArgs then return end
+  return ds.split(strArgs)
+end
+
 --- Find the parent of current path entry
 --- if isFocus the entry will be the focus (and ind will be 0)
 function nav.findParent(b, l) --> linenum, line

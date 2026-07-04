@@ -159,12 +159,19 @@ T'walk'; do
   end
   local expect = {".out/civix/", ".out/civix/a.txt", ".out/civix/b/"}
   T.eq(expect, Iter{w}:listen(skipB):keysTo())
-
+  
   w = M.Walk{d}
   T.eq(
     {".out/civix/", ".out/civix/a.txt"},
     Iter{w}:listen(see):filterK(skipB):keysTo())
   T.eq(expect, saw)
+
+  T.eq({".out/civix/", ".out/civix/a.txt", ".out/civix/b/"},
+       Iter{M.Walk{d, maxDepth=0}}:keysTo{})
+  
+  T.eq({".out/civix/", ".out/civix/a.txt", ".out/civix/b/",
+        ".out/civix/b/b1.txt", ".out/civix/b/b2.txt"},
+       Iter{M.Walk{d, maxDepth=1}}:keysTo{})
 end
 
 T'mkRmTree'; do
@@ -242,4 +249,3 @@ fd.ioSync(); T.SUBNAME = ''
 
 fd.ioStd()
 end -- if not G.NOLIB
-

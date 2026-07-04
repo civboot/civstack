@@ -19,6 +19,7 @@ local FF = shim.cmd'ff' {
  [[pathsub [string]: the substitution string to rename the path.
    Note: this implies content=false and cannot be used with sub
  ]],
+   'depth [int]: depth to search from root directories',
 }
 
 local mty  = require'metaty'
@@ -50,10 +51,15 @@ end
 
 function FF:__call() return self:iter():keysTo() end
 
+getmetatable(FF).__call = function(T, self)
+  return T:new(self)()
+end
+
 --- Get an iterator of matching paths.
 ---
 --- Usage: [$for path, pty in FF:new{...}:iter() do ... end]
-function FF:iter() --> iter
+function FF:iter() --> iter[path, pty]
+  -- FIXME: this should move to constructor?
   if self.pathsub then
     self.content = false
     assert(self.path, 'must set path pattern with path pathsub')
@@ -61,10 +67,12 @@ function FF:iter() --> iter
   if not self.content and #self.cnt == 0 then self.cnt = {''} end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = pth.cwd() end
+  
   log.info('ff %q', self)
   local sf = vt100.Fmt{to=io.stdout}
-
-  local w = civix.Walk(self.root)
+  local w = ds.icopy(self.root)
+  w.maxDepth = self.depth
+  w = civix.Walk(w)
   local it, finds = Iter{w}, ds.find
   -- check path patterns
   if #self.path > 0 then;   it:map(function(p, pty)
@@ -163,14 +171,21 @@ function FF:_replace(path, to, pats, sub)
   end
 end
 
-local COLON = {['r:']='root', ['p:']='path', ['c:']='cnt'}
+local COLON = {
+  ['r:']='root', ['p:']='path', ['c:']='cnt', ['s:']='sub',
+}
 --- parse [$c:commands] into t
 function parseColons(args)
   local cmd, si
   for _, str in ipairs(args) do
     si = 1; cmd = COLON[str:sub(si, si+1)]
     if cmd then si = si + 2 else cmd = 'cnt' end
-    push(args[cmd], str:sub(si))
+    if cmd == 'sub' then
+      assert(not args.sub, 'sub specified twice')
+      args.sub = str:sub(si)
+    else
+      push(args[cmd], str:sub(si))
+    end
   end
   ds.clear(args)
 end

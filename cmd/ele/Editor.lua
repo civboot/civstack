@@ -10,6 +10,7 @@ local Buffer = require'lines.buffer'.Buffer
 local ix     = require'civix'
 local Edit   = require'ele.edit'.Edit
 local et     = require'ele.types'
+local ff     = require'ff'
 local push, pop, concat = table.insert, table.remove, table.concat
 
 local info = mty.from'ds.log  info'
@@ -54,6 +55,14 @@ local Editor = mty'Editor' {
         f = os.tmpname(); info('creating tmp', f)
       end
       return Gap:load(f)
+    end,
+  'navLs [callable(path) -> iter[entry]]: ls used for nav',
+    navLs = function(path, args)
+      assert(not (args.mut or args.sub or args.pathsub),
+        'attempt to use subsitution for ls')
+      args.hidden, args.content  = true, false
+      args.dirs,   args.depth    = true, 0
+      return ff(args)
     end,
   'redraw [boolean]: set to true to force a redraw',
   DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},

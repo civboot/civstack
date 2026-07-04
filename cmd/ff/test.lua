@@ -54,7 +54,7 @@ T'ff_FF'; do
     path={HIDE, 'b/c', '-%.ef'},
   }), m)
 
-  local m = ff:new(shim.parse{'a', '--sub=b', 'p:dir/',
+  local m = ff:new(shim.parse{'a', 's:b', 'p:dir/',
                                 '--', 'root/', '--weird'})
   T.eq(mty.construct(ff, {
     root={'root/', '--weird'},

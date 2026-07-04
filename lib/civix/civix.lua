@@ -380,7 +380,9 @@ end
 --- end
 --- ]$
 M.Walk = mty'Walk' {
-  'maxDepth [int]: maximum depth to walk (default=infinite)',
+ [[maxDepth [int]: maximum depth to walk (default=infinite).
+   A depth of 0 is equivalent to ls (with addition of root node).
+ ]],
   'pi [int]: the current (root) path index being walked', pi = 0,
   '_dirs [table]: a stack of WalkDirs that are being walked',
 }
