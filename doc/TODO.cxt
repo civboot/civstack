@@ -1,4 +1,5 @@
 Ele: [+
+* add filter to nav (filter out ^. by default)
 * visual mode
 * commands
 * replay last '.'

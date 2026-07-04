@@ -360,16 +360,19 @@ end
 
 local nav = M.nav
 
+local function navInit(ed, e, path)
+  e:clear(); e:insert('% '..ed.s.navFilter..'\n', 1)
+  e:insert(pth.small(path), 1); e.l = 2
+  nav.expandEntry(e.buf, 2)
+end
+
 M.DO_NAV = {
   cwd = function(ed, e1, e)
-    e:clear(); e:insert(pth.small(pth.cwd())); e.l = 1
-    nav.expandEntry(e.buf, 1)
+    navInit(ed, e, pth.cwd())
   end,
   cbd = function(ed, e1, e)
     e:clear(); local p = e1.buf.dat.path
-    if p then
-      e:insert(pth.small(pth.dir(p))); e.l = 1
-      nav.expandEntry(e.buf, 1)
+    if p then navInit(ed, e, pth.dir(p))
     else e:insert(sfmt('b#%s', e.buf.id)); e.l,e.c = 1,1 end
   end,
   buf = function(ed, e1, e)

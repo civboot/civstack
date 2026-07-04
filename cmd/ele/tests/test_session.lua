@@ -265,29 +265,29 @@ end}
 
 
 local NAV_1 = [[
+ 1% /%.
  0./data/
  1  * seuss/
  2  * small.lua
   
-  
-| TMP:1.8 b#nav ( ]]
+| TMP:2.8 b#nav ( ]]
 
 local NAV_2 = [[
+ 2% /%.
  1./data/
  0  * seuss/
  1    * thing1.txt
  2    * thing2.txt
- 3  * small.lua
-| TMP:2.8 b#nav ( ]]
+| TMP:3.8 b#nav ( ]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
+ 4% /%.
  3./data/
  2  * seuss/
  1  * small.lua
  0
-  
-| TMP:4.8 b#nav ( ]]
+| TMP:5.8 b#nav ( ]]
 
 local BUF_1 = [[
  0b#search   TMP
@@ -303,7 +303,7 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local e = tst.s.ed.pane
     T.eq(SS..'\n'..NAV_1, noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
-    T.eq({1,8}, {e.l,e.c})
+    T.eq({2,8}, {e.l,e.c})
     T.eq(1, ed.pane.locations.max)
     T.ieq({et.EditLoc{b='nav', l=1,c=1}}, ed.pane.locations)
 
@@ -312,11 +312,11 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   s:play's j l' -- expand seuss
     T.eq('system', ed.mode)
     T.eq(SS..'\n'..NAV_2, noTmp(fmt(ed.display)))
-    T.eq({2,8}, {e.l,e.c})
+    T.eq({3,8}, {e.l,e.c})
 
   s:play'2 j h' -- go down, but then unexpand
     T.eq(SS..'\n'..NAV_3, noTmp(fmt(ed.display)))
-    T.eq({4,8}, {e.l,e.c})
+    T.eq({5,8}, {e.l,e.c})
 
   s:play'2 k l j enter' -- go to thing1.txt
   e = tst.s.ed.pane

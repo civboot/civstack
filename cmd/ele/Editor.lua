@@ -21,6 +21,8 @@ local EdSettings = mty'EdSettings' {
   'tabwidth [int]', tabwidth=2,
   'yankMax [int]: max yank size in bytes',
     yankMax=10 * 1024*1024, -- 10MiB
+  'navFilter [string]: line to auto-insert when opening nav',
+    navFilter='/%.',
 }
 
 -- Editor is the global editor state that actions have access to.
