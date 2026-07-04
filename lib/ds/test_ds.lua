@@ -931,6 +931,12 @@ T'string.concat'; do
   T.eq('one-two-true', sc('-', 'one', 'two', 'true'))
 end
 
+T'string'; do
+  local s = 'example text to search'
+  T.eq({9,12,    2, 'text'}, {M.find(s, {'foo', 'text'})})
+  T.eq({nil,nil, 1, 'sea'},  {M.find(s, {'-sea', 'text'})})
+end
+
 T'table.update'; do
   local tu = table.update
   T.eq({},       tu({},  {}))

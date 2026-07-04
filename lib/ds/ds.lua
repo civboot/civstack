@@ -308,13 +308,25 @@ function M.trimEnd(subj, pat, index) --> string
   return subj:match(pat, index)
 end
 
---- Find any of a list of patterns. Return the match [$start, end] as well as
---- the [$index, pat] of the pattern matched.
-function M.find(subj, pats, si, plain) --> (ms, me, pi, pat)
+--- Find any of a list of patterns.
+---
+--- Return the match [$start, end] as well as the
+--- [$index, pat] of the pattern matched. 
+--- Patterns that start with [$-] stop matching,
+--- returning nil for ms/me and the index/pat (with '-' trimmed) for
+--- the negative pattern.
+function M.find(subj, pats, si, plain) --> (ms,me, pi, pat)
   si = si or 1
   for pi, p in ipairs(pats) do
-    local ms, me = sfind(subj, p, si, plain)
-    if ms then return ms, me, pi, p end
+    if p:sub(1,1) == '-' then
+      p = p:sub(2)
+      if sfind(subj, p, si, plain) then
+        return nil,nil, si, p
+      end
+    else
+      local ms, me = sfind(subj, p, si, plain)
+      if ms then return ms, me, pi, p end
+    end
   end
 end
 
