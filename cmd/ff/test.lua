@@ -17,7 +17,7 @@ if civix.exists(dir) then civix.rmRecursive(dir) end
 local a = {}; for i=1,100 do push(a, 'a '..i) end
 local b = {}; for i=1,100 do push(b, 'b '..i) end
 
-local NOPATH = {"^%..*/", "/%..*/"}
+local HIDE = '-/%.'
 civix.mkTree(dir, {
   ['a.txt'] = table.concat(a, '\n'),
   b = {
@@ -47,19 +47,19 @@ local function simpleSub(fmt, subfmt)
 end
 
 T'ff_FF'; do
-  local m = ff:new{'a', 'p:b/c', '-b', '-p:%.ef', 'r:r1/', '--', 'r2/'}
+  local m = ff:new{'a', 'p:b/c', '-b', 'p:-%.ef', 'r:r1/', '--', 'r2/'}
   T.eq(mty.construct(ff, {
     root={'r2/', 'r1/'},
-    pat={'a'},    nopat={'b'},
-    path={'b/c'}, nopath={'%.ef'},
+    cnt={'a', '-b'},
+    path={HIDE, 'b/c', '-%.ef'},
   }), m)
 
   local m = ff:new(shim.parse{'a', '--sub=b', 'p:dir/',
                                 '--', 'root/', '--weird'})
   T.eq(mty.construct(ff, {
     root={'root/', '--weird'},
-    pat={'a'},    nopat={},
-    path={'dir/'}, nopath=NOPATH,
+    cnt={'a'},
+    path={HIDE, 'dir/'},
     sub = 'b',
   }), m)
 end
@@ -77,14 +77,13 @@ local function runFF(args) --> ok, paths, stdout, stderr
 end
 
 local function testA()
-  local ok, res, stdout, stderr = runFF{'-p:', 'a %d1', '--', dir}
+  local ok, res, stdout, stderr = runFF{'a %d1', '--', dir, hidden=1}
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
   T.eq(dir..'a.txt\n', stdout)
   T.eq(expectSimple'    %i1 a %i1', stderr)
 
-  -- do without -p: means .out/ never gets searched
-  -- (because of default)
+  -- do without hidden=true means .out/ never gets searched
   local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
   assert(ok, res)
   T.eq({}, res); T.eq('', stdout); T.eq('', stderr)
@@ -93,7 +92,7 @@ end
 T'ff_find'; do
   testA()
 
-  local bArgs = {'-p:', 'b %d1', '--', dir}
+  local bArgs = {'b %d1', '--', dir, hidden=true}
   local ok, res, stdout, stderr = runFF(ds.copy(bArgs))
   assert(ok, res)
   T.eq({dir..'b/b1.txt'}, res)
@@ -101,13 +100,13 @@ T'ff_find'; do
   T.eq(expectSimple'    %i1 b %i1', stderr)
 
   -- adding /b/ does nothing
-  local ok, res, stdout, stderr = runFF{'-p:', 'b %d1', 'p:/b/', 'r:'..dir}
+  local ok, res, stdout, stderr = runFF{'b %d1', 'p:/b/', 'r:'..dir, hidden=true}
   assert(ok, res);
   T.eq({dir..'b/b1.txt'}, res)
 end
 
 T'ff_sub'; do
-  local subArgs = {'-p:', 'a (%d1)', sub='s %1', '--', dir}
+  local subArgs = {'a (%d1)', sub='s %1', '--', dir, hidden=true}
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
@@ -127,7 +126,7 @@ T'ff_sub'; do
   T.eq({}, res); T.eq('', stderr) -- no matches
 
   -- there are 's %i1'
-  local ok, res, stdout, stderr = runFF{'-p:', 's %d1', 'r:'..dir}
+  local ok, res, stdout, stderr = runFF{'s %d1', 'r:'..dir, hidden=true}
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
   T.eq(expectSimple'    %i1 s %i1', stderr)

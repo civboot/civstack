@@ -7,18 +7,15 @@ local shim = require'shim'
 --- Usage: [$ff find_this or_this]
 local FF = shim.cmd'ff' {
   'root   {paths}: list of root paths, i.e. [$r:path1/ r:path2]',
-  'pat    {pat}: list of patterns to find',
-  'nopat  {pat}: list of (file-wide) pattern exclusions',
+  'cnt    {pat}: list of patterns to find in the content',
   'path   {pat} [$p:%.lua] list of file path patterns',
- [[nopath {pat} [$-p:%.bin] list of file path patterns to exclude.
-  default: exclude dirs starting with '.'. Disable default by setting
-  to an empty string, i.e. [$--nopath=]
- ]],
-  'sub [string]: the subsitution string to use with pat',
+  'sub [string]: the subsitution string to use with cnt.',
   'mut [bool]: mutate files (used with sub)',
   'dirs [bool]: show all non-excluded directories',
   'content [bool]: if false do not show content (only show paths)',
     content=true,
+  'hidden [bool]: whether to include [$.hidden] paths (default=false)',
+    hidden = false,
  [[pathsub [string]: the substitution string to rename the path.
    Note: this implies content=false and cannot be used with sub
  ]],
@@ -42,16 +39,12 @@ local fmtMatch, fmtSub, parseColons
 --- Construct the cmd without executing.
 FF.new = function(T, args) --> ff callable
   args = shim.parseStr(args)
-  for _, k in ipairs{'root', 'pat', 'nopat', 'path', 'nopath'} do
+  for _, k in ipairs{'root', 'cnt', 'path'} do
     args[k] = shim.list(args[k])
   end
   shim.popRaw(args, args.root)
   parseColons(args)
-  if #args.nopath == 0 then args.nopath={'^%..*/', '/%..*/'} end
-  local i = 1; while i <= #args.nopath do
-    if args.nopath[i] == '' then table.remove(args.nopath, i)
-    else i = i + 1 end
-  end
+  if not args.hidden then table.insert(args.path, 1, '-/%.') end
   return construct(T, args)
 end
 
@@ -65,7 +58,7 @@ function FF:iter() --> iter
     self.content = false
     assert(self.path, 'must set path pattern with path pathsub')
   else self.content = shim.bool(self.content) end
-  if not self.content and #self.pat == 0 then self.pat = {''} end
+  if not self.content and #self.cnt == 0 then self.cnt = {''} end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = pth.cwd() end
   log.info('ff %q', self)
@@ -73,11 +66,11 @@ function FF:iter() --> iter
 
   local w = civix.Walk(self.root)
   local it, finds = Iter{w}, ds.find
-  -- check nopath patterns
-  if #self.nopath > 0 then; it:map(function(p, pty)
-    if not finds(p, self.nopath) then return p, pty end
-    if pty == 'dir' then w:skip() end
+  -- check path patterns
+  if #self.path > 0 then;   it:map(function(p, pty)
+    if (pty == 'dir') or finds(p, self.path) then return p, pty end
   end); end
+
   -- show/no-show dirs
   if self.dirs then;   it:map(function(p, pty)
       if pty == 'dir' then sf:styled('path', nice(p), '\n') end
@@ -86,26 +79,12 @@ function FF:iter() --> iter
   else
     it:map(function(p, pty) if pty ~= 'dir' then return p, pty end end)
   end
-  -- check path patterns
-  if #self.path > 0 then;   it:map(function(p, pty)
-    if (pty == 'dir') or finds(p, self.path) then return p, pty end
-  end); end
-  -- check for nopat
-  if #self.nopat > 0 then
-    local nopat = self.nopat
-    it:map(function(p, pty)
-      if pty == 'dir' then return p, pty end
-      for l in io.lines(p) do
-        if finds(l, nopat) then return end
-      end; return p, pty
-    end)
-  end
 
   -- find pattern or sub in file
-  local pat, sub = self.pat, self.sub
-  if #pat > 0 then
+  local cnt, sub = self.cnt, self.sub
+  if #cnt> 0 then
     it:map(function(p, pty)
-      if (pty == 'dir') or self:_find(p, pat, sub) then return p, pty end
+      if (pty == 'dir') or self:_find(p, cnt, sub) then return p, pty end
     end)
   end
 
@@ -118,7 +97,7 @@ function FF:iter() --> iter
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
-        self:_replace(p, to, pat, sub)
+        self:_replace(p, to, cnt, sub)
         to:flush(); to:close();
         civix.mv(subPath, p)
       end
@@ -184,15 +163,14 @@ function FF:_replace(path, to, pats, sub)
   end
 end
 
-local COLON = {['r:']='root', ['p:']='path', ['s:']='pat'}
+local COLON = {['r:']='root', ['p:']='path', ['c:']='cnt'}
 --- parse [$c:commands] into t
 function parseColons(args)
-  local no, cmd, si
+  local cmd, si
   for _, str in ipairs(args) do
-    si = 1; no = str:sub(1,1) == '-'; if no then si = si + 1 end
-    cmd = COLON[str:sub(si, si+1)]
-    if cmd then si = si + 2 else cmd = 'pat' end
-    push(args[(no and 'no' or '')..cmd], str:sub(si))
+    si = 1; cmd = COLON[str:sub(si, si+1)]
+    if cmd then si = si + 2 else cmd = 'cnt' end
+    push(args[cmd], str:sub(si))
   end
   ds.clear(args)
 end

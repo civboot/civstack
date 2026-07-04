@@ -3,15 +3,19 @@
 replace lua patterns. It searches for file patterns, file content, or both.  It
 can also rename files and modify the content using [$--sub] with [$--mut].
 
-
 ff uses an easy to learn shorthand for many operations, displayed below:
 [{table}
 # syntax                   | equivalent
 + [$some_pat] (no prefix)  | [$--pat=some_pat]
 + [$r:some/dir/]           | [$--root=some/dir]
 + [$p:path.*pattern]       | [$--path=path.*pattern]
-+ [$-p:%.so$]              | [$--nopath=%.so$]
 ]
+
+Patterns can be either positive (the default) or negative by
+preceeding with a single [$-]. For instance, [$p:-/out/] will skip any
+directories named [$out]. Matchers are applied first->last,
+any positive match will immediately result in the match succeding,
+whereas any negative match will immedialy result in the match failing.
 
 Examples:[{$$ lang=sh}
 ff 'some.*pattern'       # search for some.*pattern
@@ -20,5 +24,5 @@ ff find --sub=fix        # replace 'find' with 'fix' (display)
 ff find --sub=fix --mut  # actually replace 'find' with 'fix'
 ]$
 
-Note: all [$directories/] always end with [$/] which you can
-use to include/exclude them.
+["Note: all [$directories/] always end with [$/] which you can
+  use to include/exclude them.]
