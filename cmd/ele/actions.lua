@@ -400,8 +400,8 @@ local getFocus, getEntry = nav.getFocus, nav.getEntry
 --- Return the arguments for navigation at the top of the file.
 function nav.getArgs(b)
   local ln = b:get(1)
-  local strArgs = ln:match'^%%%s*(.*)$'; if not strArgs then return end
-  return ds.split(strArgs)
+  local strArgs = ln:match'^%%%s*(.*)$'
+  return strArgs and ds.splitList(strArgs) or {}
 end
 
 --- Find the parent of current path entry
@@ -518,7 +518,7 @@ function nav.expandEntry(ed, b, l) --> numExpanded
   le = le or l
   dbg('* range', l, le)
   if le <= l then
-    local entries = ed.navLs(nav.getPath(b, l))
+    local entries = ed.navLs(nav.getPath(b, l), nav.getArgs(b))
     dbg('ls entries', entries)
     if not entries or #entries == 0 then return x end
     x = #entries

@@ -333,7 +333,7 @@ end
 M.split = mty.split         --(s, sep) --> strIter
 
 --- Perform a split but returning a list instead of a string.
-function M.splitList(...) --(s, sep) --> list
+function M.splitList(...) --(s, sep) --> {str}
   local t = {}; for _, v in mty.split(...) do push(t, v) end
   return t
 end

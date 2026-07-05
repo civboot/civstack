@@ -68,7 +68,7 @@ local Editor = mty'Editor' {
   DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},
 }
 -- FIXME
-Editor.navLs = ix.ls
+-- Editor.navLs = ix.ls
 
 getmetatable(Editor).__call = function(T, self)
   self = ds.merge({
