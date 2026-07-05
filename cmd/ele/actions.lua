@@ -507,8 +507,7 @@ function nav.backEntry(ed, b, l) --> ln
   return l
 end
 
-function nav.expandEntry(ed, b, l, ls) --> numExpanded
-  ls = ls or ix.ls
+function nav.expandEntry(ed, b, l) --> numExpanded
   local line, ind = b:get(l), ''
   dbg('expandEntry', line)
   if not getFocus(line) then
@@ -519,7 +518,7 @@ function nav.expandEntry(ed, b, l, ls) --> numExpanded
   le = le or l
   dbg('* range', l, le)
   if le <= l then
-    local entries = ls(nav.getPath(b, l))
+    local entries = ed.navLs(nav.getPath(b, l))
     dbg('ls entries', entries)
     if not entries or #entries == 0 then return x end
     x = #entries
@@ -531,7 +530,7 @@ function nav.expandEntry(ed, b, l, ls) --> numExpanded
   else -- recursively expand all children by 1
     for i=le,l+1,-1 do
       if #getEntry(b:get(i)) == ind+2 then
-        x = x + nav.expandEntry(ed, b, i, ls)
+        x = x + nav.expandEntry(ed, b, i)
       end
     end
   end
@@ -545,14 +544,13 @@ function nav.doBack(ed, b, l, times)
   end
 end
 
-function nav.doExpand(ed, b, l, times, ls)
+function nav.doExpand(ed, b, l, times)
   local line, en = b:get(l), nil
   local path = getFocus(line) or select(3, getEntry(line))
   if not path or not pth.isDir(path) then return end
   ::expand::
-  ls = ls or ix.ls
   for _=1,times or 1 do
-    if nav.expandEntry(ed, b, l, ls) == 0 then break end
+    if nav.expandEntry(ed, b, l) == 0 then break end
   end
 end
 
@@ -580,11 +578,11 @@ local DO_ENTRY = {
 }
 
 --- perform the entry operation
-function nav.doEntry(ed, op, times, ls)
+function nav.doEntry(ed, op, times)
   local e = ed:edit(); local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
-  local fl = fn(ed, e.buf, l, times, ls) or l
+  local fl = fn(ed, e.buf, l, times) or l
   assert(math.type(fl) == 'integer')
   e.l = fl or l
   e:changeUpdate2()
@@ -592,12 +590,12 @@ end
 
 function M.path(ed, ev, evsend)
   if ev.entry then
-    nav.doEntry(ed, ev.entry, ev.times or 1, ix.ls)
+    nav.doEntry(ed, ev.entry, ev.times or 1)
   end
   if ev.go == 'enter' then
     local e = ed:edit()
     local line = e.buf:get(e.l)
-    if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1, ix.ls)
+    if pth.isDir(line) then nav.doEntry(ed, 'expand', ev.times or 1)
     else                    nav.goPath(ed, ev.create) end
   elseif ev.go then nav.goPath(ed, ev.go == 'create') end
   ed:handleStandard(ev)

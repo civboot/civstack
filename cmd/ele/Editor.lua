@@ -67,6 +67,8 @@ local Editor = mty'Editor' {
   'redraw [boolean]: set to true to force a redraw',
   DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},
 }
+-- FIXME
+Editor.navLs = ix.ls
 
 getmetatable(Editor).__call = function(T, self)
   self = ds.merge({

@@ -198,15 +198,17 @@ T'nav'; do
 
   local r, entries = nil, {'f', 'd/'}
   info'expanding entries'
-  nav.expandEntry(d, b, 1, function(p) r = p; return entries end)
+  d.navLs = function(p) r = p; return entries end
+  nav.expandEntry(d, b, 1)
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
   T.eq('/focus/path/', b:get(1))
   T.eq({3, 2}, {nav.findEnd(b, 1)})
 
-  nav.expandEntry(d, b, 1, function(p)
+  d.navLs = function(p)
     if p:find'/d/$' then return entries end
-  end)
+  end
+  nav.expandEntry(d, b, 1)
   T.eq('/focus/path/\n  * f\
   * d/\
     * f\
