@@ -181,30 +181,30 @@ T'nav'; do
   T.eq(5,   nav.findEnd(b, 5))
   T.eq(6,   nav.findEnd(b, 6))
 
-  nav.backEntry(b, 4)
+  nav.backEntry(d, b, 4)
   T.eq('/focus/path/\n  * f\n  * d/\n/some/other/path\n', fmt(b.dat))
 
-  nav.backEntry(b, 3)
+  nav.backEntry(d, b, 3)
   T.eq('/focus/path/\n/some/other/path\n', fmt(b.dat))
 
   b.dat:set(2, '  * f')
-  nav.backEntry(b, 1)
+  nav.backEntry(d, b, 1)
   T.eq('/focus/path/\n', fmt(b.dat))
 
-  nav.backEntry(b, 1)
+  nav.backEntry(d, b, 1)
   T.eq('/focus/\n', fmt(b.dat))
 
   b.dat:set(1, '/focus/path/')
 
   local r, entries = nil, {'f', 'd/'}
   info'expanding entries'
-  nav.expandEntry(b, 1, function(p) r = p; return entries end)
+  nav.expandEntry(d, b, 1, function(p) r = p; return entries end)
   T.eq('/focus/path/', r)
   T.eq('/focus/path/\n  * f\n  * d/\n', fmt(b.dat))
   T.eq('/focus/path/', b:get(1))
   T.eq({3, 2}, {nav.findEnd(b, 1)})
 
-  nav.expandEntry(b, 1, function(p)
+  nav.expandEntry(d, b, 1, function(p)
     if p:find'/d/$' then return entries end
   end)
   T.eq('/focus/path/\n  * f\

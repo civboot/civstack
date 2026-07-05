@@ -363,7 +363,7 @@ local nav = M.nav
 local function navInit(ed, e, path)
   e:clear(); e:insert('% '..ed.s.navFilter..'\n', 1)
   e:insert(pth.small(path), 1); e.l = 2
-  nav.expandEntry(e.buf, 2)
+  nav.expandEntry(ed, e.buf, 2)
 end
 
 M.DO_NAV = {
@@ -479,7 +479,7 @@ function nav.findEnd(b, l) --> linenum, maxChildInd
   return #b, m
 end
 
-function nav.backFocus(b, l)
+function nav.backFocus(ed, b, l)
   local fl,fe = nav.findView(b, l)
   log.info('nav.backFocus fl=%i fe=%i', fl, fe)
   if not fl then return end
@@ -492,10 +492,10 @@ end
 --- Go backwards on the entry, returning the new line
 --- For focus, this will go back one component.
 --- For entry, this will collapse parent (and move to it).
-function nav.backEntry(b, l) --> ln
+function nav.backEntry(ed, b, l) --> ln
   ::start::
   local ln = b:get(l); if getFocus(ln) then
-    nav.backFocus(b, l)
+    nav.backFocus(ed, b, l)
     return 
   end
   local le = nav.findEnd(b, l); if not le then return end
@@ -507,7 +507,7 @@ function nav.backEntry(b, l) --> ln
   return l
 end
 
-function nav.expandEntry(b, l, ls) --> numExpanded
+function nav.expandEntry(ed, b, l, ls) --> numExpanded
   ls = ls or ix.ls
   local line, ind = b:get(l), ''
   dbg('expandEntry', line)
@@ -531,28 +531,28 @@ function nav.expandEntry(b, l, ls) --> numExpanded
   else -- recursively expand all children by 1
     for i=le,l+1,-1 do
       if #getEntry(b:get(i)) == ind+2 then
-        x = x + nav.expandEntry(b, i, ls)
+        x = x + nav.expandEntry(ed, b, i, ls)
       end
     end
   end
   return x
 end
 
-function nav.doBack(b, l, times)
+function nav.doBack(ed, b, l, times)
   for _=1,times do
-    local nl = nav.backEntry(b, l); if l == nl then break end
+    local nl = nav.backEntry(ed, b, l); if l == nl then break end
     l = nl
   end
 end
 
-function nav.doExpand(b, l, times, ls)
+function nav.doExpand(ed, b, l, times, ls)
   local line, en = b:get(l), nil
   local path = getFocus(line) or select(3, getEntry(line))
   if not path or not pth.isDir(path) then return end
   ::expand::
   ls = ls or ix.ls
   for _=1,times or 1 do
-    if nav.expandEntry(b, l, ls) == 0 then break end
+    if nav.expandEntry(ed, b, l, ls) == 0 then break end
   end
 end
 
@@ -584,7 +584,7 @@ function nav.doEntry(ed, op, times, ls)
   local e = ed:edit(); local l = e.l
   e:changeStart()
   local fn = fmt.assertf(DO_ENTRY[op], 'uknown entry op: %s', op)
-  local fl = fn(e.buf, l, times, ls) or l
+  local fl = fn(ed, e.buf, l, times, ls) or l
   assert(math.type(fl) == 'integer')
   e.l = fl or l
   e:changeUpdate2()
