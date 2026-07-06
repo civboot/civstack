@@ -22,8 +22,9 @@ local EdSettings = mty'EdSettings' {
   'tabwidth [int]', tabwidth=2,
   'yankMax [int]: max yank size in bytes',
     yankMax=10 * 1024*1024, -- 10MiB
+  -- FIXME: rename navArgs
   'navFilter [string]: line to auto-insert when opening nav',
-    navFilter='/%.',
+    navFilter='p:-/%. p:.',
 }
 
 -- Editor is the global editor state that actions have access to.
@@ -58,17 +59,19 @@ local Editor = mty'Editor' {
     end,
   'navLs [callable(path) -> iter[entry]]: ls used for nav',
     navLs = function(path, args)
+      path = pth.abs(pth.toDir(path))
+      push(args, 'r:'..path)
       assert(not (args.mut or args.sub or args.pathsub),
         'attempt to use subsitution for ls')
       args.hidden, args.content  = true, false
-      args.dirs,   args.depth    = true, 0
-      return ff(args)
+      args.dirs,   args.depth    = true, 1
+      local r = ff(args)
+      table.remove(r, ds.indexOf(r, path))
+      return r
     end,
   'redraw [boolean]: set to true to force a redraw',
   DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},
 }
--- FIXME
--- Editor.navLs = ix.ls
 
 getmetatable(Editor).__call = function(T, self)
   self = ds.merge({

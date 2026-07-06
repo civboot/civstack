@@ -6,13 +6,15 @@ local shim = require'shim'
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds, lines = require'ds', require'lines'
+local pth = require'ds.path'
 local civix  = require'civix'
 local T = require'civtest'
 local ff = require'ff'
 
 local push, sfmt = table.insert, string.format
 
-local dir = '.out/ff/'
+local O = '.out/ff/'
+local dir = pth.cwd()..O
 if civix.exists(dir) then civix.rmRecursive(dir) end
 local a = {}; for i=1,100 do push(a, 'a '..i) end
 local b = {}; for i=1,100 do push(b, 'b '..i) end
@@ -80,7 +82,7 @@ local function testA()
   local ok, res, stdout, stderr = runFF{'a %d1', '--', dir, hidden=1}
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
-  T.eq(dir..'a.txt\n', stdout)
+  T.eq(O..'a.txt\n', stdout)
   T.eq(expectSimple'    %i1 a %i1', stderr)
 
   -- do without hidden=true means .out/ never gets searched
@@ -96,7 +98,7 @@ T'ff_find'; do
   local ok, res, stdout, stderr = runFF(ds.copy(bArgs))
   assert(ok, res)
   T.eq({dir..'b/b1.txt'}, res)
-  T.eq(dir..'b/b1.txt\n', stdout)
+  T.eq(O..'b/b1.txt\n', stdout)
   T.eq(expectSimple'    %i1 b %i1', stderr)
 
   -- adding /b/ does nothing

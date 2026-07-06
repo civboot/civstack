@@ -34,6 +34,7 @@ local sfmt, gsub = string.format, string.gsub
 local push = table.insert
 local construct = mty.construct
 local nice = pth.nice
+local assertf = mty.from'fmt  assertf'
 
 local fmtMatch, fmtSub, parseColons
 
@@ -67,11 +68,11 @@ function FF:iter() --> iter[path, pty]
   if not self.content and #self.cnt == 0 then self.cnt = {''} end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = pth.cwd() end
-  
+
   log.info('ff %q', self)
   local sf = vt100.Fmt{to=io.stdout}
-  local w = ds.icopy(self.root)
-  w.maxDepth = self.depth
+  local w = {}; for _, p in ipairs(self.root) do push(w, pth.abs(p)) end
+  w.maxDepth = shim.int(self.depth)
   w = civix.Walk(w)
   local it, finds = Iter{w}, ds.find
   -- check path patterns
@@ -139,8 +140,9 @@ function FF:_find(path, pats, sub) --> boolean
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if onlypath then
+        dbg('ds.find', path, self.path)
         local path, fs, fe, fi, fpat = path..'\n', find(path, self.path)
-        assert(fs)
+        assertf(fs, 'find(%q, %q) returned no paths', path, self.path)
         fmtMatch(f, nil, path..'\n', fs, fe)
         if self.pathsub then
           local after = assert(gsub(path, fpat, self.pathsub))

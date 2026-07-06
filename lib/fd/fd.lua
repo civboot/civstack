@@ -89,18 +89,23 @@ M.newFDT = S.newFDT
 
 M.PIPE_BUF = 512 -- POSIX.1
 
-S.FD.__close          = S.FD.__index.close
-S.FD.__index.__close  = S.FD.__index.close
+assert(S.FD.__index._close)
+S.FD.__index.close    = S.FD.__index._close
+S.FD.__close          = S.FD.__index._close
 S.FD.__name = 'fd.FD'
 function S.FD:__tostring() return sfmt('FD(%s)', self:fileno()) end
-S.FDT.__close         = S.FDT.__index.close
-S.FDT.__index.__close = S.FDT.__index.close
-S.FDT.__name = 'fd.FDT'
-S.FDT.__tostring = S.FD.__tostring
 
+assert(S.FDT.__index._close)
 local function finishRunning(self, kind, ...)
   while self:code() == S.FD_RUNNING do yield(kind or true, ...) end
 end
+function S.FDT.__index:close()
+  finishRunning(self, 'sleep', 1e-4)
+  self:_close();
+end
+S.FDT.__close         = S.FDT.__index.close
+S.FDT.__name = 'fd.FDT'
+S.FDT.__tostring = S.FD.__tostring
 
 --- return whether two fstat's have equal modification times
 --- FIXME: move this to civix
@@ -244,10 +249,6 @@ S.FDT.__index.toNonblock = function() error'invalid' end
 S.FDT.__index.toBlock    = function() error'invalid' end
 S.FDT.__index.isAsync    = function() return true end
 
-function S.FDT.__index:close()
-  finishRunning(self, 'sleep', 1e-4)
-  self:_close();
-end
 
 ----------------------------
 -- PollList

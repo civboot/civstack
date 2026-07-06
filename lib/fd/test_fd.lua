@@ -7,6 +7,8 @@ local ix = require'civix'
 local ixt = require'civix.testing'
 local info = require'ds.log'.info
 
+local push = table.insert
+
 local S   = M.sys
 
 local io_open = io.open
@@ -63,6 +65,8 @@ T'openWriteRead'; do
     if M.type(f) ~= 'closed file' then ix.sleep(1e-4) end
   end
   T.eq('closed file', M.type(f))
+  local lns = {}; for ln in M.lines(p) do push(lns, ln) end
+  T.eq({'line 1', 'line 2'}, lns)
 end
 
 T'append'; do

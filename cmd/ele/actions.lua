@@ -401,6 +401,7 @@ local getFocus, getEntry = nav.getFocus, nav.getEntry
 function nav.getArgs(b)
   local ln = b:get(1)
   local strArgs = ln:match'^%%%s*(.*)$'
+  dbg('nav args', strArgs)
   return strArgs and ds.splitList(strArgs) or {}
 end
 
@@ -523,6 +524,7 @@ function nav.expandEntry(ed, b, l) --> numExpanded
     if not entries or #entries == 0 then return x end
     x = #entries
     local es = {}; for i, e in ipairs(entries) do
+      local _, e = pth.last(e)
       es[i] = sconcat('', srep(' ', ind+2), '* ', e)
     end
     b:insert('\n', l,#line+1)

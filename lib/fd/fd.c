@@ -646,7 +646,7 @@ int luaopen_fd_lib(LS *L) {
         L_setmethod(L, "_setfileno", l_FD_setfileno);
 
         // true methods
-        L_setmethod(L, "close",    l_FD_close);
+        L_setmethod(L, "_close",   l_FD_close);
         L_setmethod(L, "codestr",  l_FD_codestr);
         L_setmethod(L, "_write",   l_FD_write);
         L_setmethod(L, "_getflags",l_FD_getflags);

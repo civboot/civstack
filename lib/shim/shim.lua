@@ -6,6 +6,7 @@ local G = mty.G
 
 local push, sfmt = table.insert, string.format
 local lower = string.lower
+local mtype, tointeger = math.type, math.tointeger
 
 G.LUA_SETUP = G.LUA_SETUP or os.getenv'LUA_SETUP' or 'ds'
 
@@ -87,9 +88,15 @@ function M.bools(args, ...)
 end
 
 --- Duck type: always return a number
-function M.number(num)
+function M.number(num) --> number
   if num == nil then return nil end
   return (type(num)=='number') and num or tonumber(num)
+end
+
+--- Duck type: always return a integer.
+function M.int(int) --> int
+  if int == nil then return nil end
+  return (mtype(int)=='integer') and int or tointeger(int)
 end
 
 local TOSTR = {

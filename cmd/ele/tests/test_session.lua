@@ -265,7 +265,7 @@ end}
 
 
 local NAV_1 = [[
- 1% /%.
+ 1% p:-/%. p:.
  0./data/
  1  * seuss/
  2  * small.lua
@@ -273,7 +273,7 @@ local NAV_1 = [[
 | TMP:2.8 b#nav ( ]]
 
 local NAV_2 = [[
- 2% /%.
+ 2% p:-/%. p:.
  1./data/
  0  * seuss/
  1    * thing1.txt
@@ -282,7 +282,7 @@ local NAV_2 = [[
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
- 4% /%.
+ 4% p:-/%. p:.
  3./data/
  2  * seuss/
  1  * small.lua
