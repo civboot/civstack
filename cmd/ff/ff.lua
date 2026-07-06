@@ -65,7 +65,9 @@ function FF:iter() --> iter[path, pty]
     self.content = false
     assert(self.path, 'must set path pattern with path pathsub')
   else self.content = shim.bool(self.content) end
-  if not self.content and #self.cnt == 0 then self.cnt = {''} end
+  if not self.content then
+    assertf(#self.cnt == 0, 'content=false but content search set: %q', self.cnt)
+  end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = pth.cwd() end
 
@@ -75,10 +77,12 @@ function FF:iter() --> iter[path, pty]
   w.maxDepth = shim.int(self.depth)
   w = civix.Walk(w)
   local it, finds = Iter{w}, ds.find
+  it:listen(function(...) dbg('start:', ...) end)
   -- check path patterns
   if #self.path > 0 then;   it:map(function(p, pty)
     if (pty == 'dir') or finds(p, self.path) then return p, pty end
   end); end
+  it:listen(function(...) dbg('after path:', ...) end)
 
   -- show/no-show dirs
   if self.dirs then;   it:map(function(p, pty)
@@ -88,14 +92,22 @@ function FF:iter() --> iter[path, pty]
   else
     it:map(function(p, pty) if pty ~= 'dir' then return p, pty end end)
   end
+  it:listen(function(...) dbg('after dirs:', ...) end)
 
   -- find pattern or sub in file
   local cnt, sub = self.cnt, self.sub
-  if #cnt> 0 then
+  if #cnt == 0 then
+    it:map(function(p, pty)
+      if pty ~= 'dir' then sf:styled('path', nice(p), '\n') end
+      return p, pty
+    end)
+    -- FIXME: definitely print paths here
+  else
     it:map(function(p, pty)
       if (pty == 'dir') or self:_find(p, cnt, sub) then return p, pty end
     end)
   end
+  it:listen(function(...) dbg('after cnt:', ...) end)
 
   -- perform actual replacement mutation
   if sub and self.mut then

@@ -48,6 +48,8 @@ local function simpleSub(fmt, subfmt)
   return table.concat(t, '\n')..'\n'
 end
 
+local function rmDbg(s) return s:gsub('DBG%(.-\n', '') end
+
 T'ff_FF'; do
   local m = ff:new{'a', 'p:b/c', '-b', 'p:-%.ef', 'r:r1/', '--', 'r2/'}
   T.eq(mty.construct(ff, {
@@ -83,12 +85,12 @@ local function testA()
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
   T.eq(O..'a.txt\n', stdout)
-  T.eq(expectSimple'    %i1 a %i1', stderr)
+  T.eq(expectSimple'    %i1 a %i1', rmDbg(stderr))
 
   -- do without hidden=true means .out/ never gets searched
   local ok, res, stdout, stderr = runFF{'a %d1', '--', dir}
   assert(ok, res)
-  T.eq({}, res); T.eq('', stdout); T.eq('', stderr)
+  T.eq({}, res); T.eq('', stdout); T.eq('', rmDbg(stderr))
 end
 
 T'ff_find'; do
@@ -99,7 +101,7 @@ T'ff_find'; do
   assert(ok, res)
   T.eq({dir..'b/b1.txt'}, res)
   T.eq(O..'b/b1.txt\n', stdout)
-  T.eq(expectSimple'    %i1 b %i1', stderr)
+  T.eq(expectSimple'    %i1 b %i1', rmDbg(stderr))
 
   -- adding /b/ does nothing
   local ok, res, stdout, stderr = runFF{'b %d1', 'p:/b/', 'r:'..dir, hidden=true}
@@ -112,7 +114,7 @@ T'ff_sub'; do
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
-  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
+  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), rmDbg(stderr))
 
   testA() -- not mutated
 
@@ -120,16 +122,21 @@ T'ff_sub'; do
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs, {mut=true}))
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
-  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), stderr)
+  T.eq(simpleSub('    %i1 a %i1', '   --> s %i1'), rmDbg(stderr))
 
   -- there are no more 'a %i1'
   local ok, res, stdout, stderr = runFF(ds.copy(subArgs))
   assert(ok, res)
-  T.eq({}, res); T.eq('', stderr) -- no matches
+  T.eq({}, res); T.eq('', rmDbg(stderr)) -- no matches
 
   -- there are 's %i1'
   local ok, res, stdout, stderr = runFF{'s %d1', 'r:'..dir, hidden=true}
   assert(ok, res)
   T.eq({dir..'a.txt'}, res)
-  T.eq(expectSimple'    %i1 s %i1', stderr)
+  T.eq(expectSimple'    %i1 s %i1', rmDbg(stderr))
+end
+
+T'ff_paths'; do
+  local r = ff{'r:'..O, hidden=false, content=false, dirs=true, depth=1}
+  T.eq({}, r)
 end
