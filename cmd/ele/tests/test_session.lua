@@ -273,7 +273,6 @@ local NAV_1 = [[
 | TMP:2.8 b#nav ( ]]
 
 local NAV_2 = [[
-[mode:system]
  3% p:-/%.
  2./data/
  1  * small.lua
@@ -283,12 +282,12 @@ local NAV_2 = [[
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
- 4% p:-/%.
- 3./data/
+ 5% p:-/%.
+ 4./data/
+ 3  * small.lua
  2  * seuss/
- 1  * small.lua
- 0
-| TMP:5.8 b#nav ( ]]
+ 1
+| TMP:6.8 b#nav ( ]]
 
 local BUF_1 = [[
  0b#search   TMP
@@ -310,15 +309,14 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
 
   s:play'esc'; T.eq('command', ed.mode)
 
-  -- FIXME: try to expand small (no change)
   s:play's j j l' -- expand seuss
     T.eq('system', ed.mode)
     T.eq(SS..'\n'..NAV_2, noTmp(fmt(ed.display)))
-    T.eq({3,8}, {e.l,e.c})
+    T.eq({4,8}, {e.l,e.c})
 
   s:play'2 j h' -- go down, but then unexpand
     T.eq(SS..'\n'..NAV_3, noTmp(fmt(ed.display)))
-    T.eq({5,8}, {e.l,e.c})
+    T.eq({6,8}, {e.l,e.c})
 
   s:play'2 k l j enter' -- go to thing1.txt
   e = tst.s.ed.pane
