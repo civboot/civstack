@@ -441,7 +441,7 @@ end
 
 --- create a Fmt with sensible defaults from the config
 function M.Fmt(t)
-  assert(t.to, 'must set to = the output')
+  assert(t.to, 'must set [$to] to the output')
   if t.style == nil then t.style = shim.getEnvBool'COLOR' end
   if t.style or (t.style==nil) and isatty(t.to) then
     t.style, t.to = true, ac.Styler {

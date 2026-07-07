@@ -20,6 +20,7 @@ local FF = shim.cmd'ff' {
    Note: this implies content=false and cannot be used with sub
  ]],
    'depth [int]: depth to search from root directories',
+   'to [file]: where to print to',
 }
 
 local mty  = require'metaty'
@@ -78,7 +79,7 @@ function FF:iter() --> iter[path, pty]
   end
 
   log.info('ff %q', self)
-  local sf = vt100.Fmt{to=io.stdout}
+  local sf = vt100.Fmt{to=self.to or io.stdout}
   local w = {}; for _, p in ipairs(self.root) do
     push(w, pth.canonical(p))
   end
@@ -133,6 +134,11 @@ function FF:iter() --> iter[path, pty]
       return p, pty
     end)
   end
+
+  -- filter out dirs at the end (files were already filtered)
+  if #self.path > 0 then;   it:map(function(p, pty)
+    if (pty ~= 'dir') or finds(p, self.path) then return p, pty end
+  end); end
 
   if self.pathsub and self.mut then
     it:map(function(p, pty)

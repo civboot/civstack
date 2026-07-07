@@ -66,7 +66,9 @@ local Editor = mty'Editor' {
         'attempt to use subsitution for ls')
       args.hidden, args.content  = true, false
       args.dirs,   args.depth    = true, 0
+      args.to                    = assert(io.tmpfile())
       local r = ff(args)
+      args.to:close()
       for i=1,#r do r[i] = pth.relative(path, r[i]) end
       table.remove(r, ds.indexOf(r, ''))
       return r
