@@ -70,10 +70,18 @@ function FF:iter() --> iter[path, pty]
   end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = pth.cwd() end
+  do local pos -- ensure path has at least one postive matcher
+    for _, p in ipairs(self.path) do
+      if p:sub(1,1) ~= '-' then pos = true; break end
+    end
+    if not pos then push(self.path, '') end
+  end
 
   log.info('ff %q', self)
   local sf = vt100.Fmt{to=io.stdout}
-  local w = {}; for _, p in ipairs(self.root) do push(w, pth.abs(p)) end
+  local w = {}; for _, p in ipairs(self.root) do
+    push(w, pth.canonical(p))
+  end
   w.maxDepth = shim.int(self.depth)
   w = civix.Walk(w)
   local it, finds = Iter{w}, ds.find

@@ -265,24 +265,25 @@ end}
 
 
 local NAV_1 = [[
- 1% p:-/%. p:.
+ 1% p:-/%.
  0./data/
- 1  * seuss/
- 2  * small.lua
+ 1  * small.lua
+ 2  * seuss/
   
 | TMP:2.8 b#nav ( ]]
 
 local NAV_2 = [[
- 2% p:-/%. p:.
- 1./data/
+[mode:system]
+ 3% p:-/%.
+ 2./data/
+ 1  * small.lua
  0  * seuss/
  1    * thing1.txt
- 2    * thing2.txt
-| TMP:3.8 b#nav ( ]]
+| TMP:4.8 b#nav ( ]]
 
 -- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
- 4% p:-/%. p:.
+ 4% p:-/%.
  3./data/
  2  * seuss/
  1  * small.lua
@@ -309,7 +310,8 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
 
   s:play'esc'; T.eq('command', ed.mode)
 
-  s:play's j l' -- expand seuss
+  -- FIXME: try to expand small (no change)
+  s:play's j j l' -- expand seuss
     T.eq('system', ed.mode)
     T.eq(SS..'\n'..NAV_2, noTmp(fmt(ed.display)))
     T.eq({3,8}, {e.l,e.c})

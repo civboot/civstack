@@ -137,6 +137,9 @@ T'ff_sub'; do
 end
 
 T'ff_paths'; do
-  local r = ff{'r:'..O, hidden=false, content=false, dirs=true, depth=1}
-  T.eq({}, r)
+  local r = ff{'r:'..O, hidden=true, content=false, dirs=true, depth=1}
+  T.eq({
+    dir, dir..'a.txt',
+    dir..'b/', dir..'b/b1.txt', dir..'b/b2.txt',
+  }, r)
 end

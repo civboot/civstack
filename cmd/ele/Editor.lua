@@ -24,7 +24,7 @@ local EdSettings = mty'EdSettings' {
     yankMax=10 * 1024*1024, -- 10MiB
   -- FIXME: rename navArgs
   'navFilter [string]: line to auto-insert when opening nav',
-    navFilter='p:-/%. p:.',
+    navFilter='p:-/%.',
 }
 
 -- Editor is the global editor state that actions have access to.
@@ -59,14 +59,16 @@ local Editor = mty'Editor' {
     end,
   'navLs [callable(path) -> iter[entry]]: ls used for nav',
     navLs = function(path, args)
-      path = pth.abs(pth.toDir(path))
+      path = pth.canonical(pth.toDir(path))
+      dbg('navLs ', path)
       push(args, 'r:'..path)
       assert(not (args.mut or args.sub or args.pathsub),
         'attempt to use subsitution for ls')
       args.hidden, args.content  = true, false
-      args.dirs,   args.depth    = true, 1
+      args.dirs,   args.depth    = true, 0
       local r = ff(args)
-      table.remove(r, ds.indexOf(r, path))
+      for i=1,#r do r[i] = pth.relative(path, r[i]) end
+      table.remove(r, ds.indexOf(r, ''))
       return r
     end,
   'redraw [boolean]: set to true to force a redraw',
