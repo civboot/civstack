@@ -421,8 +421,12 @@ Test{'session', dat='', function(tst)
     T.eq(SI..'\n9 8\n\n', fmt(t))
   T.eq(log.LogTable{}, ed.error)
 
-  s:play'space 7 enter 6'
+  -- simulate paste where ^j is enter.
+  s:play'space 7 ^j 6'
     T.eq(SI..'\n9 8 7\n6\n', fmt(t))
+
+  s:play'^j space space 1 ^j space space 2 ^j'
+    T.eq(SI..'\n  1\n  2\n', fmt(t))
 end}
 
 -- a common coding session

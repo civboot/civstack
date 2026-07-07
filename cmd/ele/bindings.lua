@@ -144,6 +144,7 @@ M.insertMode  = {mode='insert'}
 M.systemMode  = {mode='system'}
 
 M.insertTab   = {action='insertTab'}
+M.insertEnter = {'\n', action='insert'}
 M.insertsot   = {mode='insert', action='move', move='sot'}
 M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
 
@@ -492,6 +493,9 @@ ds.update(M.insert, {
   tab      = M.insertTab,
   right = M.right, left=M.left, up=M.up, down=M.down,
   back=M.backspace, del=M.delkey,
+  -- rawmode terminal-paste converts newlines to '^j' to tell the
+  -- terminal not to run each line.
+  ['^j']   = M.insertEnter,
 })
 
 --- Command Mode: control the editor's text functions and
