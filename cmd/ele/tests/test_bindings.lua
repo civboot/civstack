@@ -14,6 +14,8 @@ local actions = {
   insert=ds.noop, move=ds.noop, remove=ds.noop, merge=ds.noop,
 }
 
+local function U(ev) return ds.tag(ev, 'user') end
+
 local function events()
   local e = {}; return e, function(v) push(e, v) end
 end
@@ -62,54 +64,55 @@ T'action'; do
   local d
   local mode = function(mode) return {mode=mode} end
   -- Switch between modes
-  d = assertKeys('esc',   'insert', false, {mode'command'})
+  d = assertKeys('esc',   'insert', false, {U(mode'command')})
     T.eq({'esc'},   d.ext.keys.chord)
-  d = assertKeys('i',     'command', false, {mode'insert'})
+  d = assertKeys('i',     'command', false, {U(mode'insert')})
     T.eq({'i'},    d.ext.keys.chord)
-  d = assertKeys('esc', 'insert', false, {mode'command'})
+  d = assertKeys('esc', 'insert', false, {U(mode'command')})
 
   -- Insert mode
   local ins = function(str) return {action='insert', str} end
-  d = assertKeys('a', 'insert', false, {ins'a'})
+  d = assertKeys('a', 'insert', false, {U(ins'a')})
     T.eq({'a'}, d.ext.keys.chord)
   d = assertKeys('space a', 'insert', false,
-    {ins'a', ins' '}) -- note: reverse order because pushLeft
+    {U(ins'a'), U(ins' ')}) -- note: reverse order because pushLeft
     T.eq({'a'}, d.ext.keys.chord)
 
   -- move
   local move = function(t) t.action = 'move'; return t end
-  assertKeys('l',     'command', false, {move{off=1}})
-  assertKeys('3 l',   'command', false, {move{off=1, times=3}})
-  assertKeys('3 0 l', 'command', false, {move{off=1, times=30}})
-  assertKeys('3 G',   'command', false, {move{move='absolute', l=3}})
-  assertKeys('G',     'command', false, {move{move='eof'}})
+  assertKeys('l',     'command', false, { U(move{off=1}) })
+  assertKeys('3 l',   'command', false, { U(move{off=1, times=3}) })
+  assertKeys('3 0 l', 'command', false, { U(move{off=1, times=30}) })
+  assertKeys('3 G',   'command', false, { U(move{move='absolute', l=3}) })
+  assertKeys('G',     'command', false, { U(move{move='eof'}) })
 
   -- remove
   local rm = function(t) t.action = 'remove'; return t end
-  assertKeys('d l',     'command', false, {rm{off=1}})
-  assertKeys('5 d l',   'command', false, {rm{off=1,  times=5}})
-  assertKeys('3 d d',   'command', false, {rm{lines=0, times=3}})
-  assertKeys('3 d f e', 'command', false, {rm{move='find', find='e', times=3}})
+  assertKeys('d l',     'command', false, { U(rm{off=1}) } )
+  assertKeys('5 d l',   'command', false, { U(rm{off=1,  times=5}) })
+  assertKeys('3 d d',   'command', false, { U(rm{lines=0, times=3}) })
+  assertKeys('3 d f e', 'command', false,
+    { U(rm{move='find', find='e', times=3}) })
   assertKeys('3 r a',     'command', false, {
-    {action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
+    U{action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
   })
 
 
   local ch = function(t) t.mode='insert'; return rm(t) end
-  d = assertKeys('3 c l', 'command', false, {ch{off=1, times=3}})
-  d = assertKeys('c c',   'command', false, {ch{lines=0}})
+  d = assertKeys('3 c l', 'command', false, { U(ch{off=1, times=3}) })
+  d = assertKeys('c c',   'command', false, { U(ch{lines=0}) })
 
-  d = assertKeys('x',     'command', false, {rm{off=0}})
-  d = assertKeys('3 x',   'command', false, {rm{off=0, times=3}})
+  d = assertKeys('x',     'command', false, { U(rm{off=0}) })
+  d = assertKeys('3 x',   'command', false, { U(rm{off=0, times=3}) })
 
   -- find
   assertKeys('f x',       'command', false,
-    {move{find='x', move='find'}})
+    { U(move{find='x', move='find'}) })
   assertKeys('1 0 d f x', 'command', false,
-    {  rm{find='x', move='find', times=10}})
+    {  U(rm{find='x', move='find', times=10}) })
   assertKeys('1 0 d t x', 'command', false,
-    {  rm{find='x', move='find', times=10, cols=-1}})
+    {  U(rm{find='x', move='find', times=10, cols=-1}) })
 
   -- Event
-  assertKeys('I', 'command', false, {move{move='sot', mode='insert'}})
+  assertKeys('I', 'command', false, { U(move{move='sot', mode='insert'}) })
 end

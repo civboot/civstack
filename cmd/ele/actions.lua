@@ -76,8 +76,7 @@ function M.keyinput(ed, ev, evsend)
   end
   if ev then
     log.info(' keyev --> %q', ev)
-    -- FIXME: tag here
-    -- ev.__chord = chord
+    ds.tag(ev, 'user')
     evsend:pushLeft(ev)
   end
   err = K:check(ed); if err then
