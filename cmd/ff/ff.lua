@@ -86,12 +86,10 @@ function FF:iter() --> iter[path, pty]
   w.maxDepth = shim.int(self.depth)
   w = civix.Walk(w)
   local it, finds = Iter{w}, ds.find
-  it:listen(function(...) dbg('start:', ...) end)
   -- check path patterns
   if #self.path > 0 then;   it:map(function(p, pty)
     if (pty == 'dir') or finds(p, self.path) then return p, pty end
   end); end
-  it:listen(function(...) dbg('after path:', ...) end)
 
   -- show/no-show dirs
   if self.dirs then;   it:map(function(p, pty)
@@ -101,7 +99,6 @@ function FF:iter() --> iter[path, pty]
   else
     it:map(function(p, pty) if pty ~= 'dir' then return p, pty end end)
   end
-  it:listen(function(...) dbg('after dirs:', ...) end)
 
   -- find pattern or sub in file
   local cnt, sub = self.cnt, self.sub
@@ -116,7 +113,6 @@ function FF:iter() --> iter[path, pty]
       if (pty == 'dir') or self:_find(p, cnt, sub) then return p, pty end
     end)
   end
-  it:listen(function(...) dbg('after cnt:', ...) end)
 
   -- perform actual replacement mutation
   if sub and self.mut then
@@ -166,7 +162,6 @@ function FF:_find(path, pats, sub) --> boolean
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if onlypath then
-        dbg('ds.find', path, self.path)
         local path, fs, fe, fi, fpat = path..'\n', find(path, self.path)
         assertf(fs, 'find(%q, %q) returned no paths', path, self.path)
         fmtMatch(f, nil, path..'\n', fs, fe)
