@@ -66,11 +66,12 @@ end
 
 -- run events until they are exhuasted
 function Session:run()
+  local ev, actions, act, actFn, ok, err
   self.running = true
   local ed = self.ed
   while #self.events > 0 do
-    local ev = self.events()
-    local actions = ed.pane.actions or ed.actions
+    ev = self.events()
+    actions = ed.pane.actions or ed.actions
     if type(ev) ~= 'table' or not ds.isPod(ev) then
       self.ed.error('event is not POD table: %q', ev)
       goto cont
@@ -78,22 +79,25 @@ function Session:run()
     log.info('run event %q', ev)
     if not ev then goto cont end
     self.ed.redraw = true
-    local act = ev.action; if not act then
+    act = ev.action; if not act then
       self.ed:handleStandard(ev)
-      goto cont
+      goto success
     end
-    local actFn = self.BUILTIN_ACTIONS[act]; if actFn then
+    actFn = self.BUILTIN_ACTIONS[act]; if actFn then
       actFn(self)
-      goto cont;
+      goto success
     end
     actFn = actions[act]; if not actFn then
       self.ed.error('unknown action: %q', act)
       goto cont
     end
-    local ok, err = ds.try(actFn, self.ed, ev, self.evsend)
+    ok, err = ds.try(actFn, self.ed, ev, self.evsend)
     if not ok then
       self.ed.error('failed event %q. %q', ev, err)
+      goto cont
     end
+    ::success::
+    for _, fn in ipairs(ed.listeners) do fn(ev) end
     ::cont::
   end
   self.running = false

@@ -45,7 +45,7 @@ local Editor = mty'Editor' {
   'run [boolean]: set to false to stop the app', run=true,
   'ext [table]: table for extensions to store data',
   'search [str]: search pattern for searchBuf, etc',
-  'lastEvent [table]: the last event executed.',
+  'listeners {fn(ev)}: list of functions to call for each successful event',
   'yank [ds.Deq]: a deque of removed text. See yankMax.',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
@@ -86,6 +86,7 @@ getmetatable(Editor).__call = function(T, self)
     namedBuffers=ds.WeakV{},
     overlay = Buffer{id=-1, dat=Gap{}},
     resources={}, ext={},
+    listeners={},
     yank=ds.Deq{},
     redraw = true,
   }, self)
