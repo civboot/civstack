@@ -39,11 +39,35 @@ Session.BUILTIN_ACTIONS = {
 }
 
 getmetatable(Session).__call = function(T, s)
-  s.ed = s.ed or Editor{}
-  s.ed:init()
+  local ed = s.ed or Editor{}; s.ed = ed
+  ed:init()
   s.events = lap.Recv(); s.evsend  = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()
-  s.ed:focus(s.ed:buffer())
+  ed:focus(ed:buffer())
+  -- Add the again listener
+  ed.listeners.again = function(ev)
+    if not ds.getTag(ev, 'user') then return end
+    local ext = ed.ext; 
+    if ds.getTag(ev, 'againStart') then
+      ext.nextAgain = {action='chain', ds.deepcopy(ev), tag='again'}
+      return
+    end
+    local n = ext.nextAgain
+    -- only push if mut or mid-chain
+    if not (n or ds.getTag(ev, 'mut')) then return end
+    ev = ds.deepcopy(ev)
+    if n then
+      push(n, ev)
+      if ds.getTag(ev, 'againEnd') then
+        -- Use chain as again if any are mut.
+        -- TODO: should proabaly recurse action=chain
+        for _, ne in ipairs(n) do
+          if ds.getTag(ne, 'mut') then ext.again = n end
+        end
+        ext.nextAgain = nil
+      end
+    else ext.again = ds.tag(ev, 'again') end
+  end
   return mty.construct(T, s)
 end
 -- init test session
@@ -97,7 +121,7 @@ function Session:run()
       goto cont
     end
     ::success::
-    for _, fn in ipairs(ed.listeners) do fn(ev) end
+    for _, fn in pairs(ed.listeners) do fn(ev) end
     ::cont::
   end
   self.running = false
