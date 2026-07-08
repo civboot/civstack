@@ -275,6 +275,17 @@ T'table'; do
   T.eq({'.', 'h', 's'}, M.sortUnique{'h', '.', 's', 'h'})
 
   T.eq({1,2,3,4,5}, M.orderedMerge({1,3,5}, {2, 4}))
+  
+  local t = {}
+  T.eq({tag='foo'},          ds.tag(t, 'foo'))
+  T.eq({foo=1},              ds.tags(t))
+  T.eq(1, ds.getTag(t, 'foo'))
+  T.eq({tag={foo=1, bar=1}}, ds.tag(t, 'bar'))
+  T.eq(1, ds.getTag(t, 'foo')); T.eq(1, ds.getTag(t, 'bar'))
+  T.eq(nil, ds.getTag(t, 'dne'))
+  T.eq({tag={foo=2, bar=1}}, ds.tag(t, 'foo'))
+  T.eq({tag={foo=2, bar=1, baz=1}}, ds.tag(t, 'baz'))
+  T.eq({foo=2, bar=1, baz=1}, ds.tags(t))
 end
 
 T'freeze'; do

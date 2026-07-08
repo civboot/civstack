@@ -755,6 +755,39 @@ function M.indexOfPat(strs, pat) --> int
   for i, s in ipairs(strs) do if s:find(pat) then return i end end
 end
 
+--- Tag the table [$t]. [+
+--- * if [$t.tagKey=nil] then this simply sets [$t.tagKey=tag].
+--- * if [$t.tagKey] is a string or table, then it will become
+---   a table with [$tag=t.tagKey+1] added to it.
+--- ]
+function M.tag(t, tag, tagKey) --> t
+  tagKey = tagKey or 'tag'
+  local tags = t[tagKey]; if not tags then
+    t[tagKey] = tag; return t
+  end
+  if type(tags) == 'string' then
+    tags = {[tags]=1}; t[tagKey] = tags
+  end
+  tags[tag] = (tags[tag] or 0) + 1
+  return t
+end
+
+--- Get the tag count.
+function M.getTag(t, tag, tagKey) --> int|nil
+  tagKey = tagKey or 'tag'
+  local tags = t[tagKey]; if not tags then return end
+  if type(tags) == 'string' then
+    return tag == tags and 1 or nil
+  end
+  return tags[tag]
+end
+
+--- Get all keys as a map of tag=count or nil if there are no tags.
+function M.tags(t, tagKey) --> {str=count}?
+  local tags = t[tagKey or 'tag']
+  return type(tags) == 'string' and {[tags]=1} or tags
+end
+
 --- Walk the table up to depth maxDepth (or infinite if nil) [+
 --- * [$fieldFn(key, value, state)    -> stop] is called for every non-table value.
 --- * [$tableFn(key, tblValue, state) -> stop] is called for every table value

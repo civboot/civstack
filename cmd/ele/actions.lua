@@ -41,8 +41,9 @@ function M.keyinput(ed, ev, evsend)
   local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
   else           K.chord, K.event, K.next = {}, nil, nil end
-  push(K.chord, ki)
-  log.info('keyinput %q mode:%s %q', ki, ed.mode, K.chord)
+  local chord = K.chord
+  push(chord, ki)
+  log.info('keyinput %q mode:%s %q', ki, ed.mode, chord)
   local nxt = K.next
   if nxt then
     local getb = type(nxt) == 'table' and mty.getmethod(nxt, 'getBinding')
@@ -56,14 +57,14 @@ function M.keyinput(ed, ev, evsend)
   nxt = nxt or fallback
   local ok, ev
   if type(nxt) == 'table' and not getmetatable(nxt) then
-    log.info(' + keyinput plain ev %q (%q)', K.chord, nxt)
+    log.info(' + keyinput plain ev %q (%q)', chord, nxt)
     ok, ev = true, ds.copy(K.event or {}, nxt)
   elseif callable(nxt) then
-    log.info(' + keyinput calling %q (%q)', K.chord, nxt)
+    log.info(' + keyinput calling %q (%q)', chord, nxt)
     ok, ev = try(nxt, K)
     if not ok then
       return ed.error('%q (%s) failed: %q',
-                      nxt, concat(K.chord, ' '), ev)
+                      nxt, concat(chord, ' '), ev)
     end
   elseif mty.getmethod(nxt, 'getBinding') then
     K.next, K.keep = nxt, true
@@ -71,10 +72,12 @@ function M.keyinput(ed, ev, evsend)
   else
     K.keep = nil
     fmt.errorf('%q is neither callable, plain table or KeyBindings',
-      K.chord)
+      chord)
   end
   if ev then
-    log.info(' --> %q', ev)
+    log.info(' keyev --> %q', ev)
+    -- FIXME: tag here
+    -- ev.__chord = chord
     evsend:pushLeft(ev)
   end
   err = K:check(ed); if err then
