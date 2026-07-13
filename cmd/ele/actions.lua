@@ -732,4 +732,12 @@ function M.jump(ed, ev)
   end
 end
 
+----------------------------------
+-- MACROS
+function M.again(ed, ev, evsend)
+  assert(ed.mode ~= 'insert')
+  local a = ed.ext.again; assert(a, 'no mutable action stored')
+  evsend(ds.deepcopy(a))
+end
+
 return M

@@ -97,17 +97,32 @@ Test{'insert', dat='', function(tst)
     T.matches('unbound chord: Z', fmt(ed.error[1]))
   ds.clear(ed.error)
 
+  local again = { action='chain', tag='again', {mode='insert'} }
   s:play'i'
     T.eq('insert', ed.mode) -- next mode
     T.eq(nil, ed.ext.keys.next) -- selected in keyinput
+    T.eq(nil, ed.ext.again) -- again not yet started
+    T.eq(again, ed.ext.nextAgain)
   T.eq(log.LogTable{}, ed.error)
 
+  ds.extend(again, {
+    { "9", action="insert", tag='mut' },
+    { " ", action="insert", tag='mut' },
+    { "8", action="insert", tag='mut' },
+  })
   s:play'9 space 8'; ed:draw()
     T.eq('9 8', b.dat[1])
     T.eq(SI..'\n9 8\n\n', fmt(t))
+    T.eq(nil, ed.ext.again) -- still, not stored
+    T.eq(again, ed.ext.nextAgain)
   T.eq(log.LogTable{}, ed.error)
 
-  s:play'space 7 enter 6' -- write ' 7\n6'
+  push(again, {mode='command'})
+  s:play'esc'
+    T.eq(again, ed.ext.again) -- finally stored
+    T.eq(nil, ed.ext.nextAgain)
+
+  s:play'i space 7 enter 6' -- write ' 7\n6'
     T.eq(SI..'\n9 8 7\n6\n', fmt(t))
 
   s:play'esc h r space' -- replace 6 w/space
@@ -478,12 +493,30 @@ Test{'coding', dat=CODE, function(tst)
     T.eq('insert', ed.mode)
     T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.pane.locations)
 
-  s:play'esc g n'; local bt = ed.pane.buf
-    T.ieq({''}, bt.dat)
-    T.eq(locs{'1.1', '3.3'}, ed.pane.locations)
+  -- Test "." aka "again"
+  local again = {
+    action="chain", tag="again",
+    {
+      action="chain", mode="insert", tag='mut',
+      {action="move", cols=1, move="eol" },
+      {"\n", action="insert", tag='mut'},
+      {action="autoIndent", tag='mut'},
+    },
+    {"h", action="insert", tag='mut'},
+    {"i", action="insert", tag='mut'},
+    {mode="command"},
+  }
+  s:play'h i esc'; local bt = ed.pane.buf
+    T.eq(again, ed.ext.again)
+  s:play'.' -- inserts hi\n again
+    T.ieq({"function abc(d)", "  e = d + 1", "  hi", "  hi", "end", ""},
+          bt.dat)
+
+  s:play'g n'
+    T.eq(locs{'1.1', '4.5'}, ed.pane.locations)
 
   s:play'B' -- jump (-1), back to b#4
-    T.eq(locs{'1.1', '3.3', '1.1 b#5', top=1}, ed.pane.locations)
+    T.eq(locs{'1.1', '4.5', '1.1 b#5', top=1}, ed.pane.locations)
 end}
 
 local SPLITV3 = [[

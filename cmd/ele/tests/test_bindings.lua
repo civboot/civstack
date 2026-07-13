@@ -14,8 +14,9 @@ local actions = {
   insert=ds.noop, move=ds.noop, remove=ds.noop, merge=ds.noop,
 }
 
-local function U(ev)  return ds.tag(ev, 'user') end
-local function UM(ev) return ds.tag(ds.tag(ev, 'user'), 'mut') end
+local function Mu(ev) return ds.tag(ev, 'mut')   end
+local function U(ev)  return ds.tag(ev, 'user')  end
+local function UM(ev) return U(Mu(ev))           end
 
 local function events()
   local e = {}; return e, function(v) push(e, v) end
@@ -73,11 +74,12 @@ T'action'; do
 
   -- Insert mode
   local ins = function(str) return {action='insert', str} end
-  d = assertKeys('a', 'insert', false, {U(ins'a')})
+  d = assertKeys('a', 'insert', false, {UM(ins'a')})
     T.eq({'a'}, d.ext.keys.chord)
   d = assertKeys('space a', 'insert', false,
-    {U(ins'a'), U(ins' ')}) -- note: reverse order because pushLeft
+    {UM(ins'a'), UM(ins' ')}) -- note: reverse order because pushLeft
     T.eq({'a'}, d.ext.keys.chord)
+    T.eq(nil, d.ext.again)
 
   -- move
   local move = function(t) t.action = 'move'; return t end
@@ -95,7 +97,7 @@ T'action'; do
   assertKeys('3 d f e', 'command', false,
     { UM(rm{move='find', find='e', times=3}) })
   assertKeys('3 r a',     'command', false, {
-    UM{action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
+    UM{action='chain', Mu(rm{off=0, times=3}), Mu{'a', action='insert', times=3}},
   })
 
 

@@ -131,9 +131,9 @@ M.windowRight = {action='window', moveH=1}
 M.windowClose = {action='window', close=true}
 
 function M.insertChord(keys)
-  return ds.update(keys.event or {}, {
-    M.chordstr(keys.chord), action='insert',
-  })
+  local ev = ds.tag(keys.event or {}, 'mut')
+  ev.action, ev[1] = 'insert', M.chordstr(keys.chord)
+  return ev
 end
 function M.unboundChord(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
@@ -151,12 +151,13 @@ M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
 M.insertBelow = {
   action='chain', mode='insert', tag='mut',
   {action='move', move='eol', cols=1},
-  {action='insert', '\n'},
-  {action='autoIndent'},
+  {action='insert', '\n', tag='mut'},
+  {action='autoIndent', tag='mut'},
 }
 M.insertAbove = {
   action='chain', mode='insert', tag='mut',
-  {action='move', move='sol'},         {action='insert', '\n', autoIndent=true},
+  {action='move', move='sol'}, 
+  {action='insert', '\n', autoIndent=true, tag='mut'},
   {action='move', rows=-1},
 }
 
@@ -221,9 +222,9 @@ M.delkey    = {action='remove', off=0, tag='mut'}
 --- Join next line
 M.join      = {action='chain', tag='mut',
   {action='move', move='eol', cols=1},
-  {action='insert', ' '},
+  {action='insert', ' ', tag='mut'},
   {action='move', move='eol', cols=1},
-  {action='remove', move='nextLineText', cols=-1},
+  {action='remove', move='nextLineText', cols=-1, tag='mut'},
 }
 
 --- delete until a movement command (or similar)
@@ -247,8 +248,11 @@ function M.replace(keySt)
   local ev = keySt.event or {}
   if ev.replace then
     return {action='chain', tag='mut',
-      {action='remove', off=0, times=ev.times},
-      {M.literal(ds.last(keySt.chord)), action='insert', times=ev.times},
+      {action='remove', off=0, times=ev.times, tag='mut'},
+      {
+        action='insert', times=ev.times, tag='mut',
+        M.literal(ds.last(keySt.chord)),
+      },
     }
   end
   ev.replace, ev.tag = 1, 'mut'
@@ -304,6 +308,8 @@ function M.zero(keys) -- special: movement if not after a digit
   ev.action, ev.move = ev.action or 'move', 'sol'
   return ev
 end
+
+M.again = {action='again'}
 
 ---------------------------
 -- Search Buffer
@@ -477,6 +483,7 @@ M.common = {
   y = M.yank, Y = M.yankEol,
   p = M.paste,
   u = M.undo, ['^r'] = M.redo,
+  ['.'] = M.again,
 }
 
 -- times

@@ -1,8 +1,6 @@
 Ele: [+
-* add filter to nav (filter out ^. by default)
 * visual mode
 * commands
-* replay last '.'
 * system: <number> b - go to buffer number
 ]
 
