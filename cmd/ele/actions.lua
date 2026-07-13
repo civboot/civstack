@@ -137,7 +137,16 @@ M.DOMOVE = {
   end,
   backword = function(e, line)
     e.c = e:boundC(e.l,e.c)
-    e.c = motion.backword(line, e.c) or (e.c + 1)
+    e.c = motion.backword(line, e.c) or 1
+  end,
+  endword = function(e, line)
+    e.c = e:boundC(e.l,e.c)
+    local si,ei = motion.getRange(line, e.c)
+    if e.c == ei then
+      e.c = motion.forword(line, e.c+1) or (e.c + 1)
+      si,ei = motion.getRange(line, e.c)
+    end
+    e.c = ei or e.c
   end,
   -- search for character
   find = function(e, line, ev)
@@ -168,7 +177,8 @@ end
 --
 -- set move key to one of:
 --   lines: move set number of lines (set lines = +/- int)
---   forword, backword: go to next/prev word
+--   forword, backword: go to start of next/prev word
+--   endword: go to end of word
 --   sol, eol: go to start/end of line
 --   sot, eot: to to start/end of (non-whitespace) text
 --   sof, eof: to to start/end of file
@@ -403,7 +413,6 @@ local getFocus, getEntry = nav.getFocus, nav.getEntry
 function nav.getArgs(b)
   local ln = b:get(1)
   local strArgs = ln:match'^%%%s*(.*)$'
-  dbg('nav args', strArgs)
   return strArgs and ds.splitList(strArgs) or {}
 end
 
@@ -470,10 +479,8 @@ function nav.findEnd(b, l) --> linenum, maxChildInd
     ind = getEntry(ln); if not ind then return end
     ind = #ind
   end
-  dbg('entryEnd', l, ind)
   if not ind then return end
   local m = ind
-  dbg('entryEnd ind', ind)
   for l=l+1, #b do
     local i = getEntry(b:get(l))
     if not i or #i <= ind then return l-1, m end
@@ -512,17 +519,14 @@ end
 
 function nav.expandEntry(ed, b, l) --> numExpanded
   local line, ind = b:get(l), ''
-  dbg('expandEntry', line)
   if not getFocus(line) then
     ind = getEntry(line); if not ind then return end
   end
   local x, ind = 0, #ind -- x=expandedCount
   local le, maxChildInd = nav.findEnd(b, l)
   le = le or l
-  dbg('* range', l, le)
   if le <= l then
     local entries = ed.navLs(nav.getPath(b, l), nav.getArgs(b))
-    dbg('ls entries', entries)
     if not entries or #entries == 0 then return x end
     x = #entries
     local es = {}; for i, e in ipairs(entries) do

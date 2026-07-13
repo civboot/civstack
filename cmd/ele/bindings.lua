@@ -171,6 +171,7 @@ end
 do local MA = M.moveAction
   M.right,   M.left      = MA{off=1},          MA{off=-1}
   M.forword, M.backword  = MA{move='forword'}, MA{move='backword'}
+  M.endword              = MA{move='endword'}
   M.up                   = MA{move='lines', lines=-1}
   M.down                 = MA{move='lines', lines=1}
   -- start/end of line/text
@@ -446,7 +447,7 @@ M.common = {
   h   =M.left, j   =M.down, k =M.up, l     = M.right,
   left=M.left, down=M.down, up=M.up, right = M.right,
 
-  w=M.forword,   b=M.backword,
+  w=M.forword,   b=M.backword, e=M.endword,
   t=M.till,      T=M.tillback,
   ['^'] = M.sot, ['$'] = M.eol,
 

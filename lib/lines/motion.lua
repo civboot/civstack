@@ -123,13 +123,13 @@ end
 --- get the [$$range[si,ei]]$ of whatever is at [$$s[i]]$.
 function M.getRange(s, i, getKind) --> si,ei
   getKind = getKind or M.wordKind
-  local si, ei = 1, #s; if ei < i then return nil end
+  local si, ei = i,i; if ei < i then return nil end
   local kind = getKind(s:sub(i,i))
   for k = i-1, 1, -1 do
     if kind == getKind(s:sub(k,k)) then si=k
     else break end
   end
-  for k = i+1, ei do
+  for k = i+1, #s do
     if kind == getKind(s:sub(k,k)) then ei=k
     else break end
   end

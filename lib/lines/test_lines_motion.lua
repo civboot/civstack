@@ -77,6 +77,13 @@ T'backword'; do
   T.eq(nil, backword('  bcd', 3))
 end
 
+T'getRange'; do
+  T.eq({1,2},   {getRange('ab cde', 1)})
+  T.eq({1,2},   {getRange('ab cde', 2)})
+  T.eq({3,3},   {getRange('ab cde', 3)})
+  T.eq({4,6},   {getRange('ab cde', 4)})
+end
+
 T'findBack'; do
   T.eq({7, 8},   {findBack('12 45 12 ', '12')})
   T.eq({1, 2},   {findBack('12 45 12 ', '12', 6)})

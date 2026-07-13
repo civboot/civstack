@@ -40,7 +40,7 @@ local lines3 =
 ..'1 3 5 7 9\n'
 
 T'move'; do
-  local d = newEditor(lines3); local e = d.pane
+  local d = newEditor(lines3..'word1 word2\n'); local e = d.pane
   local function assertMove(mv, ev, l, c)
     ev.move = mv; M.move(d, ev)
     T.eq({l, c}, {e.l, e.c})
@@ -57,6 +57,11 @@ T'move'; do
   assertMove('forword',  {times=2}, 1, 7)
   assertMove('backword', {},        1, 5)
   assertMove('forword',  {times=5}, 1, 11)
+
+  -- endword
+  e.l,e.c = 1,1; assertMove('endword', {},  1,3)
+  e.l,e.c = 4,1; assertMove('endword', {},  4,5)
+                 assertMove('endword', {},  4,11)
 
   -- move lines
   e.l, e.c = 1, 9; assertMove('lines', {lines=1}, 2, 9)
