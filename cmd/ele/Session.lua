@@ -23,6 +23,7 @@ local actions = require'ele.actions'
 
 local info = mty.from'ds.log  info'
 local yield = coroutine.yield
+local push = table.insert
 
 -- local FRAME = 0.05
 local FRAME = 0.05
@@ -47,8 +48,8 @@ getmetatable(Session).__call = function(T, s)
   -- Add the again listener
   ed.listeners.again = function(ev)
     if not ds.getTag(ev, 'user') then return end
-    local ext = ed.ext; 
-    if ds.getTag(ev, 'againStart') then
+    local ext = ed.ext
+    if ev.mode == 'insert' or ds.getTag(ev, 'againStart') then
       ext.nextAgain = {action='chain', ds.deepcopy(ev), tag='again'}
       return
     end
@@ -58,7 +59,7 @@ getmetatable(Session).__call = function(T, s)
     ev = ds.deepcopy(ev)
     if n then
       push(n, ev)
-      if ds.getTag(ev, 'againEnd') then
+      if (ev.mode and ev.mode ~= 'insert') or ds.getTag(ev, 'againEnd') then
         -- Use chain as again if any are mut.
         -- TODO: should proabaly recurse action=chain
         for _, ne in ipairs(n) do

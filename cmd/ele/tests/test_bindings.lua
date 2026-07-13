@@ -14,7 +14,8 @@ local actions = {
   insert=ds.noop, move=ds.noop, remove=ds.noop, merge=ds.noop,
 }
 
-local function U(ev) return ds.tag(ev, 'user') end
+local function U(ev)  return ds.tag(ev, 'user') end
+local function UM(ev) return ds.tag(ds.tag(ev, 'user'), 'mut') end
 
 local function events()
   local e = {}; return e, function(v) push(e, v) end
@@ -88,30 +89,30 @@ T'action'; do
 
   -- remove
   local rm = function(t) t.action = 'remove'; return t end
-  assertKeys('d l',     'command', false, { U(rm{off=1}) } )
-  assertKeys('5 d l',   'command', false, { U(rm{off=1,  times=5}) })
-  assertKeys('3 d d',   'command', false, { U(rm{lines=0, times=3}) })
+  assertKeys('d l',     'command', false, { UM(rm{off=1}) } )
+  assertKeys('5 d l',   'command', false, { UM(rm{off=1,  times=5}) })
+  assertKeys('3 d d',   'command', false, { UM(rm{lines=0, times=3}) })
   assertKeys('3 d f e', 'command', false,
-    { U(rm{move='find', find='e', times=3}) })
+    { UM(rm{move='find', find='e', times=3}) })
   assertKeys('3 r a',     'command', false, {
-    U{action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
+    UM{action='chain', rm{off=0, times=3}, {'a', action='insert', times=3}},
   })
 
 
   local ch = function(t) t.mode='insert'; return rm(t) end
-  d = assertKeys('3 c l', 'command', false, { U(ch{off=1, times=3}) })
-  d = assertKeys('c c',   'command', false, { U(ch{lines=0}) })
+  d = assertKeys('3 c l', 'command', false, { UM(ch{off=1, times=3}) })
+  d = assertKeys('c c',   'command', false, { UM(ch{lines=0}) })
 
-  d = assertKeys('x',     'command', false, { U(rm{off=0}) })
-  d = assertKeys('3 x',   'command', false, { U(rm{off=0, times=3}) })
+  d = assertKeys('x',     'command', false, { UM(rm{off=0}) })
+  d = assertKeys('3 x',   'command', false, { UM(rm{off=0, times=3}) })
 
   -- find
   assertKeys('f x',       'command', false,
     { U(move{find='x', move='find'}) })
   assertKeys('1 0 d f x', 'command', false,
-    {  U(rm{find='x', move='find', times=10}) })
+    {  UM(rm{find='x', move='find', times=10}) })
   assertKeys('1 0 d t x', 'command', false,
-    {  U(rm{find='x', move='find', times=10, cols=-1}) })
+    {  UM(rm{find='x', move='find', times=10, cols=-1}) })
 
   -- Event
   assertKeys('I', 'command', false, { U(move{move='sot', mode='insert'}) })

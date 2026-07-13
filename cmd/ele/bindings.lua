@@ -143,19 +143,19 @@ M.commandMode = {mode='command'}
 M.insertMode  = {mode='insert'}
 M.systemMode  = {mode='system'}
 
-M.insertTab   = {action='insertTab'}
-M.insertEnter = {'\n', action='insert'}
+M.insertTab   = {action='insertTab', tag='mut'}
+M.insertEnter = {'\n', action='insert', tag='mut'}
 M.insertsot   = {mode='insert', action='move', move='sot'}
 M.inserteol   = {mode='insert', action='move', move='eol', cols=1}
 
 M.insertBelow = {
-  action='chain', mode='insert',
+  action='chain', mode='insert', tag='mut',
   {action='move', move='eol', cols=1},
   {action='insert', '\n'},
   {action='autoIndent'},
 }
 M.insertAbove = {
-  action='chain', mode='insert',
+  action='chain', mode='insert', tag='mut',
   {action='move', move='sol'},         {action='insert', '\n', autoIndent=true},
   {action='move', rows=-1},
 }
@@ -215,11 +215,11 @@ function M.tillback(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
-M.backspace = {action='backspace'}
-M.delkey    = {action='remove', off=0}
+M.backspace = {action='backspace', tag='mut'}
+M.delkey    = {action='remove', off=0, tag='mut'}
 
 --- Join next line
-M.join      = {action='chain',
+M.join      = {action='chain', tag='mut',
   {action='move', move='eol', cols=1},
   {action='insert', ' '},
   {action='move', move='eol', cols=1},
@@ -233,25 +233,25 @@ function M.delete(keySt)
     ev.lines = 0
     return ev
   end
-  ev.action = 'remove'
+  ev.action, ev.tag = 'remove', 'mut'
   keySt.keep = true
 end
 function M.deleteEol(keySt)
   M.delete(keySt)
   local ev = ds.popk(keySt, 'event')
-  ev.move, keySt.keep = 'eol', nil
+  ev.move, ev.tag, keySt.keep = 'eol', 'mut', nil
   return ev
 end
 
 function M.replace(keySt)
   local ev = keySt.event or {}
   if ev.replace then
-    return {action='chain',
+    return {action='chain', tag='mut',
       {action='remove', off=0, times=ev.times},
       {M.literal(ds.last(keySt.chord)), action='insert', times=ev.times},
     }
   end
-  ev.replace = 1
+  ev.replace, ev.tag = 1, 'mut'
   keySt.event, keySt.next, keySt.keep = ev, M.replace, true
 end
 
@@ -265,6 +265,7 @@ function M.changeEol(keySt, evsend)
   M.delete(keySt)
   local ev = ds.popk(keySt, 'event')
   ev.move, ev.mode, keySt.keep = 'eol', 'insert', nil
+  ev.tag = 'mut'
   return ev
 end
 
@@ -287,7 +288,7 @@ end
 function M.paste(keySt)
   -- TODO: allow P to 'walk up' the indexes.
   --   see M.searchBuf for how.
-  return {action='paste', index=1}
+  return {action='paste', index=1, tag='mut'}
 end
 
 --- used for setting the number of times to do an action.
