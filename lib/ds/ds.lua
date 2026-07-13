@@ -772,6 +772,21 @@ function M.tag(t, tag, tagKey) --> t
   return t
 end
 
+--- Remove tag from t.
+--- TODO: downgrade if only one tag remains of count=1.
+function M.rmTag(t, tag, tagKey) --> t
+  tagKey = tagKey or 'tag'
+  local tags = t[tagKey]; if not tags then return t end
+  if type(tags) == 'string' then t[tagKey] = nil
+  else
+    tags[tag] = nil
+    -- downgrade if only one tag remains of count=1
+    local ot, oc = next(tags)
+    if oc == 1 and next(tags, ot) == nil then t[tagKey] = ot end
+  end
+  return t
+end
+
 --- Get the tag count.
 function M.getTag(t, tag, tagKey) --> int|nil
   tagKey = tagKey or 'tag'

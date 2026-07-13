@@ -47,16 +47,19 @@ getmetatable(Session).__call = function(T, s)
   ed:focus(ed:buffer())
   -- Add the again listener
   ed.listeners.again = function(ev)
+    dbg('again: ', ev)
     if not ds.getTag(ev, 'user') then return end
     local ext = ed.ext
     if ev.mode == 'insert' or ds.getTag(ev, 'againStart') then
-      ext.nextAgain = {action='chain', ds.deepcopy(ev), tag='again'}
+      ext.nextAgain = {action='chain', tag='again',
+        ds.rmTag(ds.deepcopy(ev), 'user'),
+      }
       return
     end
     local n = ext.nextAgain
     -- only push if mut or mid-chain
     if not (n or ds.getTag(ev, 'mut')) then return end
-    ev = ds.deepcopy(ev)
+    ev = ds.rmTag(ds.deepcopy(ev), 'user')
     if n then
       push(n, ev)
       if (ev.mode and ev.mode ~= 'insert') or ds.getTag(ev, 'againEnd') then

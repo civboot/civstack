@@ -478,7 +478,21 @@ Test{'coding', dat=CODE, function(tst)
     T.eq('insert', ed.mode)
     T.eq(locs{'1.1', '2.1', '4.1', top=1}, ed.pane.locations)
 
-  s:play'esc g n'; local bt = ed.pane.buf
+  local again = {
+    action="chain", tag="again",
+    {
+      action="chain", mode="insert", tag='mut',
+      {action="move", cols=1, move="eol" },
+      {"\n", action="insert"},
+      {action="autoIndent"},
+    },
+    {"h", action="insert"},
+    {"i", action="insert"},
+    {mode="command"},
+  }
+  s:play'h i esc g n'; local bt = ed.pane.buf
+    T.eq(again, ed.ext.again)
+    ds.yeet'ok'
     T.ieq({''}, bt.dat)
     T.eq(locs{'1.1', '3.3'}, ed.pane.locations)
 

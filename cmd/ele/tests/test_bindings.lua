@@ -78,6 +78,7 @@ T'action'; do
   d = assertKeys('space a', 'insert', false,
     {U(ins'a'), U(ins' ')}) -- note: reverse order because pushLeft
     T.eq({'a'}, d.ext.keys.chord)
+    T.eq(nil, d.ext.again)
 
   -- move
   local move = function(t) t.action = 'move'; return t end
