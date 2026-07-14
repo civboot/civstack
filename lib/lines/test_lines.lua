@@ -137,8 +137,6 @@ T'Gap.set'; do
 end
 
 T'Gap.inset'; do
-  -- FIXME: Gap actually passes testInset lol. Need to
-  --   assert inputs are strings.
   require'ds.testing'.testInsetStr(Gap)
 end
 

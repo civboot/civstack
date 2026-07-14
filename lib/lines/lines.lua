@@ -64,7 +64,6 @@ local bound = M.bound
 function M.boundSpan(t, l,c, l2,c2, tlen)
   tlen = tlen or #t
   local l,c, l2,c2 = span(l,c, l2,c2)
-  assert(c and c2) -- FIXME: remove
   l,c   = bound(t, l,c, tlen)
   if l2 > #t then l2,c2 = tlen+1, 0 end
   if c2 > #(get(t,l2) or '') then l2,c2 = l2+1,0 end
@@ -150,7 +149,6 @@ end
 
 --- Get the [$l, c] with the +/- offset applied
 function M.offset(t, off, l,c) --> l2,c2
-  -- FIXME: bound l/c correctly.
   local len, off2, llen, ln = #t
   l,c = bound(t, l,c, len)
   if off > 0 then ::loopGt::

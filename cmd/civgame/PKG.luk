@@ -16,6 +16,7 @@ P.civgame = lua {
   dep = {
     'civ:cmd/ele',
     'civ:cmd/civgame#data',
+    'civ:lib',
   },
   link = {['lua/civgame.lua'] = 'bin/civgame'},
 }

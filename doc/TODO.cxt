@@ -7,6 +7,8 @@ Ele: [+
 ]
 
 TODO: [+
+* preserve executable bit on save.
+* ele: open nav+buffers if all windows get closed.
 * Throw error if you find PKG.lua
 * cxt [{$}$] doesn't render in html correctly.
 * fd.lines() doesn't work in lua 5.5

@@ -99,7 +99,7 @@ T'File'; do
 
   local dat = {'one', 'two', 'three'}
   ds.extend(f, dat)
-    -- FIXME: sometimes this has length 102 (!!)
+    -- TODO: sometimes this has length 102 (!!)
     T.eq({0, 4, 8}, ds.icopy(f.idx))
     T.eq('one',   f:get(1))
     T.eq('three', f:get(3))
@@ -122,7 +122,7 @@ T'File'; do
 
   f = File{TXT, mode='w+'}
   f:write'line 1\nline 2\nline 3'; f:flush()
-  -- FIXME: for some reason this sometimes has a HUGE number of indexes.
+  -- TODO: for some reason this sometimes has a HUGE number of indexes.
   -- ... are these tests running concurrently and I'm actually seeing
   -- the result of that?
   T.eq({0, 7, 14}, ds.icopy(f.idx))
@@ -250,7 +250,7 @@ end
 T'EdFile_big'; do
   local ed = EdFile(TXT, 'w+')
   for i=1,100 do ed:set(#ed+1, 'line '..i) end
-  -- FIXME: sometimes this reports 200 (ioAsync)
+  -- TODO: sometimes this reports 200 (ioAsync)
   T.eq(100, #ed)
 
   T.eq(ed:get(3), 'line 3')
@@ -300,7 +300,7 @@ local fd = require'fd'
 fd.ioSync(); T.SUBNAME = '[ioSync]'
 fin = false; tests(); assert(fin)
 
--- FIXME: 
+-- TODO: file async not working.
 -- T.SUBNAME = '[ioAsync]'
 -- fin=false; require'civix.testing'.runAsyncTest(tests); assert(fin)
 
