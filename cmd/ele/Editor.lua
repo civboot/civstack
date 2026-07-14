@@ -272,7 +272,9 @@ end
 --- Focus the first edit view in container c (default self.view)
 function Editor:focusFirst(c)
   c = c or self.view
-  while not et.isPane(c) do c = c[1] end
+  while c and not et.isPane(c) do c = c[1] end
+  if not c then -- there are no panes
+  end
   assert(et.isPane(c))
   self.pane = c
   if not self.view then self.view = c end
@@ -340,10 +342,12 @@ function Editor:loadState(st) --> self
     local buf = self:_buffer(b.id, b.path)
     buf.name = b.name
   end
-  self.view.container = nil; self.view:close(self)
-  self.view = st.view:load(self)
-  self.view.container = self
-  self:focusFirst()
+  if st.view then
+    self.view.container = nil; self.view:close(self)
+    self.view = assert(st.view:load(self))
+    self.view.container = self
+    self:focusFirst()
+  end
   ds.walk(self.view, nil, function(key, p)
     dbg('walking', key)
     if type(key) ~= 'number' then return ds.SKIP end
