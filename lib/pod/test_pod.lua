@@ -48,7 +48,7 @@ T'toPod'; do
   -- type with a map
   test.M = pod(mty'M'{
     's [str] #1',
-    'm {key: builtin} #2',
+    'm {key: prim} #2',
   })
   podRound(test.M, {
     s='test string',

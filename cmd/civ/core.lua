@@ -107,7 +107,7 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'kind [str]: the kind of target: build, test, executable',
   'dir [str]: directory of src files',
   'src {key: str}: list of input source files (strings).',
-  'extra [builtin]: arbitrary value, used by run command',
+  'extra [prim]: arbitrary value, used by run command',
   'dep {str}: list of input Target objects (dependencies).',
   'api [table]: the lang-specific exported import paths.',
  [[out [table]: POD table output segregated by language.[+

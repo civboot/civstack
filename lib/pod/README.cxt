@@ -53,7 +53,7 @@ function MyT.__fromPod(T, pod, p) ... end   --> value
 ]$
 Where:[+
 * [$value] is the value (instance of T).
-* [$p] is a builtin plain-old-data (concrete)
+* [$p] is a primitive plain-old-data (concrete)
 * [$T] will equal [$MyT]
 ]
 
@@ -103,4 +103,3 @@ At this time, support for other languages has not started -- but the design of
 pod is meant to mimick protobuf as much as possible so that such a goal can be
 met in the future. Work on supporting multiple languages will likely not be
 part of the civstack project but the civstack project will support such work.
-

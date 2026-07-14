@@ -14,10 +14,6 @@ local assertf = mty.from'fmt  assertf'
 local CONCRETE, BUILTIN = mty.CONCRETE, mty.BUILTIN
 local ty = mty.ty
 
--- FIXME: remove
-M.isConcrete = mty.isConcrete
-M.isBuiltin = mty.isBuiltin
-
 local lib, ser, deser
 if not G.NOLIB then
   lib = require'pod.lib'
@@ -51,7 +47,7 @@ local function _isPrim(v, isPrimFn) --> isPrim, notPrimV
 end
 
 local isPrim
---- return true if the value is primitive "plain old data" that can be decrypted
+--- Return true if the value is primitive "plain old data" that can be decrypted
 --- without type information.
 ---
 --- A primitive is defined as a concrete type (bool, num, string) or a
@@ -131,11 +127,11 @@ M.key.__fromPod = M.key.__toPod
 BUILTIN_PODDER.key = M.key
 
 --- Handles all primitive types (nil, boolean, number, string, table)
-M.builtin = mty'builtin' {}; local builtin = M.builtin
+M.prim = mty'prim' {}; local prim = M.prim
 
-assert(PKG_LOOKUP['pod.builtin'] == M.builtin)
+assert(PKG_LOOKUP['pod.prim'] == M.prim)
 
-function builtin:__toPod(pod, v)
+function prim:__toPod(pod, v)
   local ty = type(v)
   if ty == 'table' then
     assert(isPrim(v, pod.mtPodFn), 'table is not plain-old-data')
@@ -143,11 +139,11 @@ function builtin:__toPod(pod, v)
   elseif BUILTIN[ty]   then return v end
   error('nonprimitive type: '..type(v))
 end
-function builtin:__fromPod(pod, v)
+function prim:__fromPod(pod, v)
   if BUILTIN[type(v)] then return v end
-  error('nonbuiltin type: '..type(v))
+  error('nonprimitive type: '..type(v))
 end
-BUILTIN_PODDER.builtin = builtin
+BUILTIN_PODDER.prim = prim
 
 --- Poder for a list of items with a type.
 --- Note that this defines the mechanism to decrypt a list, you should not
@@ -199,7 +195,7 @@ function M.toPod(v, podder, pod)
   return podder:__toPod(pod or Pod.DEFAULT, v)
 end
 function M.fromPod(v, poder, pod)
-  return (poder or builtin):__fromPod(pod or Pod.DEFAULT, v)
+  return (poder or prim):__fromPod(pod or Pod.DEFAULT, v)
 end
 local toPod, fromPod = M.toPod, M.fromPod
 

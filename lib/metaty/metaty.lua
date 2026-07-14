@@ -123,8 +123,8 @@ end
 M.CONCRETE, M.BUILTIN = CONCRETE, BUILTIN
 --- Return whether v is a nil, boolean, number or string.
 function M.isConcrete(v) return CONCRETE[type(v)] end
---- Return whether v is concrete or a table with no metatable.
-function M.isBuiltin(obj)
+--- Return whether v is a primitive value, aka concrete or a table with no metatable.
+function M.isPrim(obj)
   return M.isConcrete(obj) or (obj == nil) or (getmetatable(obj) == nil)
 end
 
@@ -234,7 +234,7 @@ end
 --- Extract name,loc from any value (typically mod/type/function).
 function M.anyinfo(v) --> name, loc
   if type(v) == 'function' then return M.fninfo(v) end
-  if M.isBuiltin(v)        then return type(v), nil end
+  if M.isPrim(v)           then return type(v), nil end
   local name, loc = PKG_NAMES[v], PKG_LOC[v]
   name = name or M.name(v)
   if loc and loc:find'%[' then loc = nil end

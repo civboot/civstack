@@ -82,7 +82,7 @@ M.A = pod(mty'A'{
 -- type with an embedded map
 M.M = pod(mty'M'{
   's [str] #1',
-  'm {key: builtin} #2',
+  'm {key: prim} #2',
 })
 
 -- type with inner types (including recursive)
