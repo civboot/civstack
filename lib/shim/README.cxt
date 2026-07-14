@@ -14,17 +14,18 @@ local mycmd = shim.cmd'mycmd' {
     arg = 'default-value',
 }
 
---- Constructor
+--- Optionally overload the constructor
 function mycmd.new(T, t)
   -- do validation and construct the raw type.
   return shim.constructNew(T, t)
 end
 
+--- Overload what to do when executing cmd.
 function mycmd:__call()
   -- do whatever the command is, using its fields.
 end
 
--- ... nomral lua module
+--- Add functions/etc like a normal lua module.
 function mycmd.someFunction() ... end
 
 if shim.isMain(mycmd) then mycmd:main(arg) end

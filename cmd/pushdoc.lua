@@ -1,18 +1,26 @@
 #!/usr/bin/env -S lua
-local mty = require'metaty'
+local shim = require'shim'
 
 --- Small script to build and push docs from civ.
 --- Eventually some of this logic may be moved to the doc.lua library.
 --- For now, this is effectively a builtin-build step.
-local M = mty.mod'pushdoc'
-local G = mty.G; G.MAIN = G.MAIN or M
+local M =  shim.cmd'pushdoc' {
+  __cmd = 'pushdoc',
+  'readme [string]: main README.cxt',
+    readme='README.cxt',
+  'pat [string]: documentation pattern to push.', 
+    pat={'civ:.#doc_.'},
+  'config [string]: path to civ.core.Config',
+  'dir [string]: output directory',
+  'clean [bool]', clean = false,
+}
 
-local shim = require'shim'
+local core = require'civ.core'
+local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
 local info = require'ds.log'.info
 local ix = require'civix'
-local core = require'civ.core'
 local civ = require'civ'
 local cxt = require'cxt'
 local doc = require'doc'
@@ -20,17 +28,7 @@ local doc = require'doc'
 local sfmt = string.format
 local push = ds.push
 
-M.Main = mty'Main' {
-  __cmd = 'pushdoc',
-  'main [string]: main README.cxt',
-    main='README.cxt',
-  'pat [string]: documentation pattern to push.', 
-    pat={'civ:.#doc_.'},
-  'config [string]: path to civ.core.Config',
-    config = core.DEFAULT_CONFIG,
-  'dir [string]: output directory',
-  'clean [bool]', clean = false,
-}
+M.config = core.DEFAULT_CONFIG
 
 local HEAD = [[
 <head>
@@ -65,8 +63,9 @@ local function export(cxtFile, htmlFile, header)
   return cxt.html { cxtFile, to=to }
 end
 
-function M.Main:__call()
+function M:__call()
   local D = pth.abs(pth.toDir(self.dir))
+  io.fmt:write('pushdoc to ', D, '\n')
   local luaDir = D..'lua/'
   self.pat = shim.list(self.pat)
   ix.mkDirs(luaDir)
@@ -95,14 +94,12 @@ function M.Main:__call()
   end
   f:write']\n'; f:flush(); f:close()
   export(indexPath, luaDir..'index.html', header)
-  if self.main then
-    export(self.main, D..'index.html',
+  if self.readme then
+    export(self.readme, D..'index.html',
            HEAD:format('styles.css')..ROOT_NAV)
   end
 end
 
-if M == MAIN then return ds.main(shim.run, M.Main, shim.parse(arg)) end
-getmetatable(M).__call = function(_, args)
-  return M.Main(shim.parseStr(args))()
-end
-return P
+print('@@ pushdoc', shim.isMain(M))
+if shim.isMain(M) then M:main(G.arg) end
+return M

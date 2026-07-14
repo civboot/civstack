@@ -206,18 +206,6 @@ function M.constructNew(Cmd, args) --> ok, err?
   return mty.construct(Cmd, args)
 end
 
---- FIXME delete
-function M.init(Cmd, args)
-  local a, err = M.construct(Cmd, args)
-  M.runSetup(a or {})
-  return assert(a, err)
-end
-
--- FIXME delete
-function M.run(Args, args)
-  return M.init(Args, args)()
-end
-
 --- Return whether a record was created with [@shim.cmd]
 function M.isCmd(R)
   return type(R) == 'table' and rawget(R, '__cmd') and true
@@ -311,7 +299,7 @@ end
 function M.subcmds(name)
   return function(R)
     R.__doc = R.__doc or M._subsdoc
-    R.subcmd = true  -- FIXME: rename?
+    R.subcmd = true
     namedCmd(name, R)
     mod.save(name, R)
     return R
