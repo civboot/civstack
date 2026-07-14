@@ -207,9 +207,7 @@ end
 --- They are sorted to put the directories first.
 function M.ls(dir) --> list[str]
   dir = pth.abs(dir)
-  dbg('ls', dir)
   if not M.isDir(dir) then return end
-  dbg'* is dir'
   local d, f = {}, {} -- dirs, files
   for e, ftype in M.dir(dir) do
     if ftype == 'dir' then push(d, pth.toDir(e))

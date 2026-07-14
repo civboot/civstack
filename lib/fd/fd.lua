@@ -310,7 +310,6 @@ function M.read(...)
   return inp:read(...)
 end
 function M.lines(path, mode)
-  dbg('fd.lines', path, mode)
   mode = mode or 'l'
   if not path then return M.input():lines(mode) end
   local fd = M.open(path)

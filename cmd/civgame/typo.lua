@@ -178,7 +178,6 @@ end
 ---
 --- This uses Typo's current multipliers and miss count.
 function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
-  dbg('updateMult', txt, elapsedMs, expectedMs)
   local status, fast, great = {}, self.fast, self.great
   local fastMult = M.Mult{name='speed is fast'}
   if elapsedMs <= (expectedMs // 2) then
@@ -205,16 +204,12 @@ function M.Typo:updateMult(txt, elapsedMs, expectedMs) --> float, {Mult}
     great, greatMult.name = max(0, great - 500), 'missed a few!'
   end
   if self.great ~= great then
-    dbg('great', great, great - self.great)
     ds.update(greatMult, {mult=great, change=great - self.great})
-    dbg('greatMult', greatMult)
     self.great = great
     push(status, greatMult)
   end
 
   -- Compute final multiplier
-  dbg('great&fast', great, fast)
-  dbg('elapsed', elapsedMs, 'expected', expectedMs)
   local mult = min(4000, 1000 + great + fast)
   if elapsedMs > expectedMs then
     mult = -min(2000, int(1000 * (elapsedMs - expectedMs) / expectedMs))
@@ -235,9 +230,7 @@ end
 function M.Typo:draw(ed, isRight)
   -- FIXME: score should be a bar that "fills up" to gain levels.
   local h,w = self.th, self.tw
-  dbg('th,tw', h,w)
   local d = ed.display
-  dbg('dh,dw', d.h,d.w)
 
   ds.clear(self.sprites)
   local title = M.TUTORIAL.title
@@ -252,7 +245,6 @@ function M.Typo:draw(ed, isRight)
   local l = h-5
   local st = self.status
   for s=st.right,st.left,-1 do
-    dbg('status[s]', s, l, #self.status)
     local sp = self.status[s]
     sp.l,sp.c = l,5; push(self.sprites, sp)
     l = l - 1
@@ -358,7 +350,6 @@ function M.Typo:keyinput(ed, ev)
   local elapsed, expected = elapsed:asMs(), 200 + self:expectedTimeMs(score)
   local mult, changes = self:updateMult(u, elapsed, expected)
   score = int((score * mult / 1000) - (self.miss * self:missCost()))
-  dbg('score', score, mult, self.miss, self:missCost())
   local scoreTxt = sfmt('%s%s score (%s missed, time %.1f/%.1f)',
                         score>=0 and '+' or '', score, self.miss,
                         elapsed/1000, expected/1000)

@@ -100,6 +100,5 @@ function M:__call()
   end
 end
 
-print('@@ pushdoc', shim.isMain(M))
 if shim.isMain(M) then M:main(G.arg) end
 return M

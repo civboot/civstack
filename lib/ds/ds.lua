@@ -506,9 +506,7 @@ end
 local igetnext = M.igetnext
 
 --- ipairs using [$t:get(i)] instead of [$$t[i]]$
-function M.igetpairs(t)
-  dbg('igetpairs', t)
-  return igetnext, t, 0 end
+function M.igetpairs(t) return igetnext, t, 0 end
 
 --- ipairs reversed
 function M.ireverse(t) return M.iprev, t, #t + 1 end --> iter

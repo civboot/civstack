@@ -60,7 +60,6 @@ local Editor = mty'Editor' {
   'navLs [callable(path) -> iter[entry]]: ls used for nav',
     navLs = function(path, args)
       path = pth.canonical(pth.toDir(path))
-      dbg('navLs ', path)
       push(args, 'r:'..path)
       assert(not (args.mut or args.sub or args.pathsub),
         'attempt to use subsitution for ls')
@@ -349,7 +348,6 @@ function Editor:loadState(st) --> self
     self:focusFirst()
   end
   ds.walk(self.view, nil, function(key, p)
-    dbg('walking', key)
     if type(key) ~= 'number' then return ds.SKIP end
     if rawget(p, 'id') == st.pane then
       self:focus(p); return true -- stop
