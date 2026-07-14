@@ -8,7 +8,7 @@ local mty = require'metaty'
 local ds = require'ds'
 local push, pop = table.insert, table.remove
 local sfmt = string.format
-local update = table.update
+local update, tconcat = table.update, table.concat
 
 local extend, splitList = ds.extend, ds.splitList
 local clear             = ds.clear
@@ -62,11 +62,9 @@ function M.pathenv(var, alt)
   return d
 end
 
--- FIXME: stop setting dir here.
 --- get the current working directory
 function M.cwd(dir) --> /...cwd/
-  if dir then return M.cd(dir)
-  else        return M.pathenv('PWD', 'CD') end
+  return M.pathenv('PWD', 'CD')
 end
 
 --- Get path to data in $DATA_PATH
@@ -89,14 +87,18 @@ function M.home() return M.pathenv('HOME', 'HOMEDIR') end
 --- join a table of path components
 function M.concat(t, _) --> string
   assert(not _, 'usage: concat{...}')
-  if #t == 0 then return '' end
-  local root = (t[1]:sub(1,1)=='/') and '/' or ''
-  local dir  = (t[#t]:sub(-1)=='/') and '/' or ''
+  local ri = 1; while t[ri] == '' do ri = ri + 1 end
+  if #t < ri then return '' end
+  local last = t[#t]
+  local root = (t[ri]:sub(1,1) == '/')
+  local dir  = (last:sub(-1)   == '/')
+  if root and dir and (#t-ri<=1) and last == '/' then return '/' end
   local out = {}
-  for i, p in ipairs(t) do
+  for i=ri,#t do local p = t[i]
     p = string.match(p, '^/*(.-)/*$')
     if p ~= '' then push(out, p) end
-  end; return root..table.concat(out, '/')..dir
+  end
+  return (root and '/' or '')..tconcat(out, '/')..(dir and '/' or '')
 end
 
 --- return whether a path has any '..' components

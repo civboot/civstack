@@ -47,15 +47,13 @@ local D = ds.srcdir()
 -- ds.lua
 
 T'loc'; do
-  -- FIXME
-  -- T.eq('lib/tests/test_ds.lua:3', loc1)
-  -- T.eq('ds/test_ds.lua:3', loc2)
-
-  -- T.eq(   'lib/tests/',          M.srcdir())
-  -- local function fn()
-  --    T.eq(   'lib/tests/',          M.srcdir())
-  --    T.eq(   'lib/tests/',          M.srcdir(1))
-  -- end; fn()
+  T.matches('.*lib/ds/test_ds.lua:3', loc1)
+  T.eq('ds/test_ds.lua:3', loc2)
+  T.matches(  '.*lib/ds/',          M.srcdir())
+  local function fn()
+    T.matches('.*lib/ds/',          M.srcdir())
+    T.matches('.*lib/ds/',          M.srcdir(1))
+  end; fn()
 end
 
 T'simplestr'; do
@@ -464,10 +462,14 @@ T'ds_path'; do
   T.eq('/foo/bar',  pc{'/foo/', 'bar'})
   T.eq('/foo/bar/', pc{'/foo/', 'bar/'})
   T.eq('',          pc{''})
+  T.eq('/',         pc{'', '/'})
   T.eq('foo',       pc{'', 'foo'})
   T.eq('foo',       pc{'foo', ''})
   T.eq('a/b',       pc{'a', '', 'b'})
   T.eq('a/b',       pc{'a/', '', 'b'})
+  T.eq('/',         pc{'/'})
+  T.eq('/foo/bar/', pc{'//', '/foo//', '/bar', '/'})
+  T.eq('/foo/bar/', pc{'', '/foo/', 'bar', '/'})
 
   local pr = pth.resolve
   T.eq('/.a',      pr('/.a'))
@@ -477,9 +479,9 @@ T'ds_path'; do
   T.eq('a/',       pr'a/b/..')
   T.eq('b',        pr'a/../b')
   T.eq('b/',       pr'a/../b/')
-  T.eq('/a/b/', pr('..',       '/a/b/c/'))
-  T.eq('/a/d/', pr('../../d/', '/a/b/c/'))
-  T.eq('//',       pr('/a/..')) -- FIXME
+  T.eq('/a/b/',    pr('..',       '/a/b/c/'))
+  T.eq('/a/d/',    pr('../../d/', '/a/b/c/'))
+  T.eq('/',        pr('/a/..'))
   T.eq('',         pr('a/..'))
   T.throws('before root', function() pr('/..')    end)
   T.throws('before root', function() pr('/../..') end)

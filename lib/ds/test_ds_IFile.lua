@@ -13,7 +13,6 @@ local function generalTest()
 -- Note: most test coverage is in things that
 -- use IFile (i.e. U3File).
 T'IFile'; do
-  if G.LAP_ASYNC then return 'FIXME: IFile async' end
   local fi = IFile:create(1)
   fi:set(1, 'a'); fi:set(2, 'b'); fi:set(3, 'c')
   T.eq(3, #fi)
