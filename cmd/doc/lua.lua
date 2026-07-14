@@ -9,7 +9,7 @@ doc module requires global `mod` function/class, such as one of:
 See lib/pkg/README.md for details
 https://github.com/civboot/civstack/tree/main/lib/pkg
 
-Note: also requires PKG_LOC and PKG_NAMES globals to be defined.
+Note: also requires MOD_LOC and MOD_NAMES globals to be defined.
 ]]
 
 local M = mod and mod'doc.lua' or error(ERROR)
@@ -523,7 +523,7 @@ for k, v in pairs(undocumented'math') do M[k] = v end
 ---
 --- See also: [@metaty.split] is a more complex example.
 M['for'] = function() end
-PKG_LOOKUP['for'] = M['for']
+MOD_LOOKUP['for'] = M['for']
 
 --- [$local x = (expression)]
 ---
@@ -536,30 +536,30 @@ PKG_LOOKUP['for'] = M['for']
 ---   is the best solution.
 --- ]
 M['local'] = M.keyword()
-PKG_LOOKUP['local'] = M['local']
+MOD_LOOKUP['local'] = M['local']
 
 -- boolean [$true] value
 M['true'] = M.keyword()
-PKG_LOOKUP['true'] = M['true']
+MOD_LOOKUP['true'] = M['true']
 
 -- boolean [$false] value
 M['false'] = M.keyword()
-PKG_LOOKUP['false'] = M['false']
+MOD_LOOKUP['false'] = M['false']
 
 --- [$nil] value, the the absense of a value. Used for: [+
 ---   * a variable is not set or has been set to [$nil]
 ---   * a table key is not set or has been set to [$nil]
 --- ]
 M['nil'] = M.keyword()
-PKG_LOOKUP['nil'] = M['nil']
+MOD_LOOKUP['nil'] = M['nil']
 
--- store items in this module in PKG_* variables
+-- store items in this module in MOD_* variables
 for k, obj in pairs(M) do
-  local name = PKG_NAMES[obj]
+  local name = MOD_NAMES[obj]
   if name then
     local newname = name:sub(9) -- remove "doc.lua."
-    PKG_NAMES[obj] = newname
-    PKG_LOOKUP[name] = nil; PKG_LOOKUP[newname] = obj
+    MOD_NAMES[obj] = newname
+    MOD_LOOKUP[name] = nil; MOD_LOOKUP[newname] = obj
   end
 end
 

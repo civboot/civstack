@@ -17,7 +17,7 @@ M.Job = mty.enum'Job' { BOSS = 1, PEON = 2 }
 --- This implements __toPod and __fromPod for the metaty record.
 M.Worker = pod(mty'Worker' {
   'name [string] #1',    -- must specify type and #id
-  'job  [mymod.Job] #2', -- can lookup any type in PKG_LOOKUP
+  'job  [mymod.Job] #2', -- can lookup any type in MOD_LOOKUP
   'salary [int] #3',
   'schedule {int: mymod.Schedule} #4', -- map of weekday[1,7] -> scheduled time
 })

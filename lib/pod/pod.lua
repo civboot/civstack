@@ -70,7 +70,7 @@ function M.isPodder(P) --> isPodder, whyNot?
   if not mty.callable(P.__toPod) and mty.callable(P.__fromPod) then
     return false, 'must implement __toPod and __fromPod'
   end
-  if not G.PKG_NAMES[P] then return false, 'must be in PKG_NAMES' end
+  if not G.MOD_NAMES[P] then return false, 'must be in MOD_NAMES' end
   return true
 end
 
@@ -129,7 +129,7 @@ BUILTIN_PODDER.key = M.key
 --- Handles all primitive types (nil, boolean, number, string, table)
 M.prim = mty'prim' {}; local prim = M.prim
 
-assert(PKG_LOOKUP['pod.prim'] == M.prim)
+assert(MOD_LOOKUP['pod.prim'] == M.prim)
 
 function prim:__toPod(pod, v)
   local ty = type(v)
@@ -225,10 +225,10 @@ function M.mty_fromPod(T, pod, p)
   return T(t)
 end
 
---- lookup podder from types, primitive, PKG_LOOKUP
+--- lookup podder from types, primitive, MOD_LOOKUP
 local function lookupPodder(T, types, name)
-  if G.PKG_NAMES[T] == name then return T end
-  local p = types[name] or BUILTIN_PODDER[name] or G.PKG_LOOKUP[name]
+  if G.MOD_NAMES[T] == name then return T end
+  local p = types[name] or BUILTIN_PODDER[name] or G.MOD_LOOKUP[name]
          or error('Cannot find type '..name)
   if not (p.__toPod and p.__fromPod) then
     error(name.." doesn't implement both __toPod and __fromPod")

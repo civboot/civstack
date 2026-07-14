@@ -36,8 +36,8 @@ T'toPod'; do
   -- simple type
   test.A = pod(mty'A'{'a1 [int]#1', 'a2 [int]#2', b=3})
   assert(test.A.__toPod)
-  T.eq('test.A', PKG_NAMES[test.A])
-  T.eq(test.A, PKG_LOOKUP['test.A'])
+  T.eq('test.A', MOD_NAMES[test.A])
+  T.eq(test.A, MOD_LOOKUP['test.A'])
   podRound(test.A, {a1=11})
 
   T.throws('contains value of type "test.A" that is not primitive pod',

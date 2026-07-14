@@ -25,7 +25,7 @@ local EMPTY = {}
 --- Find the object/name or return nil.
 function doc.tryfind(obj) --> any?
   if type(obj) ~= 'string' then return obj end
-  return G.PKG_LOOKUP[obj] or ds.wantpath(obj)
+  return G.MOD_LOOKUP[obj] or ds.wantpath(obj)
 end
 
 --- Find the object/name.

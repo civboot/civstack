@@ -25,11 +25,10 @@ local G = setmetatable({}, {
 })
 
 -- Documentation globals
--- FIXME: rename these MOD_*
 local weakk, weakv = {__mode='k'}, {__mode='v'}
-G.PKG_NAMES  = G.PKG_NAMES  or setmetatable({}, weakk) -- obj -> name
-G.PKG_LOC    = G.PKG_LOC    or setmetatable({}, weakk) -- obj -> path:loc
-G.PKG_LOOKUP = G.PKG_LOOKUP or setmetatable({}, weakv) -- name -> obj
+G.MOD_NAMES  = G.MOD_NAMES  or setmetatable({}, weakk) -- obj -> name
+G.MOD_LOC    = G.MOD_LOC    or setmetatable({}, weakk) -- obj -> path:loc
+G.MOD_LOOKUP = G.MOD_LOOKUP or setmetatable({}, weakv) -- name -> obj
 
 local function srcloc(level)
   local info = debug.getinfo(2 + (level or 0), 'Sl')
@@ -53,9 +52,9 @@ local mod; mod = {
 -- save v with name to PKG variables
 function mod.save(name, v)
   if CONCRETE[type(v)] then return end
-  PKG_LOC[v]       = PKG_LOC[v]       or srcloc(2)
-  PKG_NAMES[v]     = PKG_NAMES[v]     or name
-  PKG_LOOKUP[name] = PKG_LOOKUP[name] or v
+  MOD_LOC[v]       = MOD_LOC[v]       or srcloc(2)
+  MOD_NAMES[v]     = MOD_NAMES[v]     or name
+  MOD_LOOKUP[name] = MOD_LOOKUP[name] or v
 end
 
 setmetatable(mod, {
@@ -182,12 +181,12 @@ function M.name(o)
 end
 
 --- Get the fullname of the object's type. This is typically
---- the same as looking it up in [$PKG_NAMES].
+--- the same as looking it up in [$MOD_NAMES].
 function M.fullname(o)
   local ty = type(o)
-  return ty == 'function' and G.PKG_NAMES[o]
-      or ty == 'table'    and G.PKG_NAMES[getTy(o)]
-      or ty == 'userdata' and G.PKG_NAMES[getmt(o)]
+  return ty == 'function' and G.MOD_NAMES[o]
+      or ty == 'table'    and G.MOD_NAMES[getTy(o)]
+      or ty == 'userdata' and G.MOD_NAMES[getmt(o)]
       or ty
 end
 
@@ -218,11 +217,11 @@ end
 --- Extract name,loc from function value.
 function M.fninfo(fn) --> name, loc
   local info
-  local name = PKG_NAMES[fn]; if not name then
+  local name = MOD_NAMES[fn]; if not name then
     info = debug.getinfo(fn)
     name = info.name
   end
-  local loc = PKG_LOC[fn]; if not loc then
+  local loc = MOD_LOC[fn]; if not loc then
     info = info or debug.getinfo(fn, 'Sl'); loc = info.source
     if loc:sub(1,1) == '@' then
       loc = loc:sub(2)..':'..info.linedefined
@@ -235,7 +234,7 @@ end
 function M.anyinfo(v) --> name, loc
   if type(v) == 'function' then return M.fninfo(v) end
   if M.isPrim(v)           then return type(v), nil end
-  local name, loc = PKG_NAMES[v], PKG_LOC[v]
+  local name, loc = MOD_NAMES[v], MOD_LOC[v]
   name = name or M.name(v)
   if loc and loc:find'%[' then loc = nil end
   return name, loc
@@ -313,8 +312,8 @@ function M._docFields(R, d, name, kind)
       end
       local default = rawget(R, fname); if default ~= nil then
         d:write' '
-        if PKG_NAMES[default] then
-          d:code('='..PKG_NAMES[default])
+        if MOD_NAMES[default] then
+          d:code('='..MOD_NAMES[default])
         else
           local dstr = fmt(default)
           d:code('='..(#dstr <= 16 and dstr

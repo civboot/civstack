@@ -91,7 +91,7 @@ test('name', function()
 
   Tm.A = mty'A'
   assertEq('Tm.A',   M.name(Tm.A))
-  assertEq('Tm.A',   PKG_NAMES[Tm.A])
+  assertEq('Tm.A',   MOD_NAMES[Tm.A])
 end)
 
 test('record', function()

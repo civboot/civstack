@@ -99,9 +99,9 @@ local Pos = setmetatable({
 Pos.__index = Pos
 
 -- `mod` gives documentation reflection
-PKG_LOCS[M.myFn]         = 'path/to/file.lua:123'
-PKG_NAMES[M.myFn]        = 'mymod.Pos'
-PKG_LOOKUP['myMod.Pos'] = M.Pos
+MOD_LOCS[M.myFn]         = 'path/to/file.lua:123'
+MOD_NAMES[M.myFn]        = 'mymod.Pos'
+MOD_LOOKUP['myMod.Pos'] = M.Pos
 ]$
 
 [{h3 name=metaty-API}API] [+
