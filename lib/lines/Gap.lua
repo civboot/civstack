@@ -29,6 +29,7 @@ local move              = table.move
 local sub = string.sub
 local max = math.max
 local getmt = getmetatable
+local defaultExtend = mty.from'ds  defaultExtend'
 
 local EMPTY = {}
 
@@ -68,16 +69,21 @@ Gap.load = function(T, f, close) --> Gap?, err?
 end
 
 function Gap:__len() return #self.bot + #self.top end
+
 --- Get a specific line index.
 function Gap:get(l) --> string
   local bl = #self.bot
   if l <= bl then return self.bot[l]
   else            return self.top[#self.top - (l - bl) + 1] end
 end
---- FIXME: I need to delete this!
-function Gap:__index(l)
-  if type(l) ~= 'number' then return getmetatable(self)[l] end
-  return self:get(l)
+
+function Gap:__eq(o)
+  if mty.ty(self) ~= mty.ty(o) then return false end
+  if #self ~= #o               then return false end
+  for i=1,#self do
+    if self:get(i) ~= o:get(i) then return false end
+  end
+  return true
 end
 
 function Gap:__fmt(f)
@@ -89,7 +95,9 @@ function Gap:__fmt(f)
     f:write(self.top[i]); if i > 1 then f:write'\n' end
   end
 end
-Gap.__pairs = ipairs
+
+Gap.ipairs   = ds.igetpairs
+Gap.__pairs  = ds.igetpairs
 
 --------------------------
 -- Mutations
@@ -100,7 +108,7 @@ function Gap:set(l, v)
   assert(l <= #self + 1, 'can only set at len+1')
   self:setGap(l); self.bot[l] = v
 end
-Gap.__newindex = Gap.set
+
 
 --- See ds.inset for documentation.
 function Gap:inset(i, values, rmlen) --> rm?
@@ -113,8 +121,8 @@ end
 --- Extend gap with the lines.
 function Gap:extend(lns) --> self
   assert(not self.readonly, 'attempt to write to readonly Gap')
-  self:setGap(#self); local bot = self.bot
-  move(lns, 1, #lns, #bot + 1, bot)
+  self:setGap(#self)
+  defaultExtend(self.bot, lns)
   return self
 end
 

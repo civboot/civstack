@@ -28,9 +28,9 @@ local getmt = getmetatable
 local min, MAXINT = math.min, math.maxinteger
 local index, newindex = mty.hardIndex, mty.newindex
 local construct = mty.construct
-local gt, binsearch = ds.lt, ds.binarySearch
-local Slc = ds.Slc
-local extend, inset, clear = ds.extend, ds.inset, ds.clear
+local binsearch = ds.binarySearch
+local get, lt, Slc, extend, inset, clear = mty.from'ds\
+      get, lt, Slc, extend, inset, clear'
 local move, EMPTY = table.move, {}
 
 getmetatable(EdFile).__index = mty.hardIndex
@@ -69,7 +69,7 @@ function EdFile:_datindex(i) --> di
   local lens = self.lens; local len = lens[#lens]
   if not len or i > len then self:_updateLens(i) end
   if i > lens[#lens] then return end
-  return binsearch(lens, i, gt) + 1
+  return binsearch(lens, i, lt) + 1
 end
 
 --- Get line at index
@@ -78,7 +78,7 @@ function EdFile:get(i) --> line
   local dat = self.dats[di]
   i = i - (self.lens[di-1] or 0) -- i is now index into dat
   return (getmt(dat) == Slc) and self.lf:get(dat.si + i - 1)
-      or dat[i]
+      or get(dat,i)
 end
 
 function EdFile:write(...) --> self?, errmsg?

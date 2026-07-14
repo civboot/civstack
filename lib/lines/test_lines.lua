@@ -204,8 +204,10 @@ end
 
 T'Gap.ipairs'; do
   local g = Gap'12345\n6789\n98765\n'
-  local t = {}; for i, v in ipairs(g) do
-    T.eq(g[i], g[i]) t[i] = v
+  T.eq({ds.igetnext, g, 0}, {g:ipairs()})
+  local t = {}; for i, v in g:ipairs() do
+    T.eq(g:get(i), g:get(i))
+    t[i] = v
   end
   T.eq({'12345', '6789', '98765', ''}, t)
   T.eq({'12345', '6789', '98765', ''}, ds.icopy(g))

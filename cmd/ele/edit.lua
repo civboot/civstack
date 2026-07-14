@@ -84,7 +84,7 @@ function M.Edit:copy()
   })
 end
 function M.Edit:curLine()
-  return self.buf.dat[self.l] end
+  return self.buf.dat:get(self.l) end
 function M.Edit:colEnd() return #(self:curLine() or '') + 1 end
 function M.Edit:lastLine() return self.buf[#self] end
 function M.Edit:offset(off)

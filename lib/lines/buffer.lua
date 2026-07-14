@@ -97,12 +97,12 @@ end
 -- blocks using only a single character.
 function Buffer:_matchColorLine(l)
   while #self.fg < l do self.fg:write'\n'; self.bg:write'\n' end
-  local dln, fln = self.dat[l] or '', self.fg[l] or ''
+  local dln, fln = self.dat:get(l) or '', self.fg:get(l) or ''
   if #dln == #fln then return end
-  local bln = self.bg[l]
+  local bln = self.bg:get(l)
   if #fln > #dln then fln, bln = fln:sub(1,#dln), bln:sub(1,#dln) end
-  self.fg[l] = fln..srep(lastChar(fln), #dln - #fln)
-  self.bg[l] = bln..srep(lastChar(bln), #dln - #bln)
+  self.fg:set(l, fln..srep(lastChar(fln), #dln - #fln))
+  self.bg:set(l, bln..srep(lastChar(bln), #dln - #bln))
 end
 
 function Buffer:doInsert(ch)

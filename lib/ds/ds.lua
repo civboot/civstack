@@ -498,6 +498,18 @@ function M.iprev(t, i) --> (t, i) --> (i-1, v)
   if i > 1 then return i - 1, t[i - 1] end
 end
 
+--- inext using [$t:get(i)] instead of [$$t[i]]$
+function M.igetnext(t, i) 
+  i = i + 1
+  if i <= #t then return i, t:get(i) end
+end
+local igetnext = M.igetnext
+
+--- ipairs using [$t:get(i)] instead of [$$t[i]]$
+function M.igetpairs(t)
+  dbg('igetpairs', t)
+  return igetnext, t, 0 end
+
 --- ipairs reversed
 function M.ireverse(t) return M.iprev, t, #t + 1 end --> iter
 

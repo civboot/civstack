@@ -111,7 +111,7 @@ Test{'insert', dat='', function(tst)
     { "8", action="insert", tag='mut' },
   })
   s:play'9 space 8'; ed:draw()
-    T.eq('9 8', b.dat[1])
+    T.eq('9 8', b.dat:get(1))
     T.eq(SI..'\n9 8\n\n', fmt(t))
     T.eq(nil, ed.ext.again) -- still, not stored
     T.eq(again, ed.ext.nextAgain)
@@ -432,7 +432,7 @@ Test{'session', dat='', function(tst)
   T.eq(log.LogTable{}, ed.error)
 
   s:play'9 space 8'; ed:draw()
-    T.eq('9 8', b.dat[1])
+    T.eq('9 8', b.dat:get(1))
     T.eq(SI..'\n9 8\n\n', fmt(t))
   T.eq(log.LogTable{}, ed.error)
 
