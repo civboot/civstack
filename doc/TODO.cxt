@@ -1,6 +1,8 @@
 Ele: [+
-* visual mode
 * commands
+  * close buffer
+  * reload buffers
+* visual mode
 * system: <number> b - go to buffer number
 ]
 

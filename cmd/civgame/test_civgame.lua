@@ -94,7 +94,7 @@ Home row: put left pointer finger on "f" key thumb on space.
 Type: "f" "space" "j"
 f j
    
-Score: 32  Fast: x0.7  Great: x0.0]]
+Level: 0  Score: 32  Fast: x0.7  Great: x0.0]]
 
 T'typo'; do
   -- Check that all non-alpha chars have a score assigned.
@@ -174,8 +174,7 @@ function(tst)
     T.eq({}, g.user) -- cleared for next
     T.eq(0,  g.miss) -- miss cleared
     T.eq(32, g.score)
-    -- FIXME
-    -- T.eq(TYPO_EXPECTED, fmt(ed.display))
+    T.eq(TYPO_EXPECTED, fmt(ed.display))
 
   -- s:play'enter'
   --   T.eq("failed event %q. %q", ed.error[1][1])

@@ -186,39 +186,7 @@ function M.runSetup(args, force)
     .setup(args, force)
 end
 
---- Construct a metaty-like object from args.
----
---- If [$Args.subcmd] is truthy then treats it as a table of
---- subcmds. Looks for a subcmd at [$$args[1]]$, removes it and
---- constructs that subcmd, returning a table with the subcmd
---- key set.
----
---- For example:
---- [$construct({foo=Foo, bar=Bar}, {'foo', 'ding', zing=true})]
---- returns a {foo=Foo{'ding', zing=true}}.
--- FIXME: remove
-function M.construct(Cmd, args) --> ok, err?
-  args = M.parseStr(args)
-  assert(Cmd and args, 'must provide (Cmd,args)')
-  if type(Cmd) == 'table' and rawget(Cmd, 'subcmd') then
-    local v = {}; for k in pairs(Cmd) do
-      if k ~= 'subcmd' then push(v, k) end
-    end
-    local sc = args[1]
-    if not sc or not Cmd[sc] then
-      return nil, sfmt(
-        'invalid subcmd %q, valid subcommands are: %s',
-        sc or '', table.concat(v, ' '))
-    end
-    table.remove(args, 1)
-    return {
-      subcmd = sc,
-      [sc]=M.construct(Cmd[sc], args),
-    }
-  end
-  return mty.construct(Cmd, args)
-end
-
+--- The default [$new()] constructor, handles subcommands.
 function M.constructNew(Cmd, args) --> ok, err?
   args = M.parseStr(args)
   assert(Cmd and args, 'must provide (Cmd,args)')

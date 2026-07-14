@@ -9,14 +9,24 @@ that work from either bash or Lua.
 #!/usr/bin/env -S lua -e "require'pkglib'()"
 local shim = require'shim'
 
-local M = shim.cmd'myModName' {
+local mycmd = shim.cmd'mycmd' {
   'arg [type]: documentation',
     arg = 'default-value',
 }
 
--- ... nomral lua module
-function M.someFunction() ... end
+--- Constructor
+function mycmd.new(T, t)
+  -- do validation and construct the raw type.
+  return shim.constructNew(T, t)
+end
 
-if shim.isMain(M) then M:main(arg) end
-return M -- return as library
+function mycmd:__call()
+  -- do whatever the command is, using its fields.
+end
+
+-- ... nomral lua module
+function mycmd.someFunction() ... end
+
+if shim.isMain(mycmd) then mycmd:main(arg) end
+return mycmd -- return as library
 ]$

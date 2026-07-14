@@ -53,7 +53,7 @@ T'cmd' do
 
   function A.new(T, self)
     self.a = M.number(self.a)
-    return M.construct(T, self)
+    return M.constructNew(T, self)
   end
   T.eq(77, A{a='77'})
 end

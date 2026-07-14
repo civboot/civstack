@@ -23,7 +23,7 @@ function M.new(T, self)
   self.width = shim.number(self.width)
   self.i     = shim.number(self.i)
   self.to    = shim.file(self.to)
-  return shim.construct(T, self)
+  return shim.constructNew(T, self)
 end
 
 function M.format(f, str, fmt)

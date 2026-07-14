@@ -1,7 +1,3 @@
-local T = [[
-This is a test string
-FIXME: delete this
-]]
 local G = G or _G
 --- Civboot vt100 Terminal library that supports LAP protocol.
 --- Module for interacting with the vt100 via keys and AsciiColors.
