@@ -231,19 +231,20 @@ function M._async.all(fns)
   yield'forget' -- forget until resumed by last completed child
 end
 
--- [$Any(fns)]: handle resuming and restarting multiple fns.
---
--- Call [$any:ignore()] to stop the child threads from resuming
--- the current thread. This does NOT stop the child threads.
---
--- Example which handles multiple fns running simultaniously: [{$$ lang=lua}
--- local any = lap.Any{fn1, fn2}:schedule()
--- while true do
---   local i = any:yield()
---   -- do something related to index i
---   any:restart(i) -- restart i to run again
--- end
--- ]$
+--- [$Any(fns)]: handle resuming and restarting multiple fns.
+---
+--- Call [$any:ignore()] to stop the child threads from resuming
+--- the current thread. This does NOT stop the child threads.
+---
+--- Example which handles multiple fns running simultaniously: [{$$ lang=lua}
+--- local any = lap.Any{fn1, fn2}:schedule()
+--- while true do
+---   local i = any:yield()
+---   -- do something related to index i
+---   any:restart(i) -- restart i to run again
+--- end
+--- ]$
+--- TODO: test this
 M.Any = mty'Any'{
   'cor  [thread]: the coroutine this is running on.',
   'fns  {function}: the functions to schedule.',
@@ -263,29 +264,27 @@ getmetatable(M.Any).__call = function(T, fns)
         LAP_READY[self.cor] = 'any-done'
       end
     end)
-    -- FIXME: I commented this because
-    -- it looked wrong.
-    -- self.done[i] = true
   end
   return mty.construct(T, self)
 end
---- Stop running functions.
+
+--- Stop running caring about functions.
 function M.Any:ignore() self.cor = nil end
 
---- ensure all fns are scheduled
+--- Ensure all fns are scheduled
 function M.Any:schedule() --> self
-  for i in pairs(self.done) do self:restart(i) end
+  for i in pairs(self.fns) do
+    if self.done[i] == nil then
+      LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
+      self.done[i] = false
+    end
+  end
 end
 
 --- yield until any fn is done
 function M.Any:yield() --> fnIndex
   while not next(self.done) do yield'forget' end
   return next(self.done)
-end
---- restart fn at index
-function M.Any:restart(i)
-  LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
-  self.done[i] = nil
 end
 
 --- Yield a sleep signal for the number of  seconds (float).

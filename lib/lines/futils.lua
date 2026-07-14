@@ -25,7 +25,7 @@ function M.loadIdx(f, idxpath, fmode, reindex) --> idxFile
   fstat, xstat = assert(ix.stat(f))
   if fd.isTrunc(fmode) then goto createnew end
   xstat = ix.stat(idxpath)
-  if xstat and fd.modifiedEq(fstat, xstat) then
+  if xstat and ix.statModifiedEq(fstat, xstat) then
     return U3File:load(idxpath)
   end
   ::createnew::

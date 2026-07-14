@@ -107,14 +107,6 @@ S.FDT.__close         = S.FDT.__index.close
 S.FDT.__name = 'fd.FDT'
 S.FDT.__tostring = S.FD.__tostring
 
---- return whether two fstat's have equal modification times
---- FIXME: move this to civix
-function M.modifiedEq(fs1, fs2)
-  local s1, ns1 = fs1:modified()
-  local s2, ns2 = fs2:modified()
-  return (s1 == s2) and (ns1 == ns2)
-end
-
 ----------------------------
 -- WRITE / SEEK
 

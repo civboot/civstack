@@ -330,7 +330,6 @@ function M.print(...) return fprint(io.fmt, ...) end
 --- pretty print
 function M.pprint(...)
   local f; if io.fmt then
-    -- FIXME: Whoa... I'm making copy here? Improve this...
     f = {}
     for k,v in pairs(io.fmt) do f[k] = v end
     setmetatable(f, getmetatable(io.fmt))
