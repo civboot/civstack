@@ -93,9 +93,10 @@ function Worker:link(tgt)
     local f, t = O..from, O..to
     info('ln %q -> %q: %q', f, t, pth.relative(t, f))
     ix.sh{'ln', '-s', pth.relative(t, f), t}
-    if select(2, M.last(M.dir(t))) == 'bin' then
-      local f = io.open(f)
-      ix.chmod(f, ix.stat(f):mode() | tonumber('777', 8)
+    if select(2, pth.last(pth.dir(t))) == 'bin/' then
+      info('chmod a+x', f)
+      local f = assert(io.open(f))
+      ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
       f:close()
     end
   end

@@ -276,7 +276,7 @@ end
 ---
 --- Combine with stat like: [{## lang=lu
 --- -- add executable bits to [$f].
---- ix.chmod(f, ix.stat(f):mode() | tonumber('777', 8))
+--- ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
 --- ]#
 function M.chmod(f, p)
   if type(p) == 'string' then p = tonumber(p, 8) end

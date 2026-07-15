@@ -1,8 +1,5 @@
 #!/usr/bin/env -S lua
 local shim = require'shim'
--- FIXME:
--- reworking pat/path/content so that any regexes that start
--- with '-' are automatically "negative" instead.
 
 --- Usage: [$ff find_this or_this]
 local FF = shim.cmd'ff' {

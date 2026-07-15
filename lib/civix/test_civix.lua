@@ -10,6 +10,7 @@ local B  = M._B -- bootstrapped
 local D = 'lib/civix/'
 local O = '.out/'
 local push = table.insert
+local sfmt = string.format
 
 local Duration = mty.from'ds.time  Duration'
 
@@ -199,6 +200,10 @@ T'stat'; do
   local path = O..'stat.txt'
   pth.write(path, 'hello\n')
   T.eq(6, M.stat(path):size())
+  M.chmod(path, '775')
+  T.eq('775', sfmt('%o', tonumber('777', 8) & M.stat(path):mode()))
+  M.chmod(path, '711')
+  T.eq('711', sfmt('%o', tonumber('777', 8) & M.stat(path):mode()))
 end
 fin = true;
 end ---------------- end tests()
