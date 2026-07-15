@@ -470,6 +470,7 @@ T'ds_path'; do
   T.eq('/',         pc{'/'})
   T.eq('/foo/bar/', pc{'//', '/foo//', '/bar', '/'})
   T.eq('/foo/bar/', pc{'', '/foo/', 'bar', '/'})
+  T.eq('/foo/bar/', pc{'/foo/bar/', '/'})
 
   local pr = pth.resolve
   T.eq('/.a',      pr('/.a'))

@@ -84,21 +84,14 @@ end
 --- get the user's home directory
 function M.home() return M.pathenv('HOME', 'HOMEDIR') end
 
---- join a table of path components
+--- join a table of path components.
+--- This strips elements containing empty strings from the start and end.
 function M.concat(t, _) --> string
   assert(not _, 'usage: concat{...}')
-  local ri = 1; while t[ri] == '' do ri = ri + 1 end
-  if #t < ri then return '' end
-  local last = t[#t]
-  local root = (t[ri]:sub(1,1) == '/')
-  local dir  = (last:sub(-1)   == '/')
-  if root and dir and (#t-ri<=1) and last == '/' then return '/' end
-  local out = {}
-  for i=ri,#t do local p = t[i]
-    p = string.match(p, '^/*(.-)/*$')
-    if p ~= '' then push(out, p) end
-  end
-  return (root and '/' or '')..tconcat(out, '/')..(dir and '/' or '')
+  local si,ei = 1,#t
+  while t[si] == '' do si = si + 1 end
+  while t[ei] == '' do ei = ei - 1 end
+  return ( tconcat(t, '/', si,ei):gsub('/+', '/') )
 end
 
 --- return whether a path has any '..' components

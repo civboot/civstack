@@ -21,8 +21,8 @@ local pegl = require'pegl'
 
 local I = log.info
 local sconcat, sfmt, srep = string.concat, string.format, string.rep
-local add, pop = table.insert, table.remove
-local update   = table.update
+local add, pop, update, unpack = mty.from(table,
+     'insert, remove, update, unpack')
 local max      = math.max
 
 local Key                            = mty.from('pegl  Key')

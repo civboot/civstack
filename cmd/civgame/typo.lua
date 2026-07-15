@@ -1,5 +1,4 @@
 local mty = require'metaty'
--- FIXME: level 1 is TERRIBLE
 
 --- Typo game: learn how to type!
 local M = mty.mod'civgame.typo'
@@ -136,7 +135,7 @@ getmetatable(M.Typo).__call = function(T, t)
   t.status = ds.Deq{}
   t = mty.construct(T, t)
 
-  -- FIXME:
+  -- TODO:
   -- lap.schedule(function()
   --   local ok, err = ds.try(function()
       t.levels = t.levels or M.Categorizer{}
@@ -228,7 +227,6 @@ function M.Typo:getData()
 end
 
 function M.Typo:draw(ed, isRight)
-  -- FIXME: score should be a bar that "fills up" to gain levels.
   local h,w = self.th, self.tw
   local d = ed.display
 
