@@ -612,6 +612,17 @@ static int l_fstmode(LS* L) {
   return 1;
 }
 
+// chmod(fileno, st_mode) --> ok, error
+static int l_fchmod(LS* L) {
+  if(fchmod(luaL_checkinteger(L,1), luaL_checkinteger(L,2))) {
+    lua_pushnil(L);
+    lua_pushstring(L, strerror(errno));
+    return 2;
+  }
+  lua_pushboolean(L, 1);
+  return 1;
+}
+
 // (fileno) -> (isatty)
 static int l_isatty(LS* L) {
   lua_pushboolean(L, isatty(luaL_checkinteger(L, 1)));
@@ -624,6 +635,7 @@ static const struct luaL_Reg fd_lib[] = {
   {"newFD",  l_FD_create}, {"newFDT",  l_FDT_create},
   {"pollList", l_PL_new},
   {"fileno", l_fileno},    {"fstmode", l_fstmode},
+  {"fchmod", l_fchmod},
   {"isatty", l_isatty},
   {"pipe", l_pipe},
   {NULL, NULL},

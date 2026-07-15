@@ -262,6 +262,29 @@ function M.setModified(f, sec, nsec) --> ok, errmsg?
   return ok, err
 end
 
+--- Change modifiers on f (string or file) using the octal string p.
+--- The ocal is in the form UGO where U=user, G=group, O=other.
+--- execute=1, write=2, read=4 so: [+
+---  * 4 = Read only (r--)
+---  * 5 = Read & Execute (r-x) (4 + 1)
+---  * 6 = Read & Write (rw-) (4 + 2)
+---  * 7 = Read, Write & Execute (rwx) (4 + 2 + 1)
+---  * 0 = No permissions (---)
+--- ]
+--- 
+--- You can create your own octal with [$tonumber(s, 8)].
+---
+--- Combine with stat like: [{## lang=lu
+--- -- add executable bits to [$f].
+--- ix.chmod(f, ix.stat(f):mode() | tonumber('777', 8))
+--- ]#
+function M.chmod(f, p)
+  if type(p) == 'string' then p = tonumber(p, 8) end
+  local close; if type(f) == 'string' then f = io.open(f); close = true end
+  fd.fchmod(fd.fileno(f), p)
+  if close then f:close() end
+end
+
 -------------------------------------
 -- Utility
 

@@ -37,6 +37,12 @@ M.FMODE = mty.enum'FMODE' {
 }
 local fmodeName = M.FMODE.name
 
+--- Get the st_mode of the fileno.
+M.fstmode = S.fstmode --(fileno) --> st_mode?, error
+
+--- Change the st_mode of the fileno.
+M.fchmod = S.fchmod   --(fileno, st_mode) --> ok?, error
+
 local MFLAGS = mty.enum'MFLAGS'{
   ['r']  = S.O_RDONLY, ['r+']= S.O_RDWR,
   ['w']  = S.O_WRONLY | S.O_CREAT | S.O_TRUNC,
