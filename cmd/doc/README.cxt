@@ -17,7 +17,6 @@ end
 Once that is done, you can view your docs in the terimal
 with [$doc'mymod'].
 
-
 [*Other Resources] [+
 * [@civ:doc.luk] on how to generate docs in your PKG.luk files.
 * Lua API reference: [<https://www.lua.org/manual>]

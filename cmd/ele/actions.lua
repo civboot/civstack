@@ -24,6 +24,7 @@ local info = mty.from'ds.log  info'
 local callable = mty.callable
 local try = ds.try
 local assertf = fmt.assertf
+local EMPTY = {}
 
 ----------------------------------
 -- KEYBINDINGS
@@ -751,6 +752,34 @@ function M.again(ed, ev, evsend)
   assert(ed.mode ~= 'insert')
   local a = ed.ext.again; assert(a, 'no mutable action stored')
   evsend(ds.deepcopy(a))
+end
+
+----------------------------------
+-- MISC
+
+-- TODO: we need to improve this substantially.
+-- * Override the __doc method of KeyBindings.
+function M.help(ed, ev, evsend)
+  local K = ed.ext.keys
+  local nxt = K.next or ds.getp(ed, {'pane', 'modes', ed.mode})
+                     or ed.modes[ed.mode]
+  local chord = K.chord or EMPTY
+  local key = chord[#chord] or '?'
+  if key ~= '?' and mty.ty(nxt) == B.KeyBindings then
+    nxt = nxt[key]
+  end
+  
+  local b = ed:getBuffer'b#overlay'
+  b:remove(1, #b)
+  local hdr = fmt.format('%q  %q\n',
+                B.chordstr(chord), K.event or EMPTY)
+  b:insert(hdr, 1)
+  if mty.ty(nxt) == B.KeyBindings then
+    nxt:bindingsDoc(b.dat)
+  else
+    require'doc'{nxt, to=b.dat}
+  end
+  ed.redraw = true
 end
 
 return M

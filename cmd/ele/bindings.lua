@@ -53,6 +53,7 @@ M.KeySt = mty'KeySt' {
   "keep [boolean]: if true the above fields will be preserved in next call",
 }
 
+
 --- Check the current Key State.
 function M.KeySt:check(ele) --> errstring?
   if self.next == nil then return end
@@ -76,6 +77,19 @@ M.KeyBindings = mty'KeyBindings' {
   'name [string]: the name of the group for documentation',
   'doc [string]: documentation to display to the user',
 }
+
+function M.KeyBindings:bindingsDoc(f)
+  f:write(self.name, ': ', '\n', self.doc, '\n\n')
+  for _, k in ipairs(ds.orderedKeys(self)) do
+    if k ~= 'name' and k ~= 'doc' then
+      local v = self[k]
+      v = type(v) == 'table' and rawget(v, 'name')
+       or MOD_NAMES[v] or mty.name(v) or '(unknown)'
+      v = v:match'.-%.?([^.]+)$'
+      f:write('  ', k, ': ', v, '\n')
+    end
+  end
+end
 M.KeyBindings.getBinding = rawget
 getmetatable(M.KeyBindings).__call = function(T, t)
   local b = {}
@@ -328,7 +342,6 @@ M.searchBufSub  = {action='searchBuf', next=true, sub=true, wrap=true}
 
 --- inputs.
 function M.searchBuf(keySt)
-  dbg('searchBuf', keySt)
   local ev, chord = keySt.event or {}, keySt.chord
   keySt.event, keySt.keep = ev, true
   if #chord == 1 then -- initial call
@@ -360,6 +373,14 @@ function M.searchBuf(keySt)
   return M.hideOverlay
 end
 
+--- Get help on next key. '??' gets help on current bindings.
+function M.help(keySt)
+  if #chord == 1 then -- initial call, get one more key
+    keySt.keep, keySt.next = true, M.help
+    return
+  end
+  return {action='help'}
+end
 
 ---------------------------
 -- SYSTEM Mode
@@ -441,12 +462,29 @@ end
 
 ---------------------------
 -- BINDINGS
+M.go = M.KeyBindings {
+  name = 'go (utility)',
+  doc = 'g stands for "go" and is used for lots of utility bindings',
+
+  g = M.sof,
+  f = M.goPath, F = M.createPath,
+  ['/'] = M.navCwd, ['.'] = M.navCbd, ['b'] = M.navBuf,
+  ['n'] = M.tmpBuf,
+
+  ['h'] = M.windowLeft, ['l'] = M.windowRight,
+  ['j'] = M.windowDown, ['k'] = M.windowUp,
+  ['c'] = M.windowClose,
+
+  ['H'] = M.splitVLeft, ['L'] = M.splitVRight,
+  ['J'] = M.splitHDown, ['K'] = M.splitHUp,
+}
 
 --- Basic movement and times (used in multiple)
 M.common = {
   fallback = M.unboundChord,
   esc      = M.commandMode,
   ['^q ^q'] = M.exit,
+  ['?'] = M.help,
 
   -- Movement
   h   =M.left, j   =M.down, k =M.up, l     = M.right,
@@ -467,19 +505,8 @@ M.common = {
   c = M.change, C = M.changeEol,
 
   -- G is for GO
-  ['g g'] = M.sof,    G = M.moveG, -- start/end of file
-
-  ['g f'] = M.goPath, ['g F'] = M.createPath,
-  ['g /'] = M.navCwd, ['g .'] = M.navCbd, ['g b'] = M.navBuf,
-  ['g n'] = M.tmpBuf,
-
-  -- Go Window
-  ['g h'] = M.windowLeft, ['g l'] = M.windowRight,
-  ['g j'] = M.windowDown, ['g k'] = M.windowUp,
-  ['g c'] = M.windowClose,
-
-  ['g H'] = M.splitVLeft, ['g L'] = M.splitVRight,
-  ['g J'] = M.splitHDown, ['g K'] = M.splitHUp,
+  g = M.go,
+  G = M.moveG, -- start/end of file
 
   -- Search
   ['/'] = M.searchBuf,
@@ -514,7 +541,17 @@ ds.update(M.insert, {
 
 --- Command Mode: control the editor's text functions and
 --- enter other modes.
-M.command = M.KeyBindings{name='command', doc='command mode'}
+M.command = M.KeyBindings{
+  name='command mode', 
+  doc=[[
+Command mode is the primary mode of the ele editor.
+You can get to command mode by pressing "esc" in any other
+mode. Commands typically have the following form:
+  
+  [number] (optional) is a decimal number.
+  [action] something to do such as delete.
+  [noun]   the movement or thing to delete.]]
+}
 ds.update(M.command, M.common)
 ds.update(M.command, {
   -- edit

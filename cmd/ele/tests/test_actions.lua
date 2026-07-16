@@ -244,6 +244,14 @@ T'namedBuffer'; do
   cleanup(d)
 end
 
+T'help'; do
+  local ed = newEditor''
+  local ov = ed:getBuffer'b#overlay'
+  M.help(ed)
+  T.matches('""  {}\ncommand mode:', fmt(ov.dat))
+  cleanup(ed)
+end
+
 T'state'; do
   local d1 = newEditor''
   local e1, b1 = d1.pane, d1.pane.buf
@@ -267,10 +275,10 @@ T'state'; do
       chld={
         PaneState{
           ty="ele.edit.Edit",
-          dat={ id=10, vc=1, vl=1, l=1,c=1, path=b1:path() }
+          dat={ id=11, vc=1, vl=1, l=1,c=1, path=b1:path() }
         }, PaneState{
           ty="ele.edit.Edit",
-          dat={ id=12, vc=1, vl=1, l=1,c=1, path=spath }
+          dat={ id=13, vc=1, vl=1, l=1,c=1, path=spath }
         }
       }
     },
@@ -287,7 +295,7 @@ T'state'; do
   T.eq(v, d2.pane.container)
   T.eq(d2, v.container)
   T.eq(d2, d2.pane:getEditor())
-  
+
   T.eq(d2.pane:path(),    b1:path())
   T.eq(d2.view[2]:path(), b2:path())
 

@@ -242,9 +242,11 @@ function doc:__call()
   info('doc %q', self)
   assert(#self > 0, 'usage: doc any.symbol')
   local d = doc.Doc{to=assert(shim.file(self.to, io.stderr))}
-  for _, name in ipairs(self) do
-    local obj = doc.find(name)
-    d(name, obj); d:write'\n'
+  for _, obj in ipairs(self) do
+    if type(obj) == 'string' then obj = doc.find(obj) end
+    local name = G.MOD_NAMES[obj]
+    dbg('doc', name, obj)
+    d(name or '(unknown)', obj); d:write'\n'
   end
 end
 

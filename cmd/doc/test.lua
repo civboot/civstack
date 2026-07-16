@@ -111,3 +111,10 @@ T'mod_doc' do
   d:mod(Tm)
   T.eq(Tm_DOC, concat(d))
 end
+
+T'call_doc'; do
+  local b = ds.bytearray()
+  doc{require'metaty', to=b}
+  T.matches('metaty: simple but effective Lua type system using metatable',
+    tostring(b))
+end

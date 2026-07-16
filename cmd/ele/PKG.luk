@@ -33,11 +33,10 @@ P.test = lua.test {
   }
 }
 
--- FIXME: doc recursive PaneState not working...
--- P.doc_ele = doc.lua {
---   mod = 'ele',
---   src = 'README.cxt',
---   lua = { 'civ:cmd/ele' },
--- }
+P.doc_ele = doc.lua {
+  mod = 'ele',
+  src = 'README.cxt',
+  lua = { 'civ:cmd/ele' },
+}
 
 return P
