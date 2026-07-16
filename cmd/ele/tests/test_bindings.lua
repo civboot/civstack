@@ -6,11 +6,12 @@ local lap = require'lap'
 local M = require'ele.bindings'
 local et = require'ele.types'
 local Editor = require'ele.Editor'
-local keyinput = require'ele.actions'.keyinput
+local ea = require'ele.actions'
 
+local keyinput = ea.keyinput
 local push = table.insert
 
-local actions = {
+local fakeActions = {
   insert=ds.noop, move=ds.noop, remove=ds.noop, merge=ds.noop,
 }
 
@@ -31,7 +32,7 @@ end
 
 local function newEditor(mode)
   local ed = Editor{
-    mode=mode, modes={}, actions=actions, ext={},
+    mode=mode, modes={}, actions=fakeActions, ext={},
     buffers={}, namedBuffers={},
   }
   M.install(ed)
@@ -119,3 +120,21 @@ T'action'; do
   -- Event
   assertKeys('I', 'command', false, { U(move{move='sot', mode='insert'}) })
 end
+
+T'runBinding'; do
+  local d = newEditor'command'; local K = d.ext.keys
+  T.eq(M.KeySt{}, K)
+  local evsend = ds.Deq{}
+  ea.runBinding(d, {'insertMode', chord={'esc'}}, evsend)
+  T.eq({ {mode='insert'} }, evsend:drain())
+  T.eq(M.KeySt{chord={'esc'}}, K)
+  
+  ea.runBinding(d, {'searchBuf', chord={'/'}}, evsend)
+  T.eq({
+    {action="buf", buf="b#overlay", clear=true, ext={show=true}}
+  }, evsend:drain())
+  T.eq(M.KeySt{chord={'/'}, event={}, next=M.searchBuf, keep=true}, K)
+
+  cleanup(d)
+end
+

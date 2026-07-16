@@ -87,6 +87,14 @@ function M.keyinput(ed, ev, evsend)
   return _runBinding(ed, K, evsend, nxt or fallback, 'user')
 end
 
+function M.runBinding(ed, ev, evsend)
+  local bnd = assert(ev[1], 'must provide binding as ev[1]')
+  bnd = assertf(ed.bindings[bnd], 'binding %q not found', bnd)
+  local K = ed.ext.keys
+  K.chord = ds.copy(ev.chord) or K.chord
+  return _runBinding(ed, ed.ext.keys, evsend, bnd)
+end
+
 ----------------------------------
 -- UTILITY
 
@@ -397,7 +405,6 @@ M.DO_NAV = {
         p and pth.small(p) or '(tmp)'))
     end
     e.l,e.c = 1,1
-    -- FIXME: enter find mode
   end,
 }
 

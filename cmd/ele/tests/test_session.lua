@@ -338,13 +338,15 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
     T.matches('data/seuss/thing1%.txt$', e:path())
     T.eq('command', ed.mode)
 
+  -- The 'o' is gone because of bufSearch
+  local searchMode = '[m de:system]\n'
   s:play'g b'
-    T.eq(SS..'\n'..BUF_1, noTmp(fmt(ed.display)))
+    T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
-  s:play'4 j enter'
+  s:play'd a t a / enter enter'
     T.matches('data/small.lua$', ed.pane:path())
   s:play'g b' -- should be same as before
-    T.eq(SS..'\n'..BUF_1, noTmp(fmt(ed.display)))
+    T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
 end}
 
 Test{'overlay', dat=LINES3, function(tst)

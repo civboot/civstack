@@ -83,6 +83,7 @@ getmetatable(M.KeyBindings).__call = function(T, t)
   return mty.constructUnchecked(T, b)
 end
 getmetatable(M.KeyBindings).__index = function(G, k)
+  if G.__fields[k] then return end
   assert(et._term.checkKey(k))
 end
 function M.KeyBindings:__newindex(k, v)
@@ -327,6 +328,7 @@ M.searchBufSub  = {action='searchBuf', next=true, sub=true, wrap=true}
 
 --- inputs.
 function M.searchBuf(keySt)
+  dbg('searchBuf', keySt)
   local ev, chord = keySt.event or {}, keySt.chord
   keySt.event, keySt.keep = ev, true
   if #chord == 1 then -- initial call
@@ -385,7 +387,10 @@ M.navCwd = {action='nav', nav='cwd', mode='system'}
 M.navCbd = {action='nav', nav='cbd', mode='system'}
 
 --- View list of buffers
-M.navBuf = {action='nav', nav='buf', mode='system'}
+M.navBuf = {action='chain',
+  {action='nav', nav='buf', mode='system'},
+  {action='runBinding', 'searchBuf', chord={'/'}},
+}
 
 ---------------------------
 -- INSTALL

@@ -1228,9 +1228,11 @@ function M.Deq:clear() --> nil: clear deq
   local l = self.left; move(EMPTY, l, self.right, l, self)
   self.left, self.right = 1, 0
 end
+function M.Deq:icopy() --> table
+  return move(self, self.left, self.right, 1, {})
+end
 function M.Deq:drain() --> table: get all items and clear deq
-  local t = move(self, self.left, self.right, 1, {})
-  self:clear(); return t
+  local t = self:icopy(); self:clear(); return t
 end
 
 ------------------
