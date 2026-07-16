@@ -43,7 +43,7 @@ end
 --- This will automatically fill [$$[1,c-1]]$ with spaces, but will
 --- NOT clear any data after the insert text, meaning it is essentially a
 --- replace.
---- FIXME: considere renaming to replace... or something.
+--- TODO: considere renaming to replace... or something.
 function G:insert(l, c, str) --> self
   for _, sline in split(str) do -- line from string
     local row = self[l]; if not row then return end

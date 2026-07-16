@@ -1345,28 +1345,28 @@ function M.Error:__fmt(f)
 end
 function M.Error:__tostring() return fmt(self) end
 
---- create the error from the arguments.
+--- Usage: [$Error:from(msg, tb, cause)][{br}]
+--- Create the error from the arguments.
 --- tb can be one of: [$coroutine|string|table]
---- FIXME: have this take T as first arg
-function M.Error.from(msg, tb, cause) --> Error
+function M.Error.from(T, msg, tb, cause) --> Error
   local cause
   tb = M.tracelist((type(tb) == 'thread') and traceback(tb) or tb)
-  if ty(msg) == M.Error then
+  if ty(msg) == T then
     cause, msg = msg, '(rethrown)'
   end
   -- remove traceback part from message
   local tb1, msg1 = msg:match'^(%S+/%S+:%d+): (.*)'
   if tb1 then msg = msg1; insert(tb, 1, tb1) end
-  return M.Error{
+  return T {
     msg=msg,
     traceback=tb,
     cause=cause,
   }
 end
 
---- for use with xpcall. See: try
+--- For use with xpcall. See: [@ds.try]
 function M.Error.msgh(msg, level) --> Error
-  return M.Error.from(msg, traceback('', (level or 1) + 1))
+  return M.Error:from(msg, traceback('', (level or 1) + 1))
 end
 
 --- try to run the fn. Similar to pcall. Return one of: [+
@@ -1388,7 +1388,7 @@ end
 function M.resume(th) --> (ok, err, b, c)
   local ok, a, b, c = resume(th)
   if ok then return ok, a, b, c end
-  return nil, M.Error.from(a, th)
+  return nil, M.Error:from(a, th)
 end
 
 -----------------------

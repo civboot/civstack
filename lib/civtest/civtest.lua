@@ -22,7 +22,7 @@ local push, sfmt = table.insert, string.format
 local function errordiff(e, r)
   local f = io.fmt
   if e == r then return f:styled(
-    'notice', '\n(Formatted strings are equal)'
+    'bold', '\n!! Formatted strings are equal !!\n'
   )end
   io.fmt:styled('error', '\n!! DIFF:', '\n')
   io.fmt(require'lines.diff'.Diff(e, r));

@@ -184,8 +184,11 @@ test('enum', function()
   assertEq(nil, m.D)
 
   local T = M'T' { 'i [int]', 'e [E]', e=E.A}
-  assertEq(T{i=3, e=E.A}, T{i=3, e=E.A})
-  assert(not M.eq(T{i=3}, T{i=3, e=E.A}))
+  local a1, a2 = T{i=3, e=E.A}, T{i=3, e=E.A}
+  assertEq(a1, a2)
+  a1.e = nil
+  assertEq(a1, a2)
+  assertEq(a2, a1)
 end)
 
 test('from', function()

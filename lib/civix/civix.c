@@ -261,7 +261,6 @@ static int l_sh(LS *L) {
   char **argv = checkstringarray(L, 2, &_unused);
   bool createdChR = false, createdChW = false, createdChL = false;
 
-  int topi = lua_gettop(L); // FIXME: remove
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   ASSERT(L, sh, "OOM");
   *sh = (struct sh) {0};

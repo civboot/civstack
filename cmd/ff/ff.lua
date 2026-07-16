@@ -37,28 +37,16 @@ local assertf = mty.from'fmt  assertf'
 local fmtMatch, fmtSub, parseColons
 
 --- Construct the cmd without executing.
-FF.new = function(T, args) --> ff callable
-  args = shim.parseStr(args)
+FF.new = function(T, self) --> ff callable
+  self = shim.parseStr(self)
   for _, k in ipairs{'root', 'cnt', 'path'} do
-    args[k] = shim.list(args[k])
+    self[k] = shim.list(self[k])
   end
-  shim.popRaw(args, args.root)
-  parseColons(args)
-  if not args.hidden then table.insert(args.path, 1, '-/%.') end
-  return construct(T, args)
-end
-
-function FF:__call() return self:iter():keysTo() end
-
-getmetatable(FF).__call = function(T, self)
-  return T:new(self)()
-end
-
---- Get an iterator of matching paths.
----
---- Usage: [$for path, pty in FF:new{...}:iter() do ... end]
-function FF:iter() --> iter[path, pty]
-  -- FIXME: this should move to constructor?
+  shim.popRaw(self, self.root)
+  parseColons(self)
+  if not self.hidden then table.insert(self.path, 1, '-/%.') end
+  
+  self = mty.construct(T, self)
   if self.pathsub then
     self.content = false
     assert(self.path, 'must set path pattern with path pathsub')
@@ -74,7 +62,19 @@ function FF:iter() --> iter[path, pty]
     end
     if not pos then push(self.path, '') end
   end
+  return self
+end
 
+function FF:__call() return self:iter():keysTo() end
+
+getmetatable(FF).__call = function(T, self)
+  return T:new(self)()
+end
+
+--- Get an iterator of matching paths.
+---
+--- Usage: [$for path, pty in FF:new{...}:iter() do ... end]
+function FF:iter() --> iter[path, pty]
   log.info('ff %q', self)
   local sf = vt100.Fmt{to=self.to or io.stdout}
   local w = {}; for _, p in ipairs(self.root) do

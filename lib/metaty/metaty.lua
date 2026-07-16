@@ -379,18 +379,21 @@ end
 local function nativeEq(a, b) return a == b end
 
 local function eqDeep(a, b)
-  if rawequal(a, b)     then return true   end
+  if rawequal(a, b)       then return true   end
   if getTy(a) ~= getTy(b) then return false  end
-  local aLen, eq = 0, M.eq
+  local eq = M.eq
   for aKey, aValue in pairs(a) do
     local bValue = b[aKey]
-    if not M.eq(aValue, bValue) then return false end
-    aLen = aLen + 1
+    if not eq(aValue, bValue) then return false end
   end
-  local bLen = 0
-  -- Note: #b only returns length of integer indexes
-  for bKey in pairs(b) do bLen = bLen + 1 end
-  return aLen == bLen
+  -- This allows explicit values set to the default to still
+  -- be considered equal.
+  for bKey in pairs(b) do
+    if rawget(a, bKey) == nil and not eq(b[bKey], a[bKey]) then
+      return false
+    end
+  end
+  return true
 end
 
 local NATIVE_TY_EQ = {

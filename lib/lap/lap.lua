@@ -15,7 +15,7 @@ local yield, create  = coroutine.yield, coroutine.create
 local resume, status = coroutine.resume, coroutine.status
 local running        = coroutine.running
 local log = require'ds.log'
-local errorFrom = ds.Error.from
+local Error = ds.Error
 local TRACE = log.LEVEL.TRACE
 local update = table.update
 
@@ -434,7 +434,7 @@ function M.Lap:__call()
       local err = self:execute(cor, note)
       if err then
         errors = errors or {}
-        push(errors, errorFrom(err, cor))
+        push(errors, Error:from(err, cor))
       end
     end
   end

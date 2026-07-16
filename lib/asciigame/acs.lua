@@ -84,7 +84,7 @@ M.AcsSprite = mty'AcsSprite' {
   'le [int]: end line before next sprite (or EoF)',
 }
 
--- FIXME: need to test
+-- TODO: need to test
 function M.AcsSprite:sprite()
   local tc, fc, bc = 0, 0, 0
   local txt, fg, bg = {}, {}, {}

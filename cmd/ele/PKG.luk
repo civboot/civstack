@@ -33,7 +33,7 @@ P.test = lua.test {
   }
 }
 
--- FIXME: recursive PaneState not working...
+-- FIXME: doc recursive PaneState not working...
 -- P.doc_ele = doc.lua {
 --   mod = 'ele',
 --   src = 'README.cxt',

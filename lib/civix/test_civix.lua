@@ -226,7 +226,7 @@ fin=false; ixt.runAsyncTest(tests); assert(fin)
 
 fd.ioSync(); T.SUBNAME = ''
 
--- FIXME: consider re-working and enabling
+-- TODO: consider re-working and enabling
 -- T.fd_perf = function()
 --   local Kib = string.rep('123456789ABCDEF\n', 64)
 --   local data = string.rep(Kib, 500)

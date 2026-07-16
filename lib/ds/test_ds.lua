@@ -683,7 +683,7 @@ T'error'; do
   assert(not ok)
 
   push(expect.traceback, D.."test_ds.lua:5: in function <"..D.."test_ds.lua:5>")
-  T.eq(expect, M.Error.from(msg, cor))
+  T.eq(expect, M.Error:from(msg, cor))
 end
 
 ---------------------

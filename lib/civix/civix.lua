@@ -274,10 +274,10 @@ end
 --- 
 --- You can create your own octal with [$tonumber(s, 8)].
 ---
---- Combine with stat like: [{## lang=lu
+--- Combine with stat like: [{$$ lang=lua}
 --- -- add executable bits to [$f].
 --- ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
---- ]#
+--- ]$
 function M.chmod(f, p)
   if type(p) == 'string' then p = tonumber(p, 8) end
   local close; if type(f) == 'string' then f = io.open(f); close = true end
