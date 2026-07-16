@@ -7,22 +7,19 @@ Civstack's text-based learning games.
 
 To install: follow [<civ.html#install>], ele will be installed by default.
 
-[{h1}Learn Ele/Vim in Y Minutes]
-To learn ele (or vim for that matter) just install civstack and open this file
- with: [$
+[{h1}Learn Ele in Y Minutes]
+To learn ele (or vim for that matter) just install civstack and run:[$
 ele cmd/ele/README.cxt
 ]
 
 Pressing [$^q ^q] (cntrl+q twice) will exit ele from any mode.
+You can move the cursor with the keys [$h j k l] which are mapped to
+h=left j=down k=up l=right (yes they are weird but also easy to access).
 
 The top left will say [$mode:command], meaning you are in command mode.
-You can move the cursor with the keys [$h j k l] which are mapped to
-h=left j=down k=up l=right (these are home-row keys and are easy to access).
-
 In command mode, ele's key bindings are in a memonic "language" that is relatively
 quick to learn but does take some effort. Stringing multiple keys together is
-called a "chord" (just like a chord in music is multiple keys), and the language
-of chords are typically of the form: [*
+called a "chord", and the language of chords are typically of the form: [*
 * amount: for instance [$2].
 * action/verb: for instance [*d]elete.
 * noun/movement: for instance [*w]ord.
@@ -33,8 +30,8 @@ a specialized action, for instance [$d d] is delete line and [$4 d d] deletes
 four lines. Capital letters are also typically special, e.g. [$D] deletes from
 the cursor to the end of the line.
 
-You can press [$?] at any point to see your current "chord" and
-what keys are available to you.
+You can press [$? ?] at any point to see what keys are available. You can
+also type [$? <key>] to see what that key would have done in that mode.
 
 [{h1}Architecture]
 

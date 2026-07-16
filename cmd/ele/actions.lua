@@ -72,7 +72,9 @@ function M.keyinput(ed, ev, evsend)
   -- note: ki=key-input
   local ki, K = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
-  else           K.chord, K.event, K.next = {}, nil, nil end
+  else
+    K.chord, K.event, K.next, K.save = {}, nil, nil, nil
+  end
   push(K.chord, ki)
   log.info('keyinput %q mode:%s %q', ki, ed.mode, K.chord)
   local nxt = K.next
@@ -761,15 +763,15 @@ end
 -- * Override the __doc method of KeyBindings.
 function M.help(ed, ev, evsend)
   local K = ed.ext.keys
-  local nxt = K.next or ds.getp(ed, {'pane', 'modes', ed.mode})
+  local nxt = K.save or ds.getp(ed, {'pane', 'modes', ed.mode})
                      or ed.modes[ed.mode]
   local chord = K.chord or EMPTY
   local key = chord[#chord] or '?'
   if key ~= '?' and mty.ty(nxt) == B.KeyBindings then
     nxt = nxt[key]
   end
-  
-  local b = ed:getBuffer'b#overlay'
+
+  local b = ed:getBuffer'b#misc'
   b:remove(1, #b)
   local hdr = fmt.format('%q  %q\n',
                 B.chordstr(chord), K.event or EMPTY)
@@ -779,6 +781,7 @@ function M.help(ed, ev, evsend)
   else
     require'doc'{nxt, to=b.dat}
   end
+  ed:focus(b)
   ed.redraw = true
 end
 

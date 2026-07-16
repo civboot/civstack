@@ -246,7 +246,7 @@ end
 
 T'help'; do
   local ed = newEditor''
-  local ov = ed:getBuffer'b#overlay'
+  local ov = ed:getBuffer'b#misc'
   M.help(ed)
   T.matches('""  {}\ncommand mode:', fmt(ov.dat))
   cleanup(ed)
@@ -275,10 +275,10 @@ T'state'; do
       chld={
         PaneState{
           ty="ele.edit.Edit",
-          dat={ id=11, vc=1, vl=1, l=1,c=1, path=b1:path() }
+          dat={ id=12, vc=1, vl=1, l=1,c=1, path=b1:path() }
         }, PaneState{
           ty="ele.edit.Edit",
-          dat={ id=13, vc=1, vl=1, l=1,c=1, path=spath }
+          dat={ id=14, vc=1, vl=1, l=1,c=1, path=spath }
         }
       }
     },

@@ -50,6 +50,7 @@ M.KeySt = mty'KeySt' {
   "chord [table]: list of keys which led to this binding, i.e. {'space', 'a'}",
   "event [table]: table to use when returning (emitting) an event.",
   "next [table|string]: the binding which will be used for the next key",
+  "save [table|string]: saved binding, only used for help",
   "keep [boolean]: if true the above fields will be preserved in next call",
 }
 
@@ -154,8 +155,11 @@ function M.unboundChord(keys)
   error('unbound chord: '..concat(keys.chord, ' '))
 end
 
+--- Go to command mode.
 M.commandMode = {mode='command'}
+--- Go to insert mode.
 M.insertMode  = {mode='insert'}
+--- Go to system mode.
 M.systemMode  = {mode='system'}
 
 M.insertTab   = {action='insertTab', tag='mut'}
@@ -189,9 +193,11 @@ do local MA = M.moveAction
   M.endword              = MA{move='endword'}
   M.up                   = MA{move='lines', lines=-1}
   M.down                 = MA{move='lines', lines=1}
-  -- start/end of line/text
+  --- sol=start of line  sot=start of text
   M.sol, M.sot           = MA{move='sol'}, MA{move='sot'}
+  --- eol=end of line    eot=end of text
   M.eol, M.eot           = MA{move='eol'}, MA{move='eot'}
+  --- sof=start of file  eof=end of file
   M.sof, M.eof           = MA{move='sof'}, MA{move='eof'}
   M.upScreen             = MA{move='screen', mul=-1, div=2}
   M.downScreen           = MA{move='screen', mul=1,  div=2}
@@ -375,8 +381,9 @@ end
 
 --- Get help on next key. '??' gets help on current bindings.
 function M.help(keySt)
-  if #chord == 1 then -- initial call, get one more key
-    keySt.keep, keySt.next = true, M.help
+  local ch = keySt.chord
+  if ch[#ch - 1] ~= '?' then -- initial call, get one more key
+    keySt.save, keySt.next, keySt.keep = keySt.next, M.help, true
     return
   end
   return {action='help'}
@@ -528,7 +535,11 @@ for b=('1'):byte(), ('9'):byte() do
 end
 
 --- Insert Mode: directly insert text into the buffer.
-M.insert  = M.KeyBindings{name='insert', doc='insert mode'}
+M.insert  = M.KeyBindings{name='insert mode', doc=[[
+Insert mode is the primary editing mode of the editor,
+allowing you to directly enter text.
+Press [$esc] to exit to command mode.
+]]}
 ds.update(M.insert, {
   fallback = M.insertChord,
   ['^q']   = M.exit,
@@ -541,8 +552,6 @@ ds.update(M.insert, {
   ['^j']   = M.insertEnter,
 })
 
---- Command Mode: control the editor's text functions and
---- enter other modes.
 M.command = M.KeyBindings{
   name='command mode', 
   doc=[[
@@ -567,13 +576,17 @@ ds.update(M.command, {
   s = M.systemMode,
 })
 
---- System mode: view and control system-related resources such as
---- files and directories. Run single line or block commands (lua,
---- shell) directly in a buffer.
 M.system = M.KeyBindings {
-  name = 'system',
-  doc = 'system mode: filesystem, commands, shell, etc',
-}
+  name = 'system mode (base)',
+  doc = [[
+System mode is very similar to command mode, except many of the keys enable the
+control of system-related resources such as files and directories. It is the
+default mode in the nav buffer (i.e. [$g /]).
+
+Typically you can get to system mode by pressing "s" while in command mode.
+Press "esc" to go back to command mode.
+]]}
+
 ds.update(M.system, M.common)
 ds.update(M.system, {
   c = M.commandMode,
