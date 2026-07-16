@@ -28,6 +28,37 @@ local assertf = fmt.assertf
 ----------------------------------
 -- KEYBINDINGS
 
+local function _runBinding(ed, K, evsend, nxt, tag)
+  local ok, ev
+  if type(nxt) == 'table' and not getmetatable(nxt) then
+    log.info(' + keyinput plain ev %q (%q)', K.chord, nxt)
+    ok, ev = true, ds.copy(K.event or {}, nxt)
+  elseif callable(nxt) then
+    log.info(' + keyinput calling %q (%q)', K.chord, nxt)
+    ok, ev = try(nxt, K)
+    if not ok then
+      return ed.error('%q (%s) failed: %q',
+                      nxt, concat(K.chord, ' '), ev)
+    end
+  elseif mty.getmethod(nxt, 'getBinding') then
+    K.next, K.keep = nxt, true
+    return -- wait till next key
+  else
+    K.keep = nil
+    fmt.errorf('%q is neither callable, plain table or KeyBindings',
+      K.chord)
+  end
+  if ev then
+    log.info(' keyev --> %q', ev)
+    if tag then ds.tag(ev, tag) end
+    evsend:pushLeft(ev)
+  end
+  local err = K:check(ed); if err then
+    K.keep = nil
+    ed.error('%s -> invalid keys: %s', ki, err)
+  end
+end
+
 -- keyinput action.  This handles actual user keyboard inputs as well as
 -- hotkey/etc.
 --
@@ -38,12 +69,11 @@ local assertf = fmt.assertf
 function M.keyinput(ed, ev, evsend)
   local mode = ed.modes[ed.mode]; local fallback = mode.fallback
   -- note: ki=key-input
-  local ki, K, err = assert(ev[1], 'missing key'), ed.ext.keys
+  local ki, K = assert(ev[1], 'missing key'), ed.ext.keys
   if K.keep then K.keep = nil
   else           K.chord, K.event, K.next = {}, nil, nil end
-  local chord = K.chord
-  push(chord, ki)
-  log.info('keyinput %q mode:%s %q', ki, ed.mode, chord)
+  push(K.chord, ki)
+  log.info('keyinput %q mode:%s %q', ki, ed.mode, K.chord)
   local nxt = K.next
   if nxt then
     local getb = type(nxt) == 'table' and mty.getmethod(nxt, 'getBinding')
@@ -54,35 +84,7 @@ function M.keyinput(ed, ev, evsend)
        or rawget(mode, ki)
        or emode and rawget(emode, 'fallback')
   end
-  nxt = nxt or fallback
-  local ok, ev
-  if type(nxt) == 'table' and not getmetatable(nxt) then
-    log.info(' + keyinput plain ev %q (%q)', chord, nxt)
-    ok, ev = true, ds.copy(K.event or {}, nxt)
-  elseif callable(nxt) then
-    log.info(' + keyinput calling %q (%q)', chord, nxt)
-    ok, ev = try(nxt, K)
-    if not ok then
-      return ed.error('%q (%s) failed: %q',
-                      nxt, concat(chord, ' '), ev)
-    end
-  elseif mty.getmethod(nxt, 'getBinding') then
-    K.next, K.keep = nxt, true
-    return -- wait till next key
-  else
-    K.keep = nil
-    fmt.errorf('%q is neither callable, plain table or KeyBindings',
-      chord)
-  end
-  if ev then
-    log.info(' keyev --> %q', ev)
-    ds.tag(ev, 'user')
-    evsend:pushLeft(ev)
-  end
-  err = K:check(ed); if err then
-    K.keep = nil
-    ed.error('%s -> invalid keys: %s', ki, err)
-  end
+  return _runBinding(ed, K, evsend, nxt or fallback, 'user')
 end
 
 ----------------------------------
