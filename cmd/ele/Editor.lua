@@ -73,7 +73,7 @@ local Editor = mty'Editor' {
       return r
     end,
   'redraw [boolean]: set to true to force a redraw',
-  DEFAULT_BUFFERS = ds.BiMap{'find', 'nav', 'overlay', 'search'},
+  DEFAULT_BUFFERS = ds.BiMap{'find', 'misc', 'nav', 'overlay', 'search'},
 }
 
 getmetatable(Editor).__call = function(T, self)
@@ -93,6 +93,7 @@ getmetatable(Editor).__call = function(T, self)
   self = mty.construct(T, self)
   self.namedBuffers.overlay = self.overlay
   self.namedBuffers.search  = self:namedBuffer'search'
+  self.namedBuffers.misc    = self:namedBuffer'misc'
   return self
 end
 

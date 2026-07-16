@@ -466,6 +466,8 @@ M.go = M.KeyBindings {
   name = 'go (utility)',
   doc = 'g stands for "go" and is used for lots of utility bindings',
 
+  ['?'] = M.help,
+
   g = M.sof,
   f = M.goPath, F = M.createPath,
   ['/'] = M.navCwd, ['.'] = M.navCbd, ['b'] = M.navBuf,

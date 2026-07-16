@@ -21,7 +21,7 @@ function M.uniqueId()
   local id = M.ID; M.ID = M.ID+1; return id
 end
 
-M.INIT_BUFS = 3 -- the default number of bufs on init (for testing)
+M.INIT_BUFS = 4 -- the default number of bufs on init (for testing)
 
 M.WELCOME = [[
 Welcome to the Ele Editor!

@@ -193,7 +193,7 @@ local SMALL_1 = '\n'..[[
  4  print'hello world'
  5end
  6
-| data/small.lua:1.1 (b#5) ===]]
+| data/small.lua:1.1 (b#6) ===]]
 Test{'open', open=SMALL, th=9, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b, BID = e.buf, et.INIT_BUFS + 2
@@ -214,17 +214,17 @@ local SPLIT_1 = '\n'..[[
  0-- a small lua file for te 0-- a small lua file for test
  1local M = {}               1local M = {}
  2                           2
-| data/small.lua:1.1 (b#5) =| data/small.lua:1.1 (b#5) ===]]
+| data/small.lua:1.1 (b#6) =| data/small.lua:1.1 (b#6) ===]]
 local SPLIT_2 = '\n'..[[
  0-- a small lua file for te 1-- a small lua file for test
  1local M = {}               0local M = {}
  2                           1
-| data/small.lua:1.1 (b#5) =| data/small.lua:2.7 (b#5) ===]]
+| data/small.lua:1.1 (b#6) =| data/small.lua:2.7 (b#6) ===]]
 local SPLIT_3 = '\n'..[[
  0-- a small lua file for tests
  1local M = {}
  2
-| data/small.lua:1.1 (b#5) =================================]]
+| data/small.lua:1.1 (b#6) =================================]]
 
 Test{'window', open=SMALL, th=5, tw=60, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
@@ -259,12 +259,12 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| TMP:1.1 (b#4) ==]]
+| TMP:1.1 (b#5) ==]]
 local INSERTED_3 = [[
  0inserted
   
   
-| TMP:1.9 (b#4) ==]]
+| TMP:1.9 (b#5) ==]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local g = e.buf.dat
@@ -306,10 +306,10 @@ local NAV_3 = [[
 
 local BUF_1 = [[
  0b#search   TMP
- 1b#nav      TMP
- 2b#find     TMP
- 3b#4        TMP
- 4b#5        ./data/small.lua
+ 1b#misc     TMP
+ 2b#nav      TMP
+ 3b#find     TMP
+ 4b#5        TMP
 | TMP:1.1 b#nav ( ]]
 
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
@@ -459,7 +459,7 @@ Test{'coding', dat=CODE, function(tst)
   local locs = function(lcs)
     local s = Stack{}
     for _, lc in ipairs(lcs) do
-      s:push(et.EditLoc:parse(lc, 'b#4'))
+      s:push(et.EditLoc:parse(lc, 'b#5'))
     end
     s.top = lcs.top or #lcs
     s.max = lcs.max or #lcs
@@ -518,7 +518,7 @@ Test{'coding', dat=CODE, function(tst)
     T.eq(locs{'1.1', '4.5'}, ed.pane.locations)
 
   s:play'B' -- jump (-1), back to b#4
-    T.eq(locs{'1.1', '4.5', '1.1 b#5', top=1}, ed.pane.locations)
+    T.eq(locs{'1.1', '4.5', '1.1 b#6', top=1}, ed.pane.locations)
 end}
 
 local SPLITV3 = [[

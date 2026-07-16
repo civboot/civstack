@@ -1171,6 +1171,7 @@ M.BiMap.get = rawget
 function M.BiMap:remove(k) --> v
   local v = self[k]; self[k] = nil; self[v] = nil; return v
 end
+M.BiMap.icopy = M.defaultICopy
 
 ---------------------
 -- Deq Buffer
