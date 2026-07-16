@@ -21,7 +21,7 @@ local pegl = require'pegl'
 
 local I = log.info
 local sconcat, sfmt, srep = string.concat, string.format, string.rep
-local add, pop, update, unpack = mty.from(table,
+local add,    pop,    update, unpack = mty.from(table,
      'insert, remove, update, unpack')
 local max      = math.max
 
@@ -374,9 +374,8 @@ end
 local function extractNamed(node, named)
   if rawget(node, 'name') then
     if named[node.name] then
-      -- FIXME:
-      local l, c   = table.unpack(named[node.name].pos)
-      local l2, c2 = table.unpack(node.pos)
+      local l,  c  = unpack(named[node.name].pos)
+      local l2, c2 = unpack(node.pos)
       log.warn('Node %q is named twice: %s.%s and %s.%s',
                node.name, l, c, l2, c2)
       return

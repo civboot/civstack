@@ -34,10 +34,10 @@ function doc.find(obj) --> any
 end
 
 --- Given a list of comment lines strip the '---' from them.
-local function stripComments(c)
+function doc.stripComments(c)
   if #c == 0 then return c end
-  local ind = c[1]:match'^%-%-%-(%s+)' or ''
-  local pat = '^%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
+  local ind = c[1]:match'^%s*%-%-%-(%s+)' or ''
+  local pat = '^%s*%-%-%-'..string.rep('%s?', #ind)..'(.*)%s*'
   for i, ln in ipairs(c) do c[i] = ln:match(pat) or ln end
   return c
 end
@@ -48,8 +48,8 @@ doc.Doc = mty'Doc' {
   'to [file]: file to write to.',
   'indent [string]', indent = '  ',
   'done [table]: already documented items',
-  '_level    [int]', _level = 0, -- FIXME: rename _indent
-  '_nl [string]',    _nl    = '\n',
+  '_level [int]: intent level', _level = 0,
+  '_nl [string]',               _nl    = '\n',
 
   'modHeader [int]: mod header lvl',         modHeader = 3,
   'tyHeader  [int]: type/record header lvl', tyHeader = 4,
@@ -122,12 +122,11 @@ function doc.Doc:extractCode(loc) --> (commentLines, codeLines)
   end
   for l=#code+1, #lines+1 do local
     line = lines[l]
-    -- FIXME: handle leading whitespace
-    if not line or not line:find'^%-%-%-' then
+    if not line or not line:find'^%s*%-%-%-' then
       table.move(lines, #code+1, l-1, 1, cmts); break
     end
   end
-  cmts = stripComments(ds.reverse(cmts))
+  cmts = doc.stripComments(ds.reverse(cmts))
   while #cmts > 0 and not cmts[#cmts]:match'%S' do
     cmts[#cmts] = nil
   end

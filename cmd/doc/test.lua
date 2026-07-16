@@ -70,7 +70,12 @@ T'fnsig' do
   T.eq({'(a) -> b', true}, {d:fnsig{'function M:a(a) --> b'}})
 end
 
-T'extractCode' do
+T'stripComments'; do
+  T.eq({'hello', 'good bye.'}, doc.stripComments{'--- hello', '--- good bye.'})
+  T.eq({'indented is fine'}, doc.stripComments{'   --- indented is fine'})
+end
+
+T'extractCode'; do
   local d = Dc{}
   local cmt, code = d:extractCode(doc.find)
   T.eq({'Find the object/name.'},        cmt)

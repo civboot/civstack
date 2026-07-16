@@ -104,7 +104,6 @@ function FF:iter() --> iter[path, pty]
       if pty ~= 'dir' then sf:styled('path', nice(p), '\n') end
       return p, pty
     end)
-    -- FIXME: definitely print paths here
   else
     it:map(function(p, pty)
       if (pty == 'dir') or self:_find(p, cnt, sub) then return p, pty end

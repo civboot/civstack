@@ -22,9 +22,8 @@ local EdSettings = mty'EdSettings' {
   'tabwidth [int]', tabwidth=2,
   'yankMax [int]: max yank size in bytes',
     yankMax=10 * 1024*1024, -- 10MiB
-  -- FIXME: rename navArgs
-  'navFilter [string]: line to auto-insert when opening nav',
-    navFilter='p:-/%.',
+  'navArgs[string]: line to auto-insert when opening nav',
+    navArgs='p:-/%.',
 }
 
 -- Editor is the global editor state that actions have access to.
@@ -47,7 +46,8 @@ local Editor = mty'Editor' {
   'search [str]: search pattern for searchBuf, etc',
   'listeners {fn(ev)}: list of functions to call for each successful event',
   'yank [ds.Deq]: a deque of removed text. See yankMax.',
-
+  'bindings [table]: set to bindings.lua',
+  
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
   'newDat [callable(path)]: function to create new buffer',
@@ -87,6 +87,7 @@ getmetatable(Editor).__call = function(T, self)
     resources={}, ext={},
     listeners={},
     yank=ds.Deq{},
+    bindings=require'ele.bindings',
     redraw = true,
   }, self)
   self = mty.construct(T, self)

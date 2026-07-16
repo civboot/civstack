@@ -373,7 +373,7 @@ end
 local nav = M.nav
 
 local function navInit(ed, e, path)
-  e:clear(); e:insert('% '..ed.s.navFilter..'\n', 1)
+  e:clear(); e:insert('% '..ed.s.navArgs..'\n', 1)
   e:insert(pth.small(path), 1); e.l = 2
   nav.expandEntry(ed, e.buf, 2)
 end
