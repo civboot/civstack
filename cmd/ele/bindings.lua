@@ -161,6 +161,8 @@ M.commandMode = {mode='command'}
 M.insertMode  = {mode='insert'}
 --- Go to system mode.
 M.systemMode  = {mode='system'}
+--- Go to visual mode.
+M.visualMode  = {mode='visual'}
 
 M.insertTab   = {action='insertTab', tag='mut'}
 M.insertEnter = {'\n', action='insert', tag='mut'}
@@ -430,7 +432,10 @@ function M.install(ed)
   ed.ext.keys = M.KeySt{}
   -- TODO: replace with merge but need shouldMerge closure.
   ed.modes = ds.update(ed.modes or {}, {
-      insert=M.insert, command=M.command, system=M.system,
+      insert=M.insert,
+      command=M.command,
+      system=M.system,
+      visual=M.visual,
   })
   if not ed.namedBuffers.nav then
     push(ed:namedBuffer'nav'.tmp, ed.ext.keys) -- mark as not closed
@@ -489,13 +494,7 @@ M.go = M.KeyBindings {
 }
 
 --- Basic movement and times (used in multiple)
-M.common = {
-  fallback = M.unboundChord,
-  esc      = M.commandMode,
-  ['^q ^q'] = M.exit,
-  ['?'] = M.help,
-
-  -- Movement
+M.movement = {
   h   =M.left, j   =M.down, k =M.up, l     = M.right,
   left=M.left, down=M.down, up=M.up, right = M.right,
 
@@ -504,6 +503,26 @@ M.common = {
   ['^'] = M.sot, ['$'] = M.eol,
 
   ['^d'] = M.downScreen, ['^u'] = M.upScreen,
+  
+  -- G is for GO
+  g = M.go,
+  G = M.moveG, -- start/end of file
+}
+
+-- times
+M.movement['0'] = M.zero  -- sol+0times
+for b=('1'):byte(), ('9'):byte() do
+  M.movement[string.char(b)] = M.times
+end
+
+--- Other common bindings
+M.common = {
+  fallback = M.unboundChord,
+  esc      = M.commandMode,
+  ['^q ^q'] = M.exit,
+  ['?'] = M.help,
+
+  -- Complex movement
   B = {action='jump', location=-1}, ['^b'] = {action='jump', location=1},
 
   -- Insert
@@ -512,10 +531,6 @@ M.common = {
 
   d = M.delete, D = M.deleteEol, J = M.join,
   c = M.change, C = M.changeEol,
-
-  -- G is for GO
-  g = M.go,
-  G = M.moveG, -- start/end of file
 
   -- Search
   ['/'] = M.searchBuf,
@@ -527,12 +542,6 @@ M.common = {
   u = M.undo, ['^r'] = M.redo,
   ['.'] = M.again,
 }
-
--- times
-M.common['0'] = M.zero  -- sol+0times
-for b=('1'):byte(), ('9'):byte() do
-  M.common[string.char(b)] = M.times
-end
 
 --- Insert Mode: directly insert text into the buffer.
 M.insert  = M.KeyBindings{name='insert mode', doc=[[
@@ -563,6 +572,7 @@ mode. Commands typically have the following form:
   [action] something to do such as delete.
   [noun]   the movement or thing to delete.]]
 }
+ds.update(M.command, M.movement)
 ds.update(M.command, M.common)
 ds.update(M.command, {
   -- edit
@@ -587,6 +597,7 @@ Typically you can get to system mode by pressing "s" while in command mode.
 Press "esc" to go back to command mode.
 ]]}
 
+ds.update(M.system, M.movement)
 ds.update(M.system, M.common)
 ds.update(M.system, {
   c = M.commandMode,
@@ -596,6 +607,23 @@ ds.update(M.system, {
   h = M.pathBack,   H = M.pathBackExpand,
   l = M.pathExpand, L = M.pathFocusExpand,
   -- TODO: J/K: focus below/above
+})
+
+M.visual = M.KeyBindings {
+  name = 'visual mode',
+  doc  = [[
+For selecting and modifying blocks of text.
+Visual mode flips the normal language of chords on it's head.
+You move any amount to visually select the block of text you want,
+then you use an action to specify what to do.
+]]}
+
+
+-- TODO: on enter, visual mode will save the start position as ol,oc.
+-- Movements happen "naturally", but yank/delete/change/insert need to be
+-- handled special. For one thing they must execute IMMEDIATELY.
+ds.update(M.visual, movement)
+ds.update(M.visual, {
 })
 
 return M
