@@ -218,6 +218,9 @@ end
 --- the position.
 function M.getMove(ed, ev) --> l1,c1, l2,c2
   local e = ed:edit()
+  if e.ol then -- visual mode, ignore event
+    return lines.sort(e.l,e.c, e.ol,e.oc)
+  end
   local e_c = e.c
   if ev.move == 'forword' then ev.cols = ev.cols or -1 end
   local l, c = e.l, e.c + (ev.cols1 or 0)
@@ -235,7 +238,9 @@ function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
   local e = ed:edit()
   if ev[1] then
-    e:insert(string.rep(assert(ev[1]), ev.times or 1))
+    for l,c in e:selected() do
+      e:insert(string.rep(assert(ev[1]), ev.times or 1), l,c)
+    end
   end
   ed:handleStandard(ev)
 end
@@ -324,7 +329,7 @@ function M.remove(ed, ev)
   M._yank(ed, ev)
   local t = ev.times
   if ev.lines == 0 then
-     local l2 = (t and (t - 1)) or 0
+    local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)
   else
@@ -386,8 +391,8 @@ end
 local nav = M.nav
 
 local function navInit(ed, e, path)
-  e:clear(); e:insert('% '..ed.s.navArgs..'\n', 1)
-  e:insert(pth.small(path), 1); e.l = 2
+  e:clear(); e:insert('% '..ed.s.navArgs..'\n')
+  e:insert(pth.small(path)); e.l = 2
   nav.expandEntry(ed, e.buf, 2)
 end
 
@@ -759,8 +764,17 @@ end
 ----------------------------------
 -- MISC
 
--- TODO: we need to improve this substantially.
--- * Override the __doc method of KeyBindings.
+--- Action which ASSISTS in starting/ending visual mode.
+function M.visual(ed, ev)
+  local e = self.ed
+  if ev[1] == 'start' then
+    e.ol,e.oc = e.l,e.c
+  elseif ev[1] == 'stop' then
+    e.l,e.c = motion.topLeft(e.l,e.c, e.ol,e.oc)
+    e.ol,e.oc = nil,nil
+  end
+end
+
 function M.help(ed, ev, evsend)
   local K = ed.ext.keys
   local nxt = K.save or ds.getp(ed, {'pane', 'modes', ed.mode})

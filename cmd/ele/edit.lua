@@ -10,6 +10,7 @@ local ix = require'civix'
 local lines = require'lines'
 local Gap   = require'lines.Gap'
 local et    = require'ele.types'
+local ac    = require'asciicolor'
 
 local unpack       = table.unpack
 local push, concat = table.insert, table.concat
@@ -21,6 +22,9 @@ local info         = mty.from'ds.log  info'
 
 --- Ele Edit View for viewing and editing text files in a pane.
 M.Edit = mty.extend(et.BasePane, 'Edit', {
+  'box[bool]: type of visual selector',
+  -- ol/oc store the origin line/col for use with visual mode.
+  'ol[int]: origin line', 'oc[int]: origin col',
   -- vl/vc are what (top-left)line/column are being VIEWED by the user.
   -- They dynamically update during [$:draw()] as the cursor moves.
   'vl[int]', vl=1,    'vc[int]', vc=1,
@@ -90,6 +94,23 @@ function M.Edit:lastLine() return self.buf[#self] end
 function M.Edit:offset(off)
   return lines.offset(self.buf.dat, off, self.l, self.c)
 end
+--- Get iterator of selection. If box is used, multiple distinct
+--- lines will be returned from bottom -> top.
+function M.Edit:selected(l2,c2, box) --> iter[l,c, l2,c2]
+  local l,c, l2,c2 = lines.sort(
+    self.l, self.c,
+    l2 or self.ol or self.l, c2 or self.oc or self.c)
+  dbg('edit:lines %s.%s: %s.%s - %s.%s', self.l,self.c, l,c, l2,c2)
+  if not box then return function()
+    if box then return end; box = true
+    return l,c, l2,c2 end
+  end
+  return function()
+    if l > l2 then return end
+    l2 = l2-1
+    return l2+1,c, l2+1,c2
+  end
+end
 
 function M.Edit:boundC(l,c)
   return ds.bound(c, 1, #self.buf:get(l) + 1)
@@ -140,9 +161,13 @@ function M.Edit:append(msg)
   self:changeUpdate2()
 end
 
-function M.Edit:insert(s)
+--- Insert text at l,c or default self.(l,c)
+--- Updates the cursor position only if l,c is nil or exactly matches
+--- self.(l,c).
+function M.Edit:insert(s, l,c)
   local b = self.buf
-  b:insert(s, self.l, self.c);
+  b:insert(s, self.l or l, self.c or c)
+  if l and l ~= self.l and c ~= self.c then return end
   self.l, self.c = lines.offset(b.dat, #s, self.l, self.c)
   -- if causes cursor to move to next line, move to end of cur line
   -- except in specific circumstances
@@ -268,11 +293,25 @@ end
 
 -- Called by model for only the focused editor
 function M.Edit:drawCursor(ed)
-  -- TODO: alternativelly, consider using d.hide and simply
-  -- reverting the fg/bg for the cursor.
   local d = ed.display
-  local c = math.min(self.c, self:colEnd())
-  d.l, d.c = self.tl + (self.l - self.vl), self.tc + (c - self.vc)
+  
+  if self.ol then -- TODO: visual mode
+  end
+
+  local l,c = 0,math.min(self.c, self:colEnd())
+  l,c = self.tl + (self.l - self.vl), self.tc + (c - self.vc)
+  -- get the current fg/bg color. We are going to swap them
+  local fg,bg = d.fg[l][c] or '', d.bg[l][c] or ''
+  fg,bg = assert(ac.CODES[fg]), assert(ac.CODES[bg])
+  -- TODO: this is dark-mode only, support light mode.
+  fg,bg = (fg=='z') and 'w' or fg, (bg=='z') and 'b' or bg
+  -- swap them
+  d.fg:insert(l,c, bg..(d.fg[l][c+1] or ' '))
+  d.bg:insert(l,c, fg..(d.bg[l][c+1] or ' '))
+  local tx = d.text
+  if not tx[l][c] then tx:insert(l, c, ' ') end
+  -- hide the cursor, but set for reference
+  d.hide, d.l,d.c = true, l,c
 end
 
 function M.Edit:copy()

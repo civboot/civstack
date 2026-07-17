@@ -162,7 +162,9 @@ M.insertMode  = {mode='insert'}
 --- Go to system mode.
 M.systemMode  = {mode='system'}
 --- Go to visual mode.
-M.visualMode  = {mode='visual'}
+M.visualMode  = {mode='visual',  action='visual', 'start'}
+--- Exit visual mode
+M.visualStop  = {mode='command', action='visual', 'stop'}
 
 M.insertTab   = {action='insertTab', tag='mut'}
 M.insertEnter = {'\n', action='insert', tag='mut'}
@@ -582,8 +584,8 @@ ds.update(M.command, {
   -- movement
   f = M.find, F = M.findback,
 
-  -- System
-  s = M.systemMode,
+  -- Modes
+  s = M.systemMode, v=M.visualMode,
 })
 
 M.system = M.KeyBindings {
@@ -622,8 +624,10 @@ then you use an action to specify what to do.
 -- TODO: on enter, visual mode will save the start position as ol,oc.
 -- Movements happen "naturally", but yank/delete/change/insert need to be
 -- handled special. For one thing they must execute IMMEDIATELY.
-ds.update(M.visual, movement)
+ds.update(M.visual, M.movement)
 ds.update(M.visual, {
+  esc = M.visualStop,
+  i = M.insertChord,
 })
 
 return M

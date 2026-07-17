@@ -112,7 +112,7 @@ Test{'insert', dat='', function(tst)
   })
   s:play'9 space 8'; ed:draw()
     T.eq('9 8', b.dat:get(1))
-    T.eq(SI..'\n9 8\n\n', fmt(t))
+    T.eq(SI..'\n9 8 \n\n', fmt(t))
     T.eq(nil, ed.ext.again) -- still, not stored
     T.eq(again, ed.ext.nextAgain)
   T.eq(log.LogTable{}, ed.error)
@@ -123,10 +123,10 @@ Test{'insert', dat='', function(tst)
     T.eq(nil, ed.ext.nextAgain)
 
   s:play'i space 7 enter 6' -- write ' 7\n6'
-    T.eq(SI..'\n9 8 7\n6\n', fmt(t))
+    T.eq(SI..'\n9 8 7\n6 \n', fmt(t))
 
   s:play'esc h r space' -- replace 6 w/space
-    T.eq(SC..'\n9 8 7\n \n', fmt(t))
+    T.eq(SC..'\n9 8 7\n  \n', fmt(t))
 end}
 
 Test{'move', dat=LINES3, function(tst)
@@ -143,7 +143,7 @@ Test{'move', dat=LINES3, function(tst)
   s:play'2 k'; T.eq({1, 1}, {e.l, e.c})
   s:play'$';   T.eq({1, 9}, {e.l, e.c})
   s:play'j';   T.eq({2, 9}, {e.l, e.c})
-    T.eq(SC..'\n'..LINES3, fmt(ed.display))
+    T.eq(SC..'\n'..LINES3:gsub('4 6', '4 6 '), fmt(ed.display))
 
   s:play'0';   T.eq({2, 1}, {e.l, e.c})
   s:play'2 w'; T.eq({2, 4}, {e.l, e.c})
@@ -170,7 +170,7 @@ Test{'change_undo', dat=LINES3, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local b = e.buf
   s:play'f 3 C h i'   T.eq({1, 5}, {e.l, e.c})
-    T.eq(SI..'\n1 hi\n 2 4 6\n', fmt(ed.display))
+    T.eq(SI..'\n1 hi \n 2 4 6\n', fmt(ed.display))
   s:play'esc u'   T.eq({1, 3}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
 
@@ -180,7 +180,7 @@ Test{'change_undo', dat=LINES3, function(tst)
   s:play'esc u'   T.eq({1, 1}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
   s:play'w D'
-    T.eq(SC..'\n1 \n 2 4 6\n', fmt(ed.display))
+    T.eq(SC..'\n1  \n 2 4 6\n', fmt(ed.display))
   s:play'u'   T.eq({1, 3}, {e.l, e.c})
     T.eq(SC..'\n'..LINES3, fmt(ed.display))
 end}
@@ -275,7 +275,8 @@ Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   e:clear(); T.eq({''}, ds.icopy(g))
     e:insert'inserted'
     T.eq({'inserted'}, ds.icopy(g))
-    s:play''; T.eq(SC..'\n'..INSERTED_3, noTmp(fmt(ed.display)))
+    s:play''; T.eq(SC..'\n'..INSERTED_3:gsub('inserted', 'inserted '),
+      noTmp(fmt(ed.display)))
 end}
 
 
@@ -316,7 +317,7 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
   s:play'g .'
   local e = tst.s.ed.pane
-    T.eq(SS..'\n'..NAV_1, noTmp(fmt(ed.display)))
+    T.eq(SS..'\n'..NAV_1:gsub('data/', 'data/ '), noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
     T.eq({2,8}, {e.l,e.c})
     T.eq(1, ed.pane.locations.max)
@@ -435,15 +436,15 @@ Test{'session', dat='', function(tst)
 
   s:play'9 space 8'; ed:draw()
     T.eq('9 8', b.dat:get(1))
-    T.eq(SI..'\n9 8\n\n', fmt(t))
+    T.eq(SI..'\n9 8 \n\n', fmt(t))
   T.eq(log.LogTable{}, ed.error)
 
   -- simulate paste where ^j is enter.
   s:play'space 7 ^j 6'
-    T.eq(SI..'\n9 8 7\n6\n', fmt(t))
+    T.eq(SI..'\n9 8 7\n6 \n', fmt(t))
 
   s:play'^j space space 1 ^j space space 2 ^j'
-    T.eq(SI..'\n  1\n  2\n', fmt(t))
+    T.eq(SI..'\n  1\n  2\n ', fmt(t))
 end}
 
 -- a common coding session

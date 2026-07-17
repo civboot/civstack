@@ -32,7 +32,7 @@ function M.lcGe(l, c, l2, c2) --> bool
 end
 
 --- Return the top-left (aka the minimum) of two points.
-function M.topLeft(l, c, l2, c2) --> (l, c)
+function M.topLeft(l,c, l2,c2) --> (l, c)
   if not c then
     assert(not c2); return sort2(l, l2), 1
   end
