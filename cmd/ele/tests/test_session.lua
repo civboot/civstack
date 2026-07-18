@@ -21,6 +21,7 @@ local et     = require'ele.types'
 local edit   = require'ele.edit'
 local egame  = require'ele.game'
 local Session = require'ele.Session'
+local bindings = require'ele.bindings'
 
 local info = mty.from'ds.log  info'
 local push = mty.from(table, 'insert')
@@ -382,6 +383,22 @@ Test{'overlay', dat=LINES3, function(tst)
   s:play''
     T.eq(SC..'\n'..'1 3 5 7 9\n 2 THE OVERLAY  \n   --NEXT LINE--',
          fmt(ed.display))
+end}
+
+Test{'visual', dat=LINES3, function(tst)
+  local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
+
+  T.eq(ed.modes.visual, bindings.visual)
+
+  s:play'l v'
+    T.eq('visual', ed.mode)
+    T.eq({1,2}, {e.ol,e.oc})
+    T.eq({1,2}, {e.l,e.c})
+
+  s:play'j l l'
+    T.eq('visual', ed.mode)
+    T.eq({1,2}, {e.ol,e.oc})
+    T.eq({2,4}, {e.l,e.c})
 end}
 
 Test{'searchBuf', dat=LINES3, function(tst)

@@ -102,7 +102,7 @@ function M.Edit:selected(l2,c2, box) --> iter[l,c, l2,c2]
     l2 or self.ol or self.l, c2 or self.oc or self.c)
   dbg('edit:lines %s.%s: %s.%s - %s.%s', self.l,self.c, l,c, l2,c2)
   if not box then return function()
-    if box then return end; box = true
+    if box then return end; box = true -- 1 step iter
     return l,c, l2,c2 end
   end
   return function()
@@ -294,8 +294,17 @@ end
 -- Called by model for only the focused editor
 function M.Edit:drawCursor(ed)
   local d = ed.display
-  
-  if self.ol then -- TODO: visual mode
+
+  if self.ol then
+    for l,c, l2,c2 in self:selected() do
+      dbg('edit:selected', l,c, l2,c2)
+      for l,c, l2,c2 in lines.selected(self.buf.dat, l,c, l2,c2) do
+        dbg('  lines.selected', l,c, l2,c2)
+        local tl,tc = self.tl + (l - self.vl), self.tc + (c - self.vc)
+        d.fg:insert(tl,tc, srep('b', c2-c+1))
+        d.bg:insert(tl,tc, srep('l', c2-c+1))
+      end
+    end
   end
 
   local l,c = 0,math.min(self.c, self:colEnd())

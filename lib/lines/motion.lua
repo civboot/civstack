@@ -11,6 +11,7 @@ local sort2, bound, isWithin = mty.from(ds, 'sort2,bound,isWithin')
 local min, max               = mty.from(math, 'min,max')
 
 local byte, char = string.byte, string.char
+local get = ds.get
 
 --- Move [$s] closer to [$e] by 1.[{br}]
 --- If they are equal do nothing.

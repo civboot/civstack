@@ -315,14 +315,15 @@ function M.paste(ed, ev)
   e:changeUpdate2()
 end
 
--- remove movement action
---
--- This is always tied with a movement (except below).
--- It performs the movement and then uses the new location
--- as the "end"
---
--- Exceptions:
--- * lines=0 removes a single line (also supports times)
+--- Remove action.
+---
+--- This is always tied with a movement (except below).
+--- It performs the movement and then uses the new location
+--- as the "end"
+---
+--- Exceptions: [+
+--- * lines=0 removes a single line (also supports times)
+--- ]
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed:edit(); e:changeStart()
@@ -766,13 +767,14 @@ end
 
 --- Action which ASSISTS in starting/ending visual mode.
 function M.visual(ed, ev)
-  local e = self.ed
+  local e = ed:edit()
   if ev[1] == 'start' then
     e.ol,e.oc = e.l,e.c
   elseif ev[1] == 'stop' then
-    e.l,e.c = motion.topLeft(e.l,e.c, e.ol,e.oc)
     e.ol,e.oc = nil,nil
   end
+  ed:handleStandard(ev)
+  ed.redraw = true
 end
 
 function M.help(ed, ev, evsend)

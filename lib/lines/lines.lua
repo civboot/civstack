@@ -283,6 +283,18 @@ function M.box(t, l1, c1, l2, c2, fill) --> lines
   return b
 end
 
+
+--- Given a start/end selection, return an iterator
+--- that returns line-by-line values.
+function M.selected(t, l,c, l2,c2) --> iter[l,c,l2,c2]
+  return function()
+    if l > l2 then return end
+    local l1,c1 = l,c; l,c = l+1, 1
+    if l1==l2 then return l1, c1, l2, c2 end
+    return l1, c1, l1, #get(t,l1)
+  end
+end
+
 --- Get the indentation of line.
 function M.getIndent(t, l) --> str?
   local ln = get(t,l) or 'z'

@@ -626,8 +626,9 @@ then you use an action to specify what to do.
 -- handled special. For one thing they must execute IMMEDIATELY.
 ds.update(M.visual, M.movement)
 ds.update(M.visual, {
+  fallback = M.unboundChord,
   esc = M.visualStop,
-  i = M.insertChord,
+  -- i = M.insertChord,
 })
 
 return M

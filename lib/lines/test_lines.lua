@@ -103,6 +103,23 @@ T'box'; do
   T.eq({'7 9  ', '     ', 'e f g'}, lines.box(l, 1,7, 3,11, ' '))
 end
 
+T'selected'; do
+  local s = lines.selected
+  local t = {'12345', '1234567', '123'}
+  local it = s(t, 1,1, 1,2)
+    T.eq({1,1, 1,2}, {it()}); T.eq(nil, it())
+  it = s(t, 1,2, 2,4)
+    T.eq({1,2, 1,5}, {it()});
+    T.eq({2,1, 2,4}, {it()});
+    T.eq(nil, it())
+  
+  it = s(t, 1,3, 3,2)
+    T.eq({1,3, 1,5}, {it()});
+    T.eq({2,1, 2,7}, {it()});
+    T.eq({3,1, 3,2}, {it()});
+    T.eq(nil, it())
+end
+
 T'autoIndent'; do
   local ai = lines.autoIndent
   local l = {
