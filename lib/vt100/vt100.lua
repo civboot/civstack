@@ -9,7 +9,6 @@ local G = G or _G
 local M = G.mod and mod'vt100' or setmetatable({}, {})
 G.MAIN = G.MAIN or M
 
-
 local mty = require'metaty'
 local fmt = require'fmt'
 local shim = require'shim'
@@ -18,6 +17,7 @@ local Grid = require'ds.Grid'
 local log = require'ds.log'
 local d8  = require'ds.utf8'
 local ac = require'asciicolor'
+local lap = require'lap'
 
 local type             = G.type
 local min, max, mtype  = math.min, math.max, math.type
@@ -30,6 +30,7 @@ local concat             = table.concat
 local io = io
 local isup, islow = ds.isupper, ds.islower
 local acode = ac.assertcode
+local yield = coroutine.yield
 
 local ty = mty.ty
 
@@ -39,6 +40,8 @@ M.ctrl = ctrl
 
 local DEFAULT = {[''] = true, [' '] = true, z=true}
 local RESET, BOLD, UL, INV = 0, 1, 4, 7
+
+local function sleep50ms() lap.sleep(0.050) end
 
 --- VT100 Terminal Emulator [+
 --- * Write the text to display
@@ -302,10 +305,6 @@ local colorFB, acwrite = M.colorFB, M.acwrite
 
 -------------------
 -- Actual VT100 Control Methods
-local function getb()
-  local b = byte(io.read(1)); -- log.trace('input %s %q', b, char(b))
-  return b
-end
 
 --- send a request for size.
 --- Note: the input() coroutine will receive and call _ready()
@@ -321,7 +320,7 @@ end
 --- This can only be run with an active (LAP) input coroutine
 function M.Term:resize()
   self:_requestSize()
-  while self._waiting do coroutine.yield'forget' end -- wait for size
+  while self._waiting do yield'forget' end -- wait for size
   self:_updateChildren(); self:clear() -- note: clear updates row length
 end
 
@@ -346,31 +345,37 @@ end
 
 --- function to run in a (LAP) coroutine.
 --- [$send()] is called with each key recieved. Typically this is a lap.Send.
-function M.Term:input(send) --> infinite loop (run in coroutine)
+function M.Term:input(send, recv) --> infinite loop (run in coroutine)
+  local waiter = function() recv:wait() end
   local b, s, dat, len = 0, '', {}
   ::continue::
   if not self.run then return end
-  b = getb()
+  b = recv()
   if mtype(b) ~= 'integer' then
-    log.error('getb() returned %q', b)
+    log.error('rawRecv() returned %q', b)
     goto continue;
   end
   ::restart::
   ds.clear(dat)
   len = d8.decodelen(b)
   if len > 1 then
-    dat[1] = b; for i=2,len do dat[i]=getb() end
+    dat[1] = b; for i=2,len do dat[i]=recv() end
     b = d8.decode(dat)
   end
   if b ~= ESC then
     b = nice(b); log.trace('send %q', b)
     send(b); goto continue
   end
+  -- First character was esc
   while b == ESC do -- get next char, guard against multi-escapes
-    b = getb(); if b == ESC then send'esc' end
+    local any = lap.Any{waiter, sleep50ms}
+    any:yield(); any:ignore()
+    -- send ESC if it takes >50ms to get next char.
+    if #recv == 0 then send'esc'; goto continue end
+    b = recv(); if b == ESC  then send'esc' end -- send chain of escapes
   end
   if b == LETO then -- <esc>[O, get up to 1 character
-    b = nice(getb()); local s = INP_SEQO[b]
+    b = nice(recv()); local s = INP_SEQO[b]
     if s then send(s);            goto continue
     else      send'esc'; send(b); goto restart end
   end
@@ -379,14 +384,14 @@ function M.Term:input(send) --> infinite loop (run in coroutine)
   -- INP_SEQ. If c is not visible ASCII then bail early
   s = ''
   for i=1,3 do
-    b = getb(); if b <= 0x20 or b > 0x7F then break end
+    b = recv(); if b <= 0x20 or b > 0x7F then break end
     s = s..char(b)
     if INP_SEQ[s] then send(INP_SEQ[s]); goto continue end
     dat[i] = b; b = nil
   end
   if s:match'%d+;?%d*' then
     for i=4,8 do -- could be size: <esc>[<int>;<int>R
-      b = getb(); if b <= 0x20 or b > 0x7F then break end
+      b = recv(); if b <= 0x20 or b > 0x7F then break end
       if b == LETR then
         local h, w = char(unpack(dat)):match'(%d+);(%d+)'
         if h and self._waiting then

@@ -7,6 +7,7 @@ local ele = shim.cmd'ele' {
   'run [str]: lua module to call at start',
 }
 
+local mty = require'metaty'
 local lap = require'lap'
 local fd = require'fd'
 local ds = require'ds'
@@ -22,6 +23,8 @@ local ioopen = io.open
 local iostdout, iostderr = io.stdout, io.stderr
 local sysprint = G.print
 
+local byte = mty.from(string, 'byte')
+
 local ELE_STATE = '/tmp/'..pth.cwd():gsub('/', '_')
                 ..'_elestate.lson'
 
@@ -35,6 +38,8 @@ function ele:__call()
     assert(s.ed:namedBuffer'nav')
   end
   local keysend = s.keys:sender()
+  local rawKeyRecv = lap.Recv()
+  local rawKeySend = rawKeyRecv:sender()
   local iofmt   = io.fmt
 
   local l = require'civix'.Lap{}:run(
@@ -47,10 +52,13 @@ function ele:__call()
     G.print = ds.eprint
     info'ele: started display'
     s:handleEvents()
+    lap.schedule(function() while s.ed.run do
+      rawKeySend(byte(io.read(1)))
+    end end)
     lap.schedule(function()
       LAP_TRACE[coroutine.running()] = true
       info'start term:input()'
-      s.ed.display:input(keysend)
+      s.ed.display:input(keysend, rawKeyRecv)
       info'exit term:input()'
     end)
     lap.schedule(function()

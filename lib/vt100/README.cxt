@@ -18,7 +18,9 @@ To be civboot compliant the [$Term] type exported must have the following API: [
   background color respectively
 * [$l, c] fields for setting the cursor location (which is drawn)
 * [$h, w] (height width) fields (see [$resize()])
-* [$:input(keysend)] method which asyncronously (LAP) sends any user-inputed keys
+* [$:input(keysend, byteRecv)] method which asyncronously (LAP) converts keys
+  received on [$byteRecv] (lap.Recv type) into readable keys which it sends to
+  [$keysend]. Handles series of bytes forming unicode, escape sequencies, etc.
 * [$:draw()] method which draws the text
 * [$:resize()] method that (if nothing is passed to it) retrieves the [$h, w]
   fields and updates and clears child grids.
@@ -26,4 +28,3 @@ To be civboot compliant the [$Term] type exported must have the following API: [
 * [$run] boolean (default=true) which can be set to false to stop related
   coroutines (best effort)
 ]
-

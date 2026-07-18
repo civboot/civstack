@@ -8,6 +8,8 @@ local log = require'ds.log'
 local vt = require'vt100'
 local co = coroutine
 
+local byte = string.byte
+
 M.Fake = mty.extend(vt.Term, 'Fake')
 
 function M.Fake:resize(l, c)
@@ -26,6 +28,11 @@ function M.startTmp() --> out, err
   return err
 end
 
+--- TODO: I tried ot migrate this to the new rawSend
+--- but it's not actually hooked up to run.
+--- Debug it if I need the demo.lua again, else consider
+--- deleting.
+---
 --- Run function in a LAP environment with terminal started
 --- and std in/out set correctly.
 function M.run(fn)
@@ -37,8 +44,13 @@ function M.run(fn)
   local t = vt.Term{h=10, w=80}
   local stderr = M.startTmp()
   local r = lap.Recv{}
+  local rawRecv = lap.Recv{}
+  local rawSend = rawRecv:sender()
+  local byTh = co.create(function() while true do
+    rawSend(byte(io.read(1)))
+  end end)
   local szTh = co.create(function() t:resize() end)
-  local inTh = co.create(function() t:input(r) end)
+  local inTh = co.create(function() t:input(r, rawRecv) end)
 
   local ok, err = ds.try(function()
     -- make stdin async

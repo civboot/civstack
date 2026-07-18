@@ -245,7 +245,6 @@ function doc:__call()
   for _, obj in ipairs(self) do
     if type(obj) == 'string' then obj = doc.find(obj) end
     local name = G.MOD_NAMES[obj]
-    dbg('doc', name, obj)
     d(name or '(unknown)', obj); d:write'\n'
   end
 end

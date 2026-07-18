@@ -344,20 +344,6 @@ function M.pretty(v) return concat(Fmt:pretty{}(v)) end --> string
 --- Set to __fmt to format a type like a table.
 function M.table(tbl, fmter) return fmter:rawtable(tbl) end
 
---- Global debug function, useful for quickly and temporarily
---- debugging code.  The first argument is always a format string which uses
---- the following arguments. Additional arguments are printed as literals.
-function M.dbg(fmt, ...)
-  local f, args = io.fmt, {...}
-  f:styled('debug', 'DBG: ')
-  f:level(1)
-  local a = f:formatArgs(fmt, args)
-  for i=a+1,select('#', ...) do f:write' '; f(args[i]) end
-  f:level(-1); f:write'\n'; f:flush()
-end
-
-G.dbg = M.dbg
-
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

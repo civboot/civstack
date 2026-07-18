@@ -82,6 +82,9 @@ function M._async.schedule(fn, ...)
   return cor
 end
 
+--- Yield a sleep signal for the number of  seconds (float).
+function M.sleep(s) return yield('sleep', s) end
+
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
 
@@ -265,20 +268,21 @@ getmetatable(M.Any).__call = function(T, fns)
       end
     end)
   end
-  return mty.construct(T, self)
+  return mty.construct(T, self):schedule()
 end
 
 --- Stop running caring about functions.
 function M.Any:ignore() self.cor = nil end
 
---- Ensure all fns are scheduled
+--- Ensure all fns are scheduled. This is called automatically on
+--- construction.
 function M.Any:schedule() --> self
-  for i in pairs(self.fns) do
+  for i, fn in ipairs(self.fns) do
     if self.done[i] == nil then
-      LAP_READY[coroutine.create(self.fns[i])] = 'any-item'
-      self.done[i] = false
+      LAP_READY[coroutine.create(fn)] = 'any-item'
     end
   end
+  return self
 end
 
 --- yield until any fn is done
@@ -286,9 +290,6 @@ function M.Any:yield() --> fnIndex
   while not next(self.done) do yield'forget' end
   return next(self.done)
 end
-
---- Yield a sleep signal for the number of  seconds (float).
-function M.sleep(s) return yield('sleep', s) end
 
 ----------------------------------
 -- Lap
@@ -310,7 +311,7 @@ local LAP_UPDATE = {
                LAP_CORS[cor] or 'unnamed', cor)
     elseif cur then
       return fmt.format(
-        'two coroutines are both attempting to listen to fileno=%s\n'
+        'Two coroutines are both attempting to listen to fileno=%s\n'
         ..'Previous %q (%q) traceback:\n  %s\nRunning %q (%q) traceback:\n  %s',
         fileno,
         LAP_CORS[cur] or 'unnamed', cur,

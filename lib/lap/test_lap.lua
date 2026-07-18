@@ -32,6 +32,7 @@ local l = M.Lap {
   pollList=ds.nosupport,
 }
 
+local DONE
 local _, errors = l:run{function()
 T'schedule'; do
   local i = 0
@@ -70,12 +71,29 @@ T'ch'; do
   yield(true); T.eq({}, t)
   finished = finished + 1
 end
+
+T'any'; do
+  local v
+  local function fn4() for i=1,3 do yield(true) end; v=4 end
+  local function fn8() for i=1,7 do yield(true) end; v=8 end
+  local any = M.Any{fn8, fn4}
+  T.eq(2, any:yield())
+    T.eq({[2]=true}, any.done)
+    T.eq(4, v)
+  any.done[2] = nil
+  T.eq(1, any:yield())
+    T.eq({true},  any.done)
+    T.eq(8, v)
+end
+DONE = true
 end} -- end l:run
+
+assert(DONE, 'lap tests did not actually run')
 
 if errors then error('lap found errors:\n'..fmt(errors)) end
 assert(l:isDone())
 T.eq(2, finished)
 M.reset()
 
--- note: update when necessary. These just prove determinism
-T.eq(9, slept); T.eq(9, mono)
+-- note: update if fail, these just prove determinism
+T.eq({slept=18, mono=18}, {slept=slept, mono=mono})

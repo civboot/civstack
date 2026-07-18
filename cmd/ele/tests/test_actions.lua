@@ -233,6 +233,9 @@ T'nav'; do
   local content = 'some text\ninserted from actions'
   e:insert(content); e:save(d)
   T.path(test_txt, content)
+  
+  -- FIXME: add a goPath test for ./lib/vt100/vt100.lua
+  -- it is only parsing to .../lib/vt1
   cleanup(d)
 end
 

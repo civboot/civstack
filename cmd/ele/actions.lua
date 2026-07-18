@@ -417,6 +417,7 @@ M.DO_NAV = {
   end,
 }
 
+-- FIXME: I think these need to end with $
 function nav.getFocus(line)
   return line:match'^%-?([.~]?/[^\n]*)'
 end
