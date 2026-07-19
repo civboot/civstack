@@ -158,6 +158,12 @@ local NAV1 = [[
     * f
 /some/other/path
 ]]
+
+local NAV2 = [[
+b#50       ./lib/vt100/vt100.lua
+b#51       ./lib/shim/README.cxt
+b#52       ./lib/fmt/binary.lua
+]]
 T'nav'; do
   local d = newEditor(NAV1)
   assert(d.pane.container == d)
@@ -233,9 +239,17 @@ T'nav'; do
   local content = 'some text\ninserted from actions'
   e:insert(content); e:save(d)
   T.path(test_txt, content)
-  
-  -- FIXME: add a goPath test for ./lib/vt100/vt100.lua
-  -- it is only parsing to .../lib/vt1
+
+  -- Test Buffer paths.
+  e = d:focus(b)
+  e:clear()
+  e:insert(NAV2)
+  e.l,e.c = 1,1
+  local ln = 'b#50       ./lib/vt100/vt100.lua'
+  T.eq('b#50', nav.getBuffer(ln))
+  T.eq(ln, b:get(1))
+  T.eq('b#50',     nav.getPath(b, 1))
+
   cleanup(d)
 end
 
@@ -278,10 +292,10 @@ T'state'; do
       chld={
         PaneState{
           ty="ele.edit.Edit",
-          dat={ id=12, vc=1, vl=1, l=1,c=1, path=b1:path() }
+          dat={ id=13, vc=1, vl=1, l=1,c=1, path=b1:path() }
         }, PaneState{
           ty="ele.edit.Edit",
-          dat={ id=14, vc=1, vl=1, l=1,c=1, path=spath }
+          dat={ id=15, vc=1, vl=1, l=1,c=1, path=spath }
         }
       }
     },

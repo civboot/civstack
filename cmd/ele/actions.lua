@@ -417,9 +417,11 @@ M.DO_NAV = {
   end,
 }
 
--- FIXME: I think these need to end with $
 function nav.getFocus(line)
   return line:match'^%-?([.~]?/[^\n]*)'
+end
+function nav.getBuffer(line)
+  return line:match'^(b#%S+)'
 end
 function nav.getEntry(line) --> (indent, kind, entry)
   local i, k, e = line:match'^(%s+)([*+-])%s*([^\n]+)'
@@ -469,8 +471,9 @@ end
 --- If not an entry, try to find the path from the column.
 function nav.getPath(b, l,c) --> string
   local ln = b:get(l); local path, ind
-  local focus   = getFocus(ln); if focus then return focus  end
-  local i, _, e = getEntry(ln); if not i then goto nonentry end
+  local focus   = getFocus(ln);  if focus then return focus  end
+  local buf = nav.getBuffer(ln); if buf   then return buf    end
+  local i, _, e = getEntry(ln);  if not i then goto nonentry end
   path, ind = {e}, #i
 
   -- Scan up, adding entries with less indent to path.
@@ -586,13 +589,13 @@ function nav.goPath(ed, create)
   ed:pushLocation()
   local e = ed:edit()
   local p = nav.getPath(e.buf, e.l,e.c)
+  info('goPath %s', p)
   if p then
     local b = ed:getBuffer(p); if b then
       ed:focus(b); return
     end
   end
   p = pth.abs(pth.resolve(p))
-  info('goPath %s', p)
   if create or ed:getBuffer(p) or ix.exists(p) then
     ed:focus(p)
   else error'TODO: goto nav' end
