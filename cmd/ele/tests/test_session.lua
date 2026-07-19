@@ -399,6 +399,10 @@ Test{'visual', dat=LINES3, function(tst)
     T.eq('visual', ed.mode)
     T.eq({1,2}, {e.ol,e.oc})
     T.eq({2,4}, {e.l,e.c})
+
+  e.box = true
+  s:play'l'
+    T.eq('visual', ed.mode)
 end}
 
 Test{'searchBuf', dat=LINES3, function(tst)

@@ -774,6 +774,7 @@ function M.visual(ed, ev)
   local e = ed:edit()
   if ev[1] == 'start' then
     e.ol,e.oc = e.l,e.c
+    e.box = ev.box
   elseif ev[1] == 'stop' then
     e.ol,e.oc = nil,nil
   end

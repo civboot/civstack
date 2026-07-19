@@ -22,7 +22,7 @@ local info         = mty.from'ds.log  info'
 
 --- Ele Edit View for viewing and editing text files in a pane.
 M.Edit = mty.extend(et.BasePane, 'Edit', {
-  'box[bool]: type of visual selector',
+  'box[bool]: whether visual mode is in "box" mode.',
   -- ol/oc store the origin line/col for use with visual mode.
   'ol[int]: origin line', 'oc[int]: origin col',
   -- vl/vc are what (top-left)line/column are being VIEWED by the user.
@@ -96,13 +96,15 @@ function M.Edit:offset(off)
 end
 --- Get iterator of selection. If box is used, multiple distinct
 --- lines will be returned from bottom -> top.
-function M.Edit:selected(l2,c2, box) --> iter[l,c, l2,c2]
+function M.Edit:selected(l2,c2) --> iter[l,c, l2,c2]
   local l,c, l2,c2 = lines.sort(
     self.l, self.c,
     l2 or self.ol or self.l, c2 or self.oc or self.c)
-  if not box then return function()
-    if box then return end; box = true -- 1 step iter
-    return l,c, l2,c2 end
+  if not self.box then; 
+    local done; return function()
+      if done then return end; done = true
+      return l,c, l2,c2
+    end
   end
   return function()
     if l > l2 then return end
@@ -302,6 +304,7 @@ function M.Edit:drawCursor(ed)
         d.bg:insert(tl,tc, srep('l', c2-c+1))
       end
     end
+    return
   end
 
   local l,c = 0,math.min(self.c, self:colEnd())

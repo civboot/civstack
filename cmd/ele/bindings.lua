@@ -162,7 +162,8 @@ M.insertMode  = {mode='insert'}
 --- Go to system mode.
 M.systemMode  = {mode='system'}
 --- Go to visual mode.
-M.visualMode  = {mode='visual',  action='visual', 'start'}
+M.visualMode    = {mode='visual', action='visual', 'start'}
+M.visualBoxMode = {mode='visual', action='visual', 'start', box=true}
 --- Exit visual mode
 M.visualStop  = {mode='command', action='visual', 'stop'}
 
@@ -585,7 +586,7 @@ ds.update(M.command, {
   f = M.find, F = M.findback,
 
   -- Modes
-  s = M.systemMode, v=M.visualMode,
+  s = M.systemMode, v=M.visualMode, ['^v']=M.visualBoxMode,
 })
 
 M.system = M.KeyBindings {
