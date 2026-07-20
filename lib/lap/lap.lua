@@ -418,7 +418,9 @@ function M.Lap:execute(cor, note) --> errstr?
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   if status(cor) == 'dead' then
-    return 'coroutine is dead but asked to be resumed.'
+    log.warn('coroutine %q (fn=%q) is dead but someone tried resume it',
+             cor, LAP_CORS[cor])
+    return
   end
   local ok, kind, a, b = resume(cor)
   if not ok then return kind end -- kind=error
