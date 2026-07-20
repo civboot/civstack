@@ -297,7 +297,6 @@ local NAV_2 = [[
  1    * thing1.txt
 | TMP:4.8 b#nav ( ]]
 
--- FIXME: I'm not sure about the extra newline
 local NAV_3 = [[
  5% p:-/%.
  4./data/
