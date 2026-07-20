@@ -238,8 +238,8 @@ function M.insert(ed, ev, evsend)
   -- Note: changeStart is in Editor.handleStandard.
   local e = ed:edit()
   if ev[1] then
-    for l,c in e:selected() do
-      e:insert(string.rep(assert(ev[1]), ev.times or 1), l,c)
+    for l,c,l2,c2 in e:selected() do
+      e:insert(string.rep(assert(ev[1]), ev.times or 1), l,max(c,c2))
     end
   end
   ed:handleStandard(ev)
@@ -255,6 +255,7 @@ end
 function M.backspace(ed, ev)
   local tw = ed.s.tabwidth
   local e = ed:edit(); local b = e.buf
+  if ev.noNewline and (e.c >= #e:curLine()) then return end
   local ln = e:curLine() or ''
   local ind = ln:match'^%s*'
   local rm = 1
@@ -326,7 +327,9 @@ end
 --- ]
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
-  local e = ed:edit(); e:changeStart()
+  local e = ed:edit()
+  if ev.noNewline and (e.c >= #e:curLine()) then return end
+  e:changeStart()
   M._yank(ed, ev)
   local t = ev.times
   if ev.visual then
@@ -336,6 +339,8 @@ function M.remove(ed, ev)
         c, c2 = min(c, #e:get(l)), min(c2, #e:get(l2))
       end
       e:remove(l,c, l2,c2)
+      if not e.box then e.l = l end
+      e.c = c
     end
   elseif ev.lines == 0 then
     local l2 = (t and (t - 1)) or 0
@@ -785,6 +790,9 @@ function M.visual(ed, ev)
     e.box = ev.box
   elseif ev[1] == 'stop' then
     e.ol,e.oc = nil,nil
+  elseif ev[1] == 'insert' then
+    assert(e.ol, 'visualInsertMode from non-visual mode')
+    e.c = min(e.c, e.oc); e.oc = e.c
   end
   ed:handleStandard(ev)
   ed.redraw = true

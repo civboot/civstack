@@ -403,7 +403,7 @@ Test{'visual', dat=LINES3, function(tst)
   s:play'd'
     T.eq('command', ed.mode)
     T.eq('1 6\n', fmt(e.buf.dat))
-    T.eq({2,4}, {e.l,e.c})
+    T.eq({1,2}, {e.l,e.c})
     T.eq({nil,nil}, {e.ol,e.oc})
 
   s:play'u'
@@ -415,11 +415,22 @@ Test{'visual', dat=LINES3, function(tst)
     T.eq(true, e.box)
     T.eq({1,2}, {e.ol,e.oc})
     T.eq({2,4}, {e.l,e.c})
-  
+
   s:play'd'
     T.eq('command', ed.mode)
     T.eq('15 7 9\n  6\n', fmt(e.buf.dat))
-    T.eq({2,4}, {e.l,e.c})
+    T.eq({2,2}, {e.l,e.c})
+
+  e.l,e.c = 1,2
+  s:play'^v j l i'
+    T.eq('visualInsert', ed.mode)
+    T.eq({1,2, 2,2}, {e.ol,e.oc, e.l,e.c})
+
+  s:play'h i enter'
+    T.eq('command', ed.mode)
+    T.eq('1hi5 7 9\n hi 6\n', fmt(e.buf.dat))
+    T.eq({nil,nil, 2,4}, {e.ol,e.oc, e.l,e.c})
+
 end}
 
 Test{'searchBuf', dat=LINES3, function(tst)

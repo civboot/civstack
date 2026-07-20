@@ -167,7 +167,7 @@ end
 --- self.(l,c).
 function M.Edit:insert(s, l,c)
   local b = self.buf
-  b:insert(s, self.l or l, self.c or c)
+  b:insert(s, l or self.l, c or self.c)
   if l and l ~= self.l and c ~= self.c then return end
   self.l, self.c = lines.offset(b.dat, #s, self.l, self.c)
   -- if causes cursor to move to next line, move to end of cur line

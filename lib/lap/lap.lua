@@ -417,6 +417,9 @@ function M.Lap:execute(cor, note) --> errstr?
   if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
+  if status(cor) == 'dead' then
+    return 'coroutine is dead but asked to be resumed.'
+  end
   local ok, kind, a, b = resume(cor)
   if not ok then return kind end -- kind=error
   local fn = LAP_UPDATE[kind]
@@ -435,6 +438,7 @@ function M.Lap:__call()
       local err = self:execute(cor, note)
       if err then
         errors = errors or {}
+        err = fmt(LAP_CORS[cor] or '(?fn?)')..err
         push(errors, Error:from(err, cor))
       end
     end

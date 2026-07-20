@@ -162,8 +162,9 @@ M.insertMode  = {mode='insert'}
 --- Go to system mode.
 M.systemMode  = {mode='system'}
 --- Go to visual mode.
-M.visualMode    = {mode='visual', action='visual', 'start'}
-M.visualBoxMode = {mode='visual', action='visual', 'start', box=true}
+M.visualMode       = {mode='visual', action='visual', 'start'}
+M.visualBoxMode    = {mode='visual', action='visual', 'start', box=true}
+M.visualInsertMode = {mode='visualInsert', action='visual', 'insert'}
 --- Exit visual mode
 M.visualStop  = {mode='command', action='visual', 'stop'}
 
@@ -243,8 +244,10 @@ function M.tillback(keys)
   M.findback(keys); keys.event.cols = 1
 end
 
-M.backspace = {action='backspace', tag='mut'}
-M.delkey    = {action='remove', off=0, tag='mut'}
+M.backspace       = {action='backspace', tag='mut'}
+M.visualBackspace = {action='backspace', tag='mut', noNewline=true}
+M.delkey          = {action='remove', off=0, tag='mut'}
+M.visualDelkey    = {action='remove', off=0, tag='mut', noNewline=true}
 
 --- Join next line
 M.join      = {action='chain', tag='mut',
@@ -258,6 +261,11 @@ M.join      = {action='chain', tag='mut',
 M.deleteVisual = { action='chain', 
   { action='remove', visual=true },
   M.visualStop,
+}
+
+M.changeVisual = { action='chain',
+  { action='remove', visual=true },
+  M.visualInsertMode,
 }
 
 --- delete until a movement command (or similar)
@@ -444,7 +452,7 @@ function M.install(ed)
       insert=M.insert,
       command=M.command,
       system=M.system,
-      visual=M.visual,
+      visual=M.visual, visualInsert=M.visualInsert,
   })
   if not ed.namedBuffers.nav then
     push(ed:namedBuffer'nav'.tmp, ed.ext.keys) -- mark as not closed
@@ -553,7 +561,7 @@ M.common = {
 }
 
 --- Insert Mode: directly insert text into the buffer.
-M.insert  = M.KeyBindings{name='insert mode', doc=[[
+M.insert = M.KeyBindings{name='insert mode', doc=[[
 Insert mode is the primary editing mode of the editor,
 allowing you to directly enter text.
 Press [$esc] to exit to command mode.
@@ -569,6 +577,24 @@ ds.update(M.insert, {
   -- terminal not to run each line.
   ['^j']   = M.insertEnter,
 })
+
+M.visualInsert = M.KeyBindings {
+  name = 'visual insert mode',
+  doc  = [[
+You should only get here if you started in visual mode.
+It allows inserting text to multiple lines simulatniously.
+You leave by pressing esc, enter or any movement key.
+]]}
+
+ds.update(M.visualInsert, {
+  fallback = M.insertChord,
+  ['^q']   = M.exit,
+  tab = M.insertTab,
+  back = M.visualBackspace, del=M.visualDelkey,
+})
+for _, k in ipairs{'esc', 'enter', 'right', 'left', 'up', 'down'} do
+  M.visualInsert[k] = M.visualStop
+end
 
 M.command = M.KeyBindings{
   name='command mode', 
@@ -627,17 +653,15 @@ You move any amount to visually select the block of text you want,
 then you use an action to specify what to do.
 ]]}
 
-
--- TODO: on enter, visual mode will save the start position as ol,oc.
 -- Movements happen "naturally", but yank/delete/change/insert need to be
 -- handled special. For one thing they must execute IMMEDIATELY.
 ds.update(M.visual, M.movement)
 ds.update(M.visual, {
-  fallback = M.unboundChord,
-  esc = M.visualStop,
-  -- i = M.insertChord,
+  fallback=M.unboundChord, esc=M.visualStop, 
   
-  d = M.deleteVisual,
+  i=M.visualInsertMode, I=M.visualInsertMode,
+  x=M.deleteVisual,     d=M.deleteVisual, D=M.deleteVisual,
+  c=M.changeVisual,     C=M.changeVisual,
 })
 
 return M
