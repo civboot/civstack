@@ -426,11 +426,20 @@ Test{'visual', dat=LINES3, function(tst)
     T.eq('visualInsert', ed.mode)
     T.eq({1,2, 2,2}, {e.ol,e.oc, e.l,e.c})
 
-  s:play'h i enter'
+  s:play'h i enter' -- write "hi" on both lines
     T.eq('command', ed.mode)
     T.eq('1hi5 7 9\n hi 6\n', fmt(e.buf.dat))
     T.eq({nil,nil, 2,4}, {e.ol,e.oc, e.l,e.c})
 
+  e.l = 1
+  s:play'^v j i'
+    T.eq('visualInsert', ed.mode); T.eq(true, e.box)
+    T.eq({1,4, 2,4}, {e.ol,e.oc, e.l,e.c})
+
+  s:play'back'
+    T.eq('visualInsert', ed.mode)
+    T.eq('1h5 7 9\n h 6\n', fmt(e.buf.dat))
+    T.eq({1,3, 2,3}, {e.ol,e.oc, e.l,e.c})
 end}
 
 Test{'searchBuf', dat=LINES3, function(tst)

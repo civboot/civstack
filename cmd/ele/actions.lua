@@ -253,9 +253,21 @@ function M.insertTab(ed, ev)
 end
 
 function M.backspace(ed, ev)
-  local tw = ed.s.tabwidth
   local e = ed:edit(); local b = e.buf
-  if ev.noNewline and (e.c >= #e:curLine()) then return end
+  if ev.visual then
+    if e.box then
+      e.c = max(e.c,e.oc); e.oc = e.c
+      if e.c > 1 then 
+        for l,c, l2,c2 in e:selected() do
+            e:remove(l,c-1, l2,c-1)
+        end
+        e.c = min(e.c,e.oc) - 1; e.oc = e.c
+      end
+    else M.remove(ed, {visual=true}) end
+    return
+  end    
+  
+  local tw = ed.s.tabwidth
   local ln = e:curLine() or ''
   local ind = ln:match'^%s*'
   local rm = 1
@@ -328,7 +340,6 @@ end
 function M.remove(ed, ev)
   local mode = ds.popk(ev, 'mode') -- cache, we handle at end
   local e = ed:edit()
-  if ev.noNewline and (e.c >= #e:curLine()) then return end
   e:changeStart()
   M._yank(ed, ev)
   local t = ev.times

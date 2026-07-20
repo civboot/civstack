@@ -245,9 +245,8 @@ function M.tillback(keys)
 end
 
 M.backspace       = {action='backspace', tag='mut'}
-M.visualBackspace = {action='backspace', tag='mut', noNewline=true}
+M.visualBackspace = {action='backspace', tag='mut', visual=true}
 M.delkey          = {action='remove', off=0, tag='mut'}
-M.visualDelkey    = {action='remove', off=0, tag='mut', noNewline=true}
 
 --- Join next line
 M.join      = {action='chain', tag='mut',
@@ -590,7 +589,7 @@ ds.update(M.visualInsert, {
   fallback = M.insertChord,
   ['^q']   = M.exit,
   tab = M.insertTab,
-  back = M.visualBackspace, del=M.visualDelkey,
+  back = M.visualBackspace
 })
 for _, k in ipairs{'esc', 'enter', 'right', 'left', 'up', 'down'} do
   M.visualInsert[k] = M.visualStop
@@ -659,8 +658,12 @@ ds.update(M.visual, M.movement)
 ds.update(M.visual, {
   fallback=M.unboundChord, esc=M.visualStop, 
   
-  i=M.visualInsertMode, I=M.visualInsertMode,
+  i=M.visualInsertMode,   I=M.visualInsertMode,
+  back=M.visualBackspace, 
+  
   x=M.deleteVisual,     d=M.deleteVisual, D=M.deleteVisual,
+  del=M.deleteVisual,
+  
   c=M.changeVisual,     C=M.changeVisual,
 })
 
