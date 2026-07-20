@@ -329,7 +329,15 @@ function M.remove(ed, ev)
   local e = ed:edit(); e:changeStart()
   M._yank(ed, ev)
   local t = ev.times
-  if ev.lines == 0 then
+  if ev.visual then
+    assert(e.ol)
+    for l,c, l2,c2 in e:selected() do
+      if e.box then -- box cannot remove newlines
+        c, c2 = min(c, #e:get(l)), min(c2, #e:get(l2))
+      end
+      e:remove(l,c, l2,c2)
+    end
+  elseif ev.lines == 0 then
     local l2 = (t and (t - 1)) or 0
     log.info('remove lines(0) %s:%s', e.l, e.l + l2)
     e:remove(e.l, e.l + l2)

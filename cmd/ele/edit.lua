@@ -87,8 +87,8 @@ function M.Edit:copy()
     locations=self.locations:copy(127)
   })
 end
-function M.Edit:curLine()
-  return self.buf.dat:get(self.l) end
+function M.Edit:get(l) return self.buf.dat:get(l) end
+function M.Edit:curLine() return self:get(self.l) end
 function M.Edit:colEnd() return #(self:curLine() or '') + 1 end
 function M.Edit:lastLine() return self.buf[#self] end
 function M.Edit:offset(off)

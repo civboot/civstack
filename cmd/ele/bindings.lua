@@ -254,6 +254,12 @@ M.join      = {action='chain', tag='mut',
   {action='remove', move='nextLineText', cols=-1, tag='mut'},
 }
 
+--- Used for visual mode, which doesn't end at a movement.
+M.deleteVisual = { action='chain', 
+  { action='remove', visual=true },
+  M.visualStop,
+}
+
 --- delete until a movement command (or similar)
 function M.delete(keySt)
   local ev = keySt.event or {}; keySt.event = ev
@@ -630,6 +636,8 @@ ds.update(M.visual, {
   fallback = M.unboundChord,
   esc = M.visualStop,
   -- i = M.insertChord,
+  
+  d = M.deleteVisual,
 })
 
 return M
