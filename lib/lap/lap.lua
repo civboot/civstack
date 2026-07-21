@@ -418,8 +418,9 @@ function M.Lap:execute(cor, note) --> errstr?
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   if status(cor) == 'dead' then
-    log.warn('coroutine %q (fn=%q) is dead but someone tried resume it',
-             cor, LAP_CORS[cor])
+    log.warn('coroutine %q (fn=%q) is dead but someone tried resume it. Traceback:\n  %s',
+             cor, LAP_CORS[cor],
+             table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
     return
   end
   local ok, kind, a, b = resume(cor)

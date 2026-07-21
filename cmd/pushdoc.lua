@@ -44,6 +44,7 @@ local LUA_NAV = [[
   <ul>
     <a href="../index.html"   class="nav"             >civ/</a>
     <a href="index.html"      class="nav nav-selected">lua/</a>
+    <a href="../blog/index.html" class="nav">blog/</a>
   </ul>
 </nav>
 ]]
@@ -53,6 +54,17 @@ local ROOT_NAV = [[
   <ul>
     <a href="index.html"   class="nav nav-selected">civ/</a>
     <a href="lua/index.html" class="nav"           >lua/</a>
+    <a href="blog/index.html" class="nav">blog/</a>
+  </ul>
+</nav>
+]]
+
+local BLOG_NAV = [[
+<nav>
+  <ul>
+    <a href="../index.html"   class="nav"             >civ/</a>
+    <a href="../lua/index.html"      class="nav">lua/</a>
+    <a href="index.html" class="nav nav-selected">blog/</a>
   </ul>
 </nav>
 ]]
@@ -71,7 +83,8 @@ function M:__call()
   ix.mkDirs(luaDir)
   local cv = core.Civ{cfg=core.Cfg:load(self.config)}
   local tgtnames = cv:expandAll(self.pat)
-  local header = HEAD:format('../styles.css')..LUA_NAV
+  local luaHdr = HEAD:format('../styles.css')..LUA_NAV
+  local blogHdr = HEAD:format('../styles.css')..BLOG_NAV
   local nav = {}
   civ._build(self, cv, tgtnames)
   for _, tgtname in ipairs(tgtnames) do
@@ -83,20 +96,42 @@ function M:__call()
     export(
       cv.cfg.buildDir..'doc/lua/'..nameCxt,
       luaDir..name..'.html',
-      header
+      luaHdr
     )
   end
+
+  -- write lua/index.cxt -> lua/index.html
   local indexPath = cv.cfg.buildDir..'doc/lua/index.cxt'
-  local f = io.open(indexPath, 'w')
+  local f = assert(io.open(indexPath, 'w'))
   f:write'[+\n'
   for _, n in ipairs(ds.sort(nav)) do
     f:write(sfmt('* [<%s>%s]\n', n..'.html', n))
   end
   f:write']\n'; f:flush(); f:close()
-  export(indexPath, luaDir..'index.html', header)
+  export(indexPath, luaDir..'index.html', luaHdr)
   if self.readme then
     export(self.readme, D..'index.html',
            HEAD:format('styles.css')..ROOT_NAV)
+  end
+
+  -- update blog/
+  local blogDir = D..'blog/'
+  local _blogDir = D..'_blog/'
+
+  -- reverse sorted posts
+  local posts = ds.sort(ix.ls(_blogDir), function(a, b) return b < a end)
+  for i, p in ipairs(posts) do posts[i] = p:gsub('(%.cxt)$', '') end
+  table.remove(posts, ds.indexOf(posts, 'index'))
+  local index = {'[+\n'}
+  for _, p in ipairs(posts) do
+    push(index, sfmt('* [<%s>%s]\n', p..'.html', p))
+  end
+  push(index, ']\n')
+  local indexPath = _blogDir..'index.cxt'
+  pth.write(indexPath, table.concat(index))
+  export(indexPath, blogDir..'index.html', blogHdr)
+  for _, p in ipairs(posts) do
+    export(_blogDir..p..'.cxt', blogDir..p..'.html', blogHdr)
   end
 end
 

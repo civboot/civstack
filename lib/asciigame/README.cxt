@@ -1,5 +1,13 @@
 [{h1}asciigame: library for making ascii-colored games]
 
+asciigame contains a syntax to make colored asciiart, which
+can be loaded to the [@Ele] editor.
+
+If you want to start writing ASCII art with Ele (or vim) here are
+some helpful references to get you started: [+
+*  [<https://alexyang.dev/vim-ascii-art/>this blog] post.
+]
+
 [{h2}acs: write ascii sprites]
 
 [$.acs] files contain a series of named "sprites" which are lines of
@@ -48,6 +56,8 @@ background style.
 <  r
 <  r
 ]$
+
+Renders as [<../img/asciigame.png>this image]
 
 The sprite text "consumes" the next foreground/background line below it,
 allowing for user-control of how they lay out the colors.  For instance, you

@@ -69,6 +69,7 @@ local function libdoc(mod, readme)
   }
 end
 libdoc('asciicolor', true)
+libdoc('asciigame', true)
 libdoc('civix', true)
 libdoc('civtest', true)
 libdoc('ds', true)

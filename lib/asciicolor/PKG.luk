@@ -1,6 +1,7 @@
 local P = {}
 P.summary = "Tiny data structures and algorithms for lua."
 local lua = import'sys:lua.luk'
+local doc = import'civ:doc.luk'
 
 -- Note: tests are in lib/PKG.lua
 P.asciicolor = lua {

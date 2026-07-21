@@ -12,7 +12,7 @@ local lap = require'lap'
 local fd = require'fd'
 local ds = require'ds'
 local pth = require'ds.path'
-local info = require'ds.log'.info
+local log = require'ds.log'
 local ac = require'asciicolor'
 local vt = require'vt100'
 local ix = require'civix'
@@ -20,6 +20,7 @@ local lson = require'lson'
 local et = require'ele.types'
 
 local ioopen = io.open
+local info = log.info
 local iostdout, iostderr = io.stdout, io.stderr
 local sysprint = G.print
 
@@ -58,7 +59,10 @@ function ele:__call()
     lap.schedule(function()
       LAP_TRACE[coroutine.running()] = true
       info'start term:input()'
-      s.ed.display:input(keysend, rawKeyRecv)
+      while s.ed.run do
+        local ok, err = ds.try(s.ed.display.input, s.ed.display, keysend, rawKeyRecv)
+        (ok and info or log.error)('display.input exited with: %s', err)
+      end
       info'exit term:input()'
     end)
     lap.schedule(function()
