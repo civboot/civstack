@@ -253,3 +253,23 @@ test('freeze Type', function()
     a.a1 = 'foo'
   end)
 end)
+
+test('ctx', function()
+  assertEq(G.ctx, ctx)
+  assertEq(G.CTX_BASE, ctx.__parent)
+  assertEq(nil,     rawget(ctx, 'read'))
+  assertEq(io.read, ctx.read)
+
+  local e = {}
+  ctx:push(e)
+  assertEq(e, ctx.__parent)
+  assertEq(G.CTX_BASE, e.__parent)
+  assertEq(io.read, ctx.read)
+  ctx.foo = 'bar'
+  assertEq(e.foo, 'bar')
+  assertEq(ctx.foo, 'bar')
+  assertEq(io.read, ctx.read)
+  assertEq(e,   ctx:pop())
+  assertEq(nil, ctx.foo)
+  assertEq(io.read, ctx.read)
+end)

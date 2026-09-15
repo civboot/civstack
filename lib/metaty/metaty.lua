@@ -662,6 +662,54 @@ function M.enum(name)
   return function(nameIds) return namedEnum(name, nameIds) end
 end
 
+G.CTX_BASE  = {} -- the base (sync) context.
+G.CTX_ASYNC = {} -- the base async context.
+
+for k in ([[
+open   close  tmpfile
+read   lines  write
+stdout stdin  popen
+input  output flush
+]]):gmatch'%w+' do G.CTX_BASE[k] = io[k] end
+
+CTX_BASE.fileType = io.type
+
+--- An object for creating a layered "context", specifically
+--- used for the global ctx variable.
+---
+--- Ctx acts like a mostly normal table but also supports two methods,
+--- [$:push()] and [$:pop()] which add and subtract layers.
+--- Mutations always happen at the to (most recently added) layer,
+--- getting keys start at the top and work their way down.
+---
+--- This also acts as a good example of what type of object metatype
+--- is NOT great for: singleton objects with excessive __index manipulation.
+M.ctx = setmetatable({
+  __parent = CTX_BASE,
+  --- push a new layer
+  push = function(self, t)
+    t = t or {}; assert(type(t) == 'table', 'env:push(table|nil)')
+    t.__parent, self.__parent = self.__parent, t
+  end,
+  --- pop a layer. Errors if attempts to pop base env.
+  pop = function(self) --> t
+    local p = self.__parent
+    self.__parent = assert(p.__parent, 'cannot pop root env')
+    p.__parent = nil
+    return p
+  end,
+}, {
+  __name='metaty.ctx',
+  __index = function(self, k)
+    local p, v = self.__parent; while p do
+      v = p[k]; if v ~= nil then return v end
+      p = p.__parent
+    end
+  end,
+  __newindex = function(self, k, v) self.__parent[k] = v end,
+})
+
+G.ctx = M.ctx
 
 --- like require but returns nil if not found.
 function M.want(mod) --> module?
