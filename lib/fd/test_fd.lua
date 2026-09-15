@@ -1,4 +1,4 @@
-local iotype = io.type
+local iotype = ctx.fileType
 
 local T   = require'civtest'
 local M   = require'fd'
@@ -9,13 +9,7 @@ local info = require'ds.log'.info
 
 local push = table.insert
 
-local S   = M.sys
-
-local io_open = io.open
-T.eq(M.io.open, io_open)
-
-M.ioSync()
-assert(io.open ~= io_open)
+local S = M.sys
 
 local p = '.out/fd.text'
 
@@ -54,10 +48,10 @@ local fin = false
 
 local function generalTest()
 T'openWriteRead'; do
-  local f = assert(io.open(p, 'w'))
+  local f = assert(ctx.open(p, 'w'))
   assert(f:write'line 1\nline 2\n'); f:close()
 
-  f = assert(io.open(p, 'r'))
+  f = assert(ctx.open(p, 'r'))
   T.eq('line 1\nline 2\n', f:read'a')
   T.eq('file', M.type(f))
   f:close();
@@ -70,20 +64,20 @@ T'openWriteRead'; do
 end
 
 T'append'; do
-  local f = assert(io.open(p, 'a'))
+  local f = assert(ctx.open(p, 'a'))
   T.eq(14, f:seek'cur')
   f:write'line 3\n'; T.eq(21, f:seek'cur')
 end
 
 T'read'; do
-  local f = assert(io.open(p, 'r'))
+  local f = assert(ctx.open(p, 'r'))
   T.eq('line 1\nline 2\nline 3\n', f:read'a')
   T.eq(21, f:seek'cur')
   f:close()
 end
 
 T'readLine'; do
-  local f = io.open(p, 'r')
+  local f = ctx.open(p, 'r')
   T.eq('line 1',   f:read'l')
   T.eq('line 2',   f:read'l')
   T.eq('line 3\n', f:read'L')
@@ -93,7 +87,7 @@ end
 
 --- check that both files behave the same
 T'generalFile'; do
-  local f = io.open(p, 'w+')
+  local f = ctx.open(p, 'w+')
   f:write'hello!'
     -- TODO: try read'a' here for odd results
     T.eq(nil, f:read());
@@ -117,18 +111,18 @@ T'generalFile'; do
 end
 
 T'fileno_and_friends'; do
-  T.eq(type(io.stderr), 'userdata')
-  assert(iotype(io.stderr))
-  T.eq(0, M.fileno(io.stdin))
-  T.eq(2, M.fileno(io.stderr))
-  T.eq(false, M.isatty(io.tmpfile()))
+  T.eq(type(ctx.stdlog), 'userdata')
+  assert(iotype(ctx.stdlog))
+  T.eq(0, M.fileno(ctx.stdin))
+  T.eq(2, M.fileno(ctx.stdlog))
+  T.eq(false, M.isatty(ctx.tmpfile()))
   T.eq(false, M.isatty(M.tmpfile()))
-  T.eq(true,  M.isatty(io.stderr))
+  T.eq(true,  M.isatty(ctx.stdlog))
   T.eq(true,  M.isatty(2))
 
-  T.eq('chr', M.ftype(io.stdin))
-  T.eq('chr', M.ftype(io.stdout))
-  T.eq('file', M.ftype(io.tmpfile()))
+  T.eq('chr', M.ftype(ctx.stdin))
+  T.eq('chr', M.ftype(ctx.stdout))
+  T.eq('file', M.ftype(ctx.tmpfile()))
 end
 
 fin=true

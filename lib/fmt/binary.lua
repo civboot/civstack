@@ -88,10 +88,10 @@ function M:__call()
     'fmt.binary: must provide at least one argument')
   local raw = shim.popRaw(self)
   local fmt, width, si = self.fmt, self.width, self.i
-  local f = io.fmt
+  local f = ctx.fmtlog
   local read = require'ds.path'.read
   for _, path in ipairs(self) do
-    columns(f, (path=='-') and io.stdin:read'a' or read(path), width, si, fmt)
+    columns(f, (path=='-') and ctx.stdin:read'a' or read(path), width, si, fmt)
   end
   if #self > 0 then f:write'\n' end
   if raw then

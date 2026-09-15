@@ -76,7 +76,7 @@ end
 
 T'reindex'; do
   local reindex = File._reindex
-  local idx, f = {}, io.tmpfile()
+  local idx, f = {}, ctx.tmpfile()
   local txt = 'hi\nthere\nindex'
   f:write(txt); f:flush(); f:seek'set'
   T.eq(#txt, reindex(f, idx))
@@ -234,7 +234,7 @@ T'EdFile_write'; do
   ed:set(1, 'zero 0') -- same
   T.eq(expect, ds.icopy(ed))
 
-  local f = assert(io.open(O..'ed.dump', 'w+'))
+  local f = assert(ctx.open(O..'ed.dump', 'w+'))
   ed:dumpf(f)
   f:flush(); f:seek'set'
   T.eq(5, #ed)

@@ -139,7 +139,7 @@ function M.file(v, default, mode--[[w+]]) --> file, error?
     return default -- TODO: handle false -> /dev/null.
   end
   v = v or default
-  if type(v) == 'string' then return io.open(v, mode or 'w+') end
+  if type(v) == 'string' then return ctx.open(v, mode or 'w+') end
   return v
 end
 

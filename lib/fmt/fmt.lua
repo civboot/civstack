@@ -16,8 +16,8 @@ local DEPTH_ERROR = '{!max depth reached!}'
 --- valid TTYs. These are used by other libraries
 --- to determine if the output can handle color.
 M.TTY = {
-  [rawget(io, '_stdout') or io.stdout] = 1,
-  [rawget(io, '_stderr') or io.stderr] = 2,
+  [rawget(io, '_stdout') or ctx.stdout] = 1,
+  [rawget(io, '_stderr') or ctx.stdlog] = 2,
 }
 
 --- Compares two values of any type.
@@ -324,15 +324,15 @@ function M.fprint(fmter, ...)
 end
 local fprint = M.fprint
 
---- [$print(...)] but using [$io.fmt].
-function M.print(...) return fprint(io.fmt, ...) end
+--- [$print(...)] but using [$ctx.fmtlog].
+function M.print(...) return fprint(ctx.fmtlog, ...) end
 
 --- pretty print
 function M.pprint(...)
-  local f; if io.fmt then
+  local f; if ctx.fmtlog then
     f = {}
-    for k,v in pairs(io.fmt) do f[k] = v end
-    setmetatable(f, getmetatable(io.fmt))
+    for k,v in pairs(ctx.fmtlog) do f[k] = v end
+    setmetatable(f, getmetatable(ctx.fmtlog))
     f:toPretty()
   end
   return M.fprint(f, ...)

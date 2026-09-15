@@ -3,7 +3,7 @@ local shim = require'shim'
 
 --- Diffing module and command[{br}]
 --- Cmd Usage: [$ldiff 'file/path1.txt' 'file/path2.txt'][{br}]
---- Lib Usage: [$io.fmt(ldiff.Diff(linesA, linesB))][{br}]
+--- Lib Usage: [$ctx.fmtlog(ldiff.Diff(linesA, linesB))][{br}]
 ---
 --- This library/cmd creates readable diffs using the "patience diff" alorithm.
 --- The code was written from scratch referencing only the algorithm outline
@@ -270,16 +270,16 @@ function M:__call() -- command
   assert(b and c, 'must provide args {base, change}')
   local paths
   if type(b) == 'string' then
-    io.fmt:styled('base', b)
+    ctx.fmtlog:styled('base', b)
     b = assert(require'lines'.load(b))
     paths = true
   end
   if type(c) == 'string' then
-    if paths then io.fmt:styled('meta', ' :: ') end
-    io.fmt:styled('change', c, '\n')
+    if paths then ctx.fmtlog:styled('meta', ' :: ') end
+    ctx.fmtlog:styled('change', c, '\n')
     c = assert(require'lines'.load(c))
-  elseif paths then io.fmt:write'\n' end
-  io.fmt(M.Diff(b, c))
+  elseif paths then ctx.fmtlog:write'\n' end
+  ctx.fmtlog(M.Diff(b, c))
 end
 
 if shim.isMain(M) then M:main(mty.G.arg) end

@@ -137,21 +137,21 @@ function civ.init:__call()
     ))
     pth.write(core.BASE_CONFIG, fmt.format(BASE_TEMPL,
       ix.OS, core.DIR, core.DIR..'sys/', luaFlags))
-    io.fmt:styled('notify', 'Wrote base config to: ')
-    io.fmt:styled('path', core.BASE_CONFIG, '\n')
+    ctx.fmtlog:styled('notify', 'Wrote base config to: ')
+    ctx.fmtlog:styled('path', core.BASE_CONFIG, '\n')
   end
   if not ix.exists(self.config) then
     info('creating local config:', self.config)
     pth.write(self.config, CONFIG_TEMPL)
-    io.fmt:styled('notify', 'Wrote project config to: ')
-    io.fmt:styled('path', self.config, '\n')
+    ctx.fmtlog:styled('notify', 'Wrote project config to: ')
+    ctx.fmtlog:styled('path', self.config, '\n')
   end
   local cv = core.Civ:load(self.config)
   local D = cv.cfg.installDir
-  io.fmt:styled('notify',
+  ctx.fmtlog:styled('notify',
     'Add (something like) the following to your ~/.bashrc', '\n')
   local d = pth.toNonDir(D)
-  io.fmt:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
+  ctx.fmtlog:styled('code', BASH_ADD:format(pth.toNonDir(d)), '\n')
 end
 
 function civ._build(base, cv, tgtnames)
@@ -161,7 +161,7 @@ function civ._build(base, cv, tgtnames)
   end
   ix.mkDirs(cv.cfg.buildDir)
   local out = cv:build(tgtnames)
-  local f = io.fmt
+  local f = ctx.fmtlog
   f:styled('notify', 'targets built', '\n')
   for _, tgtname in ipairs(tgtnames) do
     f:write(sfmt('  %s\n', tgtname))
@@ -172,7 +172,7 @@ end
 function civ._test(base, cv, tgtnames)
   local ordered = civ._build(base, cv, tgtnames)
   local ran = cv:test(tgtnames, ordered)
-  local f = io.fmt
+  local f = ctx.fmtlog
   f:styled('good', #ran..' tests passed:', '\n')
   for _, tgtname in ipairs(ran) do
     f:write'  '; f:styled('good', tgtname, '\n')
@@ -220,7 +220,7 @@ function civ.run:__call()
   table.insert(cmd, 1, cv.cfg.buildDir..bin)
   info('running: %q', cmd)
   cmd.ENV = cv.ENV
-  cmd.stdout = io.stdout
+  cmd.stdout = ctx.stdout
   return ix.sh(cmd)
 end
 
@@ -232,22 +232,22 @@ function civ.install:__call()
   local D = cv.cfg.installDir
   assert(D, 'must set config.installDir')
   if not shim.bool(self.force) and ix.exists(D) then
-    io.fmt:styled('warn',
+    ctx.fmtlog:styled('warn',
       sfmt('This will delete %s - continue (Y/N)?', D), ' ')
-    local inp = io.read'l'
+    local inp = ctx.read'l'
     if inp:sub(1,1):lower() ~= 'y' then
-      io.fmt:styled('warn', sfmt('replied %q, exiting', inp), '\n')
+      ctx.fmtlog:styled('warn', sfmt('replied %q, exiting', inp), '\n')
       return
     end
   end
-  io.fmt:styled('notify', 'installing in ')
-  io.fmt:styled('path', D, '\n')
+  ctx.fmtlog:styled('notify', 'installing in ')
+  ctx.fmtlog:styled('path', D, '\n')
   civ._build(self, cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
-  io.fmt:styled('notify', 'Installed in '); io.fmt:styled('path', D, '\n')
+  ctx.fmtlog:styled('notify', 'Installed in '); ctx.fmtlog:styled('path', D, '\n')
   for _, tgtname in ipairs(tgtnames) do
-    io.fmt:write(sfmt('  %s\n', tgtname))
+    ctx.fmtlog:write(sfmt('  %s\n', tgtname))
   end
 end
 

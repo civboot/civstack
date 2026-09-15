@@ -22,7 +22,7 @@ T'isPod'; do
   T.eq(true,  pod.isPrim'hi')
 
   T.eq(nil,  pod.isPrim(function() end))
-  T.eq(nil,  pod.isPrim(io.open'README.cxt'))
+  T.eq(nil,  pod.isPrim(ctx.open'README.cxt'))
 
   T.eq(true, pod.isPrim{1, 2, a=3})
   T.eq(true, pod.isPrim{1, 2, a={4, 5, b=6}})

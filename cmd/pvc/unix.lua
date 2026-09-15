@@ -41,7 +41,7 @@ function M.diff(a,al, b,bl) --> string?
   b, bl = diffCheckPath(b, bl)
   local o, e, sh = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
-    unified='0', stderr=io.stderr, rc=true}
+    unified='0', stderr=ctx.stdlog, rc=true}
   trace('diff rc=%i', sh:rc())
   if sh:rc() > 1 then
     error('diff failed:\n'..(e or o or '(no std err or out)'))

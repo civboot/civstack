@@ -76,7 +76,7 @@ end
 --- Usage: [$for path, pty in FF:new{...}:iter() do ... end]
 function FF:iter() --> iter[path, pty]
   log.info('ff %q', self)
-  local sf = vt100.Fmt{to=self.to or io.stdout}
+  local sf = vt100.Fmt{to=self.to or ctx.stdout}
   local w = {}; for _, p in ipairs(self.root) do
     push(w, pth.canonical(p))
   end
@@ -115,7 +115,7 @@ function FF:iter() --> iter[path, pty]
     it:map(function(p, pty)
       if pty == 'file' then
         local subPath = p..'.SUB'
-        local to = assert(io.open(subPath, 'w+'))
+        local to = assert(ctx.open(subPath, 'w+'))
         if to:seek'end' ~= 0 then error(sfmt(
           '%s already exists', subPath
         ))end
@@ -144,17 +144,17 @@ end
 
 
 --- find patterns in path.
---- If there is a match then the path is logged to [$io.stdout] and the matches
---- to [$io.fmt].
+--- If there is a match then the path is logged to [$ctx.stdout] and the matches
+--- to [$ctx.fmtlog].
 function FF:_find(path, pats, sub) --> boolean
-  local f, sf = io.fmt, vt100.Fmt{to=io.stdout}
+  local f, sf = ctx.fmtlog, vt100.Fmt{to=ctx.stdout}
   local onlypath = not self.content
   if not civix.exists(path) then
     sf:styled('error', 'Does not exist: '..path, '\n')
     return false
   end
   local found, l, find, ms, me, pi, pat = false, 0, ds.find
-  for line in io.lines(path, 'L') do
+  for line in ctx.lines(path, 'L') do
     l, ms, me, pi, pat = l + 1, find(line, pats)
     if ms then
       if onlypath then
@@ -184,7 +184,7 @@ end
 --- perform replacement of [$pats] with [$sub], writing to [$to]
 function FF:_replace(path, to, pats, sub)
   local find, ms, me, pi, pat = ds.find
-  for line in io.lines(path, 'L') do
+  for line in ctx.lines(path, 'L') do
     ms, me, pi, pat = find(line, pats)
     to:write(ms and gsub(line, pat, sub) or line)
   end

@@ -105,7 +105,7 @@ function doc.Doc:extractCode(loc) --> (commentLines, codeLines)
   if not path then error('loc path invalid: '..loc) end
   local l, lines, locLine = 1, ds.Deq{}, tonumber(locLine)
   local l, lines = 1, ds.Deq{}
-  for line in io.lines(path) do -- starting line with 256 lines above.
+  for line in ctx.lines(path) do -- starting line with 256 lines above.
     lines:push(line); if #lines > 256 then lines:pop() end
     if l == locLine then break end
     l = l + 1
@@ -241,7 +241,7 @@ end
 function doc:__call()
   info('doc %q', self)
   assert(#self > 0, 'usage: doc any.symbol')
-  local d = doc.Doc{to=assert(shim.file(self.to, io.stderr))}
+  local d = doc.Doc{to=assert(shim.file(self.to, ctx.stdlog))}
   for _, obj in ipairs(self) do
     if type(obj) == 'string' then obj = doc.find(obj) end
     local name = G.MOD_NAMES[obj]

@@ -69,13 +69,13 @@ getmetatable(File).__call = function(T, t) --> File?, errmsg?
     idx, err = U3File:create(); if not idx then return nil, err end
     T._reindex(f, idx); f:flush(); idx:flush()
   elseif not t.path then
-    f, err = io.tmpfile();      if not f   then return nil, err end
+    f, err = ctx.tmpfile();      if not f   then return nil, err end
     idx, err = U3File:create(); if not idx then return nil, err end
     T._initnew(f, idx)
   elseif type(t.path) == 'string' then
     t.mode = t.mode or 'r'
     trace('opening path %s %s', t.path, t.mode)
-    f, err = io.open(t.path, t.mode); if not f then return nil, err end
+    f, err = ctx.open(t.path, t.mode); if not f then return nil, err end
     local ipath = pth.concat{T.IDX_DIR, t.path}
     idx, err = (t.loadIdxFn or loadIdx)(f, ipath, t.mode, T._reindex)
     if not idx then return nil, err end
@@ -171,7 +171,7 @@ end
 function File:reader() --> lines.File?, err?
   local path = assert(self.path, 'reader only allowed on file with path')
   local idx = self.idx:reader()
-  local f,e = io.open(self.path, 'r'); if not f then return nil, e end
+  local f,e = ctx.open(self.path, 'r'); if not f then return nil, e end
   local new = ds.copy(self)
   new.f, new.idx, new.mode = f, idx, 'r'
   return new

@@ -25,7 +25,7 @@ ix.mkDirs(O)
 ix.mkDirs(R)
 
 local function dotOpen(t, p)
-  return assert(io.open(O..ds.only(assert(ds.getp(t, p))), 'w+'))
+  return assert(ctx.open(O..ds.only(assert(ds.getp(t, p))), 'w+'))
 end
 
 local function build(id)

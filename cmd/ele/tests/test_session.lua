@@ -76,9 +76,9 @@ getmetatable(Test).__call = function(Ty, t)
   ixt.runAsyncTest(function()
     local ok, err = ds.try(T.runTest, name, testFn, srcloc)
     if not ok then
-      io.fmt:styled('error', 'Session Test error:', '\n')
-      io.fmt(err)
-      io.fmt:write'\n'
+      ctx.fmtlog:styled('error', 'Session Test error:', '\n')
+      ctx.fmtlog(err)
+      ctx.fmtlog:write'\n'
       error'Session Test error'
     end
   end)

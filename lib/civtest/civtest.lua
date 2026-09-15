@@ -20,12 +20,12 @@ local getmt = getmetatable
 local push, sfmt = table.insert, string.format
 
 local function errordiff(e, r)
-  local f = io.fmt
+  local f = ctx.fmtlog
   if e == r then return f:styled(
     'bold', '\n!! Formatted strings are equal !!\n'
   )end
-  io.fmt:styled('error', '\n!! DIFF:', '\n')
-  io.fmt(require'lines.diff'.Diff(e, r));
+  ctx.fmtlog:styled('error', '\n!! DIFF:', '\n')
+  ctx.fmtlog(require'lines.diff'.Diff(e, r));
 end
 local function fail(name)
   error(sfmt('Failed %s', name), 2)
@@ -34,8 +34,8 @@ end
 function M._printName(name, path)
   name = name..M.SUBNAME
   rawset(M, 'NAME', name);
-  io.fmt:styled('h2', sfmt('## Test %-32s', name), ' ')
-  io.fmt:styled('path', pth.nice(path), '\n')
+  ctx.fmtlog:styled('h2', sfmt('## Test %-32s', name), ' ')
+  ctx.fmtlog:styled('path', pth.nice(path), '\n')
 end
 
 --- ["Note: you probably want to do [$T'name'] instead.
@@ -74,7 +74,7 @@ local showDiff = M.showDiff
 --- and print a diff if not.
 function M.eq(a, b, msg)
   if mty.eq(a, b) then return end
-  showDiff(io.fmt, a, b)
+  showDiff(ctx.fmtlog, a, b)
   fail('Test.eq'..(msg and (': '..msg) or ''))
 end
 
@@ -97,7 +97,7 @@ function M.binEq(e, r)
   assert(type(e) == 'string', 'expect must be string')
   assert(type(r) == 'string', 'result must be string')
   if e == r then return end
-  if #e ~= #r then io.fmt:styled(
+  if #e ~= #r then ctx.fmtlog:styled(
     'notify', sfmt('binary lengths: %s ~= %s\b', #e, #r)
   )end
   errordiff(fbin(e), fbin(r))
@@ -107,7 +107,7 @@ end
 --- assert [$subj:find(pat)] or show a helpful error message.
 function M.matches(pat, subj) --> !?error
   if subj:find(pat) then return end
-  local f = io.fmt
+  local f = ctx.fmtlog
   print('pat:', pat, 'subj:', subj)
   f:styled('error', '\n!! RESULT:', '\n');   f(subj)
   f:styled('error', '\n!! Did not match:', sfmt('%q\n', pat))
@@ -120,7 +120,7 @@ end
 --- or show a helpful error message.
 function M.contains(plain, subj) --> !?error
   if subj:find(plain, 1, true) then return end
-  local f = io.fmt
+  local f = ctx.fmtlog
   f:styled('error', '\n!! RESULT:', '\n');   f(subj)
   f:styled('error', '\n!! Did not contain:', sfmt('%q\n', plain))
   f:styled('error', '!! Failed Test.contains:', ' ')
@@ -132,12 +132,12 @@ end
 function M.throws(contains, fn) --> ds.Error
   local ok, err = ds.try(fn)
   if ok then
-    io.fmt:styled('error',
+    ctx.fmtlog:styled('error',
       '!! Unexpected: did not receive an error:\n')
     fail'throws: not receive expected error'
   end
   if err.msg:find(contains, 1, true) then return err end
-  local f = io.fmt
+  local f = ctx.fmtlog
   f:styled('error', '\n!! Unexpected Result:', '\n');
   f:styled('error', 'Actual error:', '\n')
   f:write(err.msg)
@@ -157,8 +157,8 @@ end
 function M.fileEq(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
-  showDiff(io.fmt, at, bt);
-  io.fmt:styled('error', sfmt('Path expected: %s\n       result: %s',
+  showDiff(ctx.fmtlog, at, bt);
+  ctx.fmtlog:styled('error', sfmt('Path expected: %s\n       result: %s',
     a, b), '\n')
   fail'Test.pathEq'
 end
@@ -171,15 +171,15 @@ M.pathEq = M.fileEq
 --- * table: recursively assert the subtree contents exist.
 function M.path(path, expect)
   M.exists(path)
-  if io.type(expect) then
+  if ctx.fileType(expect) then
     expect:seek'set'
     expect = assert(expect:read'*a')
   end
   if type(expect) == 'string' then
     local txt = pth.read(path)
     if expect == txt then return end
-    io.fmt:styled('error', '!! Path '..path, '\n')
-    showDiff(io.fmt, expect, txt)
+    ctx.fmtlog:styled('error', '!! Path '..path, '\n')
+    showDiff(ctx.fmtlog, expect, txt)
     fail'Test.tree'
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end

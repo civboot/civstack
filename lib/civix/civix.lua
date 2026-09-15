@@ -125,7 +125,7 @@ end
 
 if G.NOLIB then
   -- bootstrap mode for "civ.lua".
-  fdType = io.type
+  fdType = ctx.fileType
 
   M.EEXIST = B.EEXIST
   M.sh     = B.sh
@@ -237,9 +237,9 @@ function M.cp(from, to)
     return
   end
   local fd, fc, td, tc -- f:from, t:to, d:descriptor, c:close
-  if type(from) == 'string' then fd = assert(io.open(from, 'r')); fc = 1
+  if type(from) == 'string' then fd = assert(ctx.open(from, 'r')); fc = 1
                             else fd = from end
-  if type(to)   == 'string' then td = assert(io.open(to, 'w')); tc = 1
+  if type(to)   == 'string' then td = assert(ctx.open(to, 'w')); tc = 1
                             else td = to end
   M.fdWrite(td, fd)
   if fc then fd:close() end
@@ -254,7 +254,7 @@ end
 
 --- set the modified time of the path|file
 function M.setModified(f, sec, nsec) --> ok, errmsg?
-  local close; if type(f) == 'string' then f = io.open(f); close = true end
+  local close; if type(f) == 'string' then f = ctx.open(f); close = true end
   if ty(sec) == Epoch              then sec, nsec = sec.s, sec.ns    end
 
   local ok, err = lib.setmodified(fd.fileno(f), sec, nsec)
@@ -280,7 +280,7 @@ end
 --- ]$
 function M.chmod(f, p)
   if type(p) == 'string' then p = tonumber(p, 8) end
-  local close; if type(f) == 'string' then f = io.open(f); close = true end
+  local close; if type(f) == 'string' then f = ctx.open(f); close = true end
   fd.fchmod(fd.fileno(f), p)
   if close then f:close() end
 end
@@ -545,7 +545,7 @@ end
 ---     ['a1.txt'] = 'stuff in a1.txt',
 ---     ['a2.txt'] = 'stuff in a.txt',
 ---     a3 = {
----       ['a4.txt'] = io.open'some/file.txt',
+---       ['a4.txt'] = ctx.open'some/file.txt',
 ---     }
 ---   }
 --- }
@@ -584,11 +584,11 @@ function M.Lap() return lap.Lap {
 ---
 --- ["Why? This means that [$:close()] will only close filedescriptors created
 ---        by the shell itself, and you won't accidentially close
----        io.stdout/etc.]
+---        ctx.stdout/etc.]
 ---
 --- Examples (see civix.sh for more examples): [{table}
 --- # Lua                                                   | Bash
---- + [$Sh({'ls', 'foo/bar'}, {stdout=io.stdout}):start()]  | [$ls foo/bar]
+--- + [$Sh({'ls', 'foo/bar'}, {stdout=ctx.stdout}):start()]  | [$ls foo/bar]
 --- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
 --- ]
 M.Sh = mty'Sh' {
@@ -613,7 +613,7 @@ local function _fnomaybe(f, default)
   return f and fd.fileno(f) or default
 end
 --- start the shell in the background.
---- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=io.stderr}]
+--- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
 M.Sh.start = function(sh)
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
@@ -700,7 +700,7 @@ end
 --- of these then you must use M.Sh directly (recommendation: use Plumb) [+
 --- * [$$stdin[string|file]]$ the process's stdin. If string it will be sent to stdin.
 --- * [$$stdout[file]]$ the process's stdout. out will be nil if this is set
---- * [$$stderr[file]]$ the process's stderr (default=io.stderr)
+--- * [$$stderr[file]]$ the process's stderr (default=ctx.stdlog)
 --- * [$$ENV [table]]$ the process's environment.
 --- * [$$CWD [table]]$ the process's current directory.
 --- * [$$rc [bool]]$ if true allow non-zero return codes (else throw error).

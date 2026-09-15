@@ -70,11 +70,11 @@ end
 
 local function runFF(args) --> ok, paths, stdout, stderr
   local ll = LOGLEVEL; LOGLEVEL = 0
-  local f, out = fmt.Fmt{to=io.tmpfile()}, io.tmpfile()
-  local iofmt, ioout = io.fmt, io.stdout
-  io.fmt, io.stdout = f, out
+  local f, out = fmt.Fmt{to=ctx.tmpfile()}, ctx.tmpfile()
+  local iofmt, ioout = ctx.fmtlog, ctx.stdout
+  ctx.fmtlog, ctx.stdout = f, out
   local ok, paths = ds.try(ff, args)
-  io.fmt, io.stdout = iofmt, ioout
+  ctx.fmtlog, ctx.stdout = iofmt, ioout
   f.to:seek'set'; out:seek'set'
   LOGLEVEL = ll
   return ok, paths, out:read'a', f.to:read'a'

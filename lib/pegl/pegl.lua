@@ -522,7 +522,7 @@ function M.Parser:assertNode(expect, node, config) --> strTokens
       print('\n#### EXPECT:'); print(eStr)
       print('\n#### RESULT:'); print(rStr)
       print()
-      T.showDiff(io.fmt, eStr, rStr)
+      T.showDiff(ctx.fmtlog, eStr, rStr)
     else
       print('\n#### FORMATTED:'); print(eStr)
       print('## Note: They format the same but they differ')

@@ -519,7 +519,7 @@ function cxt.html:__call()
   local LFile = require'lines.File'
   local html = require'cxt.html'
   assert(#self == 1, 'TODO')
-  local to = assert(shim.file(self.to, io.stdout))
+  local to = assert(shim.file(self.to, ctx.stdout))
   local inp, to = LFile{path=self[1]}, fmt.Fmt{to=to}
   html.convert(inp, to)
   inp:close(); to:flush(); to:close()

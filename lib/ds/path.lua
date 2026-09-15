@@ -17,7 +17,7 @@ G.DATA_PATH = G.DATA_PATH or os.getenv'DATA_PATH'
 
 --- read file at path or throw error
 function M.read(path) --!> string
-  local f, err, out = io.open(path, 'r'); if not f then error(sfmt(
+  local f, err, out = ctx.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
   out, err = f:read'a'; f:close()
@@ -27,7 +27,7 @@ end
 
 --- write string to file at path or throw error
 function M.write(path, text) --!> nil
-  local f, err, out = io.open(path, 'w'); if not f then error(sfmt(
+  local f, err, out = ctx.open(path, 'w'); if not f then error(sfmt(
     "open %q mode=w: %s", path, err
   ))end
   out, err = f:write(text); f:close(); assert(out, err)
@@ -35,7 +35,7 @@ end
 
 --- append text to path, adds a newline if text doesn't end in one.
 function M.append(path, text)
-  local f, err, out = io.open(path, 'a'); if not f then error(sfmt(
+  local f, err, out = ctx.open(path, 'a'); if not f then error(sfmt(
     "open %q mode=a: %s", path, err
   ))end
   out, err = f:write(text, text:sub(-1) ~= '\n' and '\n' or '')

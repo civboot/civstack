@@ -1,4 +1,4 @@
-local iotype = io.type
+local iotype = ctx.fileType
 
 local IFile = require'ds.IFile'
 local G = require'metaty'.G

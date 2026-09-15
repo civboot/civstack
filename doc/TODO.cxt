@@ -15,7 +15,7 @@ TODO: [+
 ]
 
 General: [+
-* I need io.open/etc to respect G.PWD
+* I need ctx.open/etc to respect G.PWD
 * The cxt info boxes are rendering very far away from the next
   element, i.e. in pvc.at
 ]

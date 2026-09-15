@@ -841,9 +841,9 @@ T'log'; do
   LOGLEVEL = L.levelInt'INFO'
   -- test writing
   local cxt = ' [%d:]+ ds/test_ds.lua:%d+: '
-  local iofmt = io.fmt
-  local f = io.tmpfile()
-  io.fmt = fmt.Fmt:pretty{to=f}
+  local iofmt = ctx.fmtlog
+  local f = ctx.tmpfile()
+  ctx.fmtlog = fmt.Fmt:pretty{to=f}
   local assertLog = function(lvl, expect, fn, ...)
     f:seek'set'; fn(...); f:seek'set'
     local res = f:read'a'
@@ -854,7 +854,7 @@ T'log'; do
   assertLog('I', 'test data {1}\n', L.info, 'test %s', 'data', {1})
   assertLog('I', 't {\n    1, 2, \n    key=42\n  }\n',
             L.info, 't', {1, 2, key=42})
-  io.fmt = iofmt
+  ctx.fmtlog = iofmt
   LOGLEVEL = lvl
 end
 

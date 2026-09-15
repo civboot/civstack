@@ -11,7 +11,7 @@ local Sprite        = mty.from'asciigame  Sprite'
 
 function M.load(path)
   local o = {}
-  local f, l = assert(io.open(path, 'r')), 0
+  local f, l = assert(ctx.open(path, 'r')), 0
   local lines = f:lines'l'
   local function iter()
     local ln = lines(); if not ln then return end

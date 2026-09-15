@@ -70,14 +70,14 @@ local BLOG_NAV = [[
 ]]
 
 local function export(cxtFile, htmlFile, header)
-  local to = assert(io.open(htmlFile, 'w'))
+  local to = assert(ctx.open(htmlFile, 'w'))
   to:write(header); to:write'\n'
   return cxt.html { cxtFile, to=to }
 end
 
 function M:__call()
   local D = pth.abs(pth.toDir(self.dir))
-  io.fmt:write('pushdoc to ', D, '\n')
+  ctx.fmtlog:write('pushdoc to ', D, '\n')
   local luaDir = D..'lua/'
   self.pat = shim.list(self.pat)
   ix.mkDirs(luaDir)
@@ -102,7 +102,7 @@ function M:__call()
 
   -- write lua/index.cxt -> lua/index.html
   local indexPath = cv.cfg.buildDir..'doc/lua/index.cxt'
-  local f = assert(io.open(indexPath, 'w'))
+  local f = assert(ctx.open(indexPath, 'w'))
   f:write'[+\n'
   for _, n in ipairs(ds.sort(nav)) do
     f:write(sfmt('* [<%s>%s]\n', n..'.html', n))

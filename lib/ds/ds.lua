@@ -26,8 +26,8 @@ local EMPTY = {}
 function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
-  io.user = Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
-  io.fmt  = Fmt{to=assert(shim.file(rawget(args, 'log'), io.stderr))}
+  ctx.fmtout = Fmt{to=assert(shim.file(rawget(args, 'to'),  ctx.stdout))}
+  ctx.fmtlog  = Fmt{to=assert(shim.file(rawget(args, 'log'), ctx.stdlog))}
   G.IS_SETUP = true
 end
 
@@ -206,7 +206,7 @@ end
 --- debugging code.  The first argument is always a format string which uses
 --- the following arguments. Additional arguments are printed as literals.
 function M.dbg(fmt, ...)
-  local f, args = io.fmt, {...}
+  local f, args = ctx.fmtlog, {...}
   f:styled('debug', 'DBG('); f:styled('path', shortloc(1));
   f:styled('debug', ')', ' ')
   f:level(1)
@@ -890,14 +890,14 @@ end
 
 --- Read the full contents of the path or throw an error.
 function M.readPath(path) --!> string
-  local f, out, err = assert(io.open(path))
+  local f, out, err = assert(ctx.open(path))
   out, err = f:read('a'); f:close()
   return assert(out, err)
 end
 
 --- Write text to path or throw an error.
 function M.writePath(path, text) --!> nil
-  local f = assertf(io.open(path, 'w'), 'invalid %s', path)
+  local f = assertf(ctx.open(path, 'w'), 'invalid %s', path)
   local out, err = f:write(text); f:close(); assert(out, err)
 end
 
@@ -1383,7 +1383,7 @@ end
 --- Helper function for running commands as "main".
 function M.main(fn, ...) --> errno?
   local ok, err = M.try(fn, ...); if ok then return nil end
-  (io.fmt or print)(err); os.exit(1)
+  (ctx.fmtlog or print)(err); os.exit(1)
 end
 
 --- Same as coroutine.resume except uses a ds.Error object for errors
@@ -1426,7 +1426,7 @@ end
 
 --- exit immediately with message and errorcode = 99
 function M.yeet(fmt, ...)
-  io.fmt:styled('error',
+  ctx.fmtlog:styled('error',
     sfmt('YEET %s: %s', M.shortloc(1), sfmt(fmt or '', ...)),
     '\n')
   os.exit(99)
@@ -1437,7 +1437,7 @@ function M.eprint(...)
   local t = {...}; for i,v in ipairs(t)
     do t[i] = tostring(v)
   end
-  io.stderr:write(concat(t, '\t'), '\n')
+  ctx.stdlog:write(concat(t, '\t'), '\n')
 end
 
 

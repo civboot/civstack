@@ -183,7 +183,7 @@ T'buildMetaty'; do
   l:build{'civ:lib/metaty'}
   T.path('.out/civ/', {
     ['lua/'] = {
-      ['metaty.lua'] = io.open'lib/metaty/metaty.lua',
+      ['metaty.lua'] = ctx.open'lib/metaty/metaty.lua',
     }
   })
 end
@@ -212,7 +212,7 @@ T'buildDs'; do
   l:build{'civ:lib/ds'}
 
   T.path('.out/civ/include', {
-    ['ds.h'] = io.open'lib/ds/ds.h',
+    ['ds.h'] = ctx.open'lib/ds/ds.h',
   })
   T.exists'.out/civ/lib/libds.so'
 end

@@ -284,7 +284,7 @@ function Iter:assertEq(it2)
     local r1 = {self()}
     local r2 = {it2()}
     if not mty.eq(r1, r2) then
-      io.fmt:styled('error', 'Result differs at index '..i, '\n')
+      ctx.fmtlog:styled('error', 'Result differs at index '..i, '\n')
       assertEq(r1, r2); error'unreachable'
     end
     if rawequal(r1[1], nil) then return end

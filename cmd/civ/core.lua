@@ -485,7 +485,7 @@ function M.Civ:run(stage, tgtname, script, ids)
     script,
     '--config='..self.cfg.path,
     sfmt('--tgtsDb=%stargets.json', self.cfg.buildDir),
-    ENV=self.ENV, rc = true, stdout = io.stdout,
+    ENV=self.ENV, rc = true, stdout = ctx.stdout,
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
   info('%s cmd: %q', stage, cmd)
@@ -524,7 +524,7 @@ function M.Civ:prebuild(prevTgts, tgts) --> toBuild, ordered
     else
       info('target being built: %q', tgtname)
       if not G.BOOTSTRAP then
-        io.fmt(require'lines.diff'.Diff(
+        ctx.fmtlog(require'lines.diff'.Diff(
           pretty(prevTgts[tgtname]), pretty(tgt)))
       end
       toBuild[tgtname] = true
@@ -631,7 +631,7 @@ end
 
 function M.loadPrevTargets(jsonPath)
   local tgts = {}
-  for line in io.lines(jsonPath) do
+  for line in ctx.lines(jsonPath) do
     local tgt = lson.decode(line, M.Target)
     local tgtname = tgt:tgtname()
     assertf(not tgts[tgtname], 'duplicate tgtname %q', tgtname)

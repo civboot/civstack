@@ -118,7 +118,7 @@ function EdFile:close() return self.lf:close() end
 function EdFile:dumpf(f)
   local close = false
   if type(f) == 'string' then
-    f = assert(io.open(f)); close = 1
+    f = assert(ctx.open(f)); close = 1
   end
   -- TODO: this is not very performant. Update to
   --       write the whole Slc/Gap that it finds.

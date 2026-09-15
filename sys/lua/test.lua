@@ -18,7 +18,7 @@ local function main()
     local tgt = w:target(id); if tgt.kind ~= 'test' then goto continue end
     for _, src in pairs(tgt.src) do
       src = tgt.dir..src
-      io.fmt:styled('notify', 'running test '..src, '\n')
+      ctx.fmtlog:styled('notify', 'running test '..src, '\n')
       dofile(src)
     end
     ::continue::

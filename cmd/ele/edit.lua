@@ -64,7 +64,7 @@ function M.Edit:save(ed)
   local tpath = path..'.__ELE__'
   -- TODO: schedule the rest as coroutine to not block.
   dat:flush()
-  local tmp = assert(io.open(tpath, 'w'))
+  local tmp = assert(ctx.open(tpath, 'w'))
   dat:dumpf(tmp); tmp:flush()
   dat:close();    tmp:close()
   -- TODO: I should move with :move (need to implement)

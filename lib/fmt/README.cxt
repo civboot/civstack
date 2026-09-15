@@ -6,7 +6,7 @@ the [$:__fmt(fmter)] method.
 
 It also provides several helper methods such as [$print], [$assertf] and
 [$errorf], making it more convienent to print or format types. In addition, it
-sets [$io.fmt = io.fmt or Fmt{to=io.stderr}], providing a default hook for
+sets [$ctx.fmtlog = ctx.fmtlog or Fmt{to=ctx.stdlog}], providing a default hook for
 [<ds.html#ds.log>] and command line utilities to write formatted text to.
 
 

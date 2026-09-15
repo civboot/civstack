@@ -286,7 +286,7 @@ end
 function M.dump(f, ...)
   local close
   if type(f) == 'string' then
-    f = assert(io.open(f, 'w')); close = true
+    f = assert(ctx.open(f, 'w')); close = true
   end
   local ok, err = f:write(M.ser(...)); f:flush()
   if close then f:close() end; assert(ok, err)
@@ -296,7 +296,7 @@ end
 function M.load(f, ...)
   local close
   if type(f) == 'string' then
-    f = assert(io.open(f)); close = true
+    f = assert(ctx.open(f)); close = true
   end
   local str, err = f:read'a'; if close then f:close() end
   assert(str, err); return M.deser(str, ...)

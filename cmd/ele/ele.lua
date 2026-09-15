@@ -19,9 +19,9 @@ local ix = require'civix'
 local lson = require'lson'
 local et = require'ele.types'
 
-local ioopen = io.open
+local ioopen = ctx.open
 local info = log.info
-local iostdout, iostderr = io.stdout, io.stderr
+local iostdout, iostderr = ctx.stdout, ctx.stdlog
 local sysprint = G.print
 
 local byte = mty.from(string, 'byte')
@@ -41,20 +41,20 @@ function ele:__call()
   local keysend = s.keys:sender()
   local rawKeyRecv = lap.Recv()
   local rawKeySend = rawKeyRecv:sender()
-  local iofmt   = io.fmt
+  local iofmt   = ctx.fmtlog
 
   local l = require'civix'.Lap{}:run(
   function() -- setup terminal and kickoff ele coroutines
     s.ed.display = vt.Term{
-      fd=io.stdout,
+      fd=ctx.stdout,
       styler=ac.Styler{style=ac.loadStyle()},
     }
-    io.stdout = nil
+    ctx.stdout = nil
     G.print = ds.eprint
     info'ele: started display'
     s:handleEvents()
     lap.schedule(function() while s.ed.run do
-      rawKeySend(byte(io.read(1)))
+      rawKeySend(byte(ctx.read(1)))
     end end)
     lap.schedule(function()
       LAP_TRACE[coroutine.running()] = true
@@ -94,8 +94,8 @@ function ele:__call()
     info'ele: end of setup'
   end,
   function() lap.async() -- setup: change to async()
-    io.stderr = assert(ioopen('/tmp/ele.err', 'w'))
-    io.fmt = require'vt100'.Fmt{to=io.stderr}
+    ctx.stdlog = assert(ioopen('/tmp/ele.err', 'w'))
+    ctx.fmtlog = require'vt100'.Fmt{to=ctx.stdlog}
     savedmode = vt.start()
 
     fd.ioAsync()
@@ -107,9 +107,9 @@ function ele:__call()
     fd.stdin:toBlock()
     fd.ioSync()
 
-    vt.stop(io.stdout, savedmode)
-    io.stderr = iostderr
-    io.fmt    = iofmt
+    vt.stop(ctx.stdout, savedmode)
+    ctx.stdlog = iostderr
+    ctx.fmtlog    = iofmt
   end)
   return s, l
 end

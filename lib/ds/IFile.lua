@@ -29,15 +29,15 @@ end
 --- Note: Use load if you want to load an existing index.
 IFile.create = function(T, sz, path) --> IFile?, errmsg?
   assert(sz, 'must provide sz')
-  local f,e; if path then f,e = io.open(path, 'w+')
-  else                    f,e = io.tmpfile() end
+  local f,e; if path then f,e = ctx.open(path, 'w+')
+  else                    f,e = ctx.tmpfile() end
   if not f then return f,e end
   return T{sz=sz, f=f, len=0, _i = 1, path=path, mode='w+'}
 end
 
 --- Reload IFile from path.
 function IFile:reload() --> IFile?, errmsg?
-  local f, err = io.open(self.path, self.mode or 'r+')
+  local f, err = ctx.open(self.path, self.mode or 'r+')
   if not f then return nil, err end
   local sz, bytes = self.sz, f:seek'end'
   f:seek('set', bytes - bytes % sz) -- truncate invalid bytes
@@ -111,7 +111,7 @@ end
 function IFile:reader() --> IFile?, err?
   assert(self.path, 'reader only allowed on file with path')
   self:flush()
-  local f,e = io.open(self.path, 'r'); if not f then return nil, e end
+  local f,e = ctx.open(self.path, 'r'); if not f then return nil, e end
   local r = ds.copy(self)
   r.f, r.mode = f, 'r'
   return r

@@ -408,8 +408,8 @@ function M.Categorizer:categorize(line)
 end
 
 function M.Categorizer:categorizePath(path) --> self
-  local f = assert(io.open(path))
-  -- TODO: use io.lines() when it works in lua 5.5
+  local f = assert(ctx.open(path))
+  -- TODO: use ctx.lines() when it works in lua 5.5
   for ln in f:lines'l' do
     self:categorize(ln)
     for _, word in mty.split(ln) do

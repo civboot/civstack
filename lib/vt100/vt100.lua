@@ -457,7 +457,7 @@ end
 function M.main(args)
   local epath = '/tmp/vt100.err'
   print('vt100 echo, use ^c (cntrl+c) to quit. stderr at', epath)
-  M.start(assert(io.open(epath, 'a')))
+  M.start(assert(ctx.open(epath, 'a')))
   local te = {
     run=true,
     _ready=function() print'term resized\r' end,
@@ -476,8 +476,8 @@ end
 function M.setup(args)
   if G.IS_SETUP then return end
   args = args or {}
-  io.user = M.Fmt{to=assert(shim.file(rawget(args, 'to'),  io.stdout))}
-  io.fmt  = M.Fmt{to=io.stderr}
+  ctx.fmtout = M.Fmt{to=assert(shim.file(rawget(args, 'to'),  ctx.stdout))}
+  ctx.fmtlog  = M.Fmt{to=ctx.stdlog}
   G.IS_SETUP = true
   log.info'vt100 setup done'
 end

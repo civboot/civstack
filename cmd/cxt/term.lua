@@ -140,7 +140,7 @@ end
 
 function M.main(args)
   args = M.Args(shim.parseStr(args))
-  args.out = args.out or io.fmt
+  args.out = args.out or ctx.fmtlog
   if #args > 0    then args.inp = lines(table.concat(args, ' '))
   elseif args.inp then args.inp = LFile:create(shim.file(args.inp))
   else error'must provide input' end

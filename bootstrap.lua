@@ -73,8 +73,8 @@ print'[[load]]'
   preload('lines.testing', 'lib/lines/testing/testing.lua')
 
 require'vt100'.setup()
-io.fmt:styled('notify', 'Running bootstrap.lua:', ' ');
-io.fmt(G.arg); io.fmt:write'\n'
+ctx.fmtlog:styled('notify', 'Running bootstrap.lua:', ' ');
+ctx.fmtlog(G.arg); ctx.fmtlog:write'\n'
 
 local core = require'civ.core'
 
@@ -90,8 +90,8 @@ local function bootTest()
   end
 
   dofile(D..'cmd/civ/test_civ.lua')
-  io.fmt:styled('notify', 'boot-test done', '\n')
-  io.fmt:flush()
+  ctx.fmtlog:styled('notify', 'boot-test done', '\n')
+  ctx.fmtlog:flush()
 end
 
 local function main()

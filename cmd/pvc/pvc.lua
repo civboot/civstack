@@ -199,7 +199,7 @@ pvc._RESERVED_NAMES = { ['local']=1, at=1, tip=1, }
 
 --- get a set of the lines in a file
 local function loadLineSet(path) --> set
-  local s = {}; for l in io.lines(path) do s[l] = true end; return s
+  local s = {}; for l in ctx.lines(path) do s[l] = true end; return s
 end
 
 local function loadPaths(P) --> list
@@ -212,7 +212,7 @@ local function loadIgnore(P) --> list
   local ignore = {'%./%.pvc/'}
   local path = P..'.pvcignore'
   if not ix.exists(path) then return ignore end
-  for line in io.lines(path) do
+  for line in ctx.lines(path) do
     if line == '' or line:sub(1,1) == '#' then --ignore
     else push(ignore, line)
     end
@@ -223,7 +223,7 @@ end
 --- copy all paths in [$from/.pvcpaths] -> [$to/]
 local function cpPaths(from, to)
   trace('cpPaths %s -> %s', from, to)
-  for path in io.lines(from..pvc.PVCPATHS) do
+  for path in ctx.lines(from..pvc.PVCPATHS) do
     ix.forceCp(from..path, to..path)
   end
 end
@@ -294,7 +294,7 @@ local postCmd = {
 --- If reverse is given it does the opposite; also this should be called BEFORE
 --- calling [$patch(reverse=true)]
 function pvc._patchPost(dir, patch, reverse)
-  for line in io.lines(patch) do
+  for line in ctx.lines(patch) do
     if line:sub(1,3) == '---' then break end -- stop after first diff
     if line:sub(1,1) == '!' then
       local cmd, a, b = table.unpack(ds.splitList(line:match'!%s*(.*)'))
@@ -548,15 +548,15 @@ function pvc.atId(P, nbr,nid) --!> branch?, id?
     end
     -- else local path changed
     if ix.pathEq(csnap..path, npath) then
-      io.fmt:styled('meta',  sfmt('keeping changed %s', path), '\n')
+      ctx.fmtlog:styled('meta',  sfmt('keeping changed %s', path), '\n')
     else
-      io.fmt:styled('error', sfmt('path %s changed',    path), '\n')
+      ctx.fmtlog:styled('error', sfmt('path %s changed',    path), '\n')
       ok = false
     end
     ::cont::
   end
   -- look at paths in current but not next
-  for path in io.lines(csnap..pvc.PVCPATHS) do
+  for path in ctx.lines(csnap..pvc.PVCPATHS) do
     if npaths[path]              then goto cont end
     if not ix.exists(P..path) then goto cont end -- already deleted
     if ix.pathEq(P..path, csnap..path) then push(rmPaths, path)
@@ -583,7 +583,7 @@ function pvc.atId(P, nbr,nid) --!> branch?, id?
     ix.rmRecursive(P..path)
   end
   pvc._rawat(P, nbr,nid)
-  io.fmt:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
+  ctx.fmtlog:styled('notify', sfmt('pvc: at %s#%s', nbr,nid), '\n')
 end
 
 --- update paths file (path) with the added and removed items
@@ -673,11 +673,11 @@ function pvc._commit(P, desc) --> snap/, id
   ix.forceWrite(patchf,
     sconcat('\n', desc, diff:patch()))
   local csnap = pvc.snapshot(P, br,cid)
-  for path in io.lines(P..pvc.PVCPATHS) do
+  for path in ctx.lines(P..pvc.PVCPATHS) do
     T.pathEq(P..path, csnap..path)
   end
   pvc._rawtip(bp, cid); pvc._rawat(P, br, cid)
-  io.fmt:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
+  ctx.fmtlog:styled('notify', sfmt('commited %s#%s to %s', br, cid, patchf), '\n')
   return csnap, cid
 end
 
@@ -757,7 +757,7 @@ function pvc._merge(tdir, bdir, cdir) --!>
     local change = cpath and (cdir..cpath) or nil
     local ok, err = pu.merge(to, base, change)
     if not ok then
-      io.fmt:styled('error', sfmt(
+      ctx.fmtlog:styled('error', sfmt(
         FAILED_MERGE,
         nice(to), nice(base), nice(change),
         err), '\n')
@@ -789,7 +789,7 @@ function pvc._rebase(P, branch, id) --> backup/dir/
 
   if bbr == cbr then error('the base of '..cbr..' is itself') end
   if id == bid then
-    io.user:styled('notify', 'base is already '..id, '\n')
+    ctx.fmtout:styled('notify', 'base is already '..id, '\n')
     return
   end
   local bdir = pvc.branchDir(P, bbr)
@@ -836,7 +836,7 @@ function pvc._rebase(P, branch, id) --> backup/dir/
 
   local backup = pvc.backupDir(P, cbr); ix.mkDirs(backup)
   ix.mv(cdir, backup)
-  io.fmt:styled('notify',
+  ctx.fmtlog:styled('notify',
     sfmt('pvc: rebase %s to %s#%s done. Backup at %s', cbr, bbr, id, backup),
     '\n')
   pvc._rawtip(tdir, ttip)
@@ -875,17 +875,17 @@ function pvc._grow(P, to, from) --!>
   end
   pvc._rawtip(tdir, ftip)
   local back = pvc.backupDir(P, fbr)
-  io.fmt:styled('notify',
+  ctx.fmtlog:styled('notify',
     sfmt('deleting %s (mv %s -> %s)', fbr, fdir, back), '\n')
   ix.mkDirs(pth.last(back)); ix.mv(fdir, back)
-  io.fmt:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
+  ctx.fmtlog:styled('notify', sfmt('grew %s tip to %s', tbr, ftip), '\n')
   pvc.atId(P, tbr,ftip)
 end
 
 --- return the description of ppath
 function pvc._desc(ppath, num) --> {string}
   local desc = {}
-  for line in io.lines(ppath) do
+  for line in ctx.lines(ppath) do
     if line:sub(1,2) == '!!' or line:sub(1,3) == '---'
       then break end
     push(desc, line); if num and #desc >= num then break end
@@ -902,7 +902,7 @@ function pvc._squash(P, br, bot,top)
   trace('squash %s [%s %s]', br, bot,top)
   assert(top > 0)
   if top - bot <= 0 then
-    io.fmt:styled('error', sfmt('squashing ids [%s - %s] is a noop', bot, top), '\n')
+    ctx.fmtlog:styled('error', sfmt('squashing ids [%s - %s] is a noop', bot, top), '\n')
     return
   end
   if bot <= bid then error(sfmt('bottom %i <= base id %s', top, bid)) end
@@ -921,11 +921,11 @@ function pvc._squash(P, br, bot,top)
     ds.extend(desc, pvc._desc(path))
     local bpatch = back..i..'.p'
     ix.mv(path, bpatch)
-    io.fmt:styled('notify', sfmt('mv %s %s', path, bpatch), '\n')
+    ctx.fmtlog:styled('notify', sfmt('mv %s %s', path, bpatch), '\n')
     ix.rmRecursive(pvc.snapDir(bdir, i))
   end
   -- write the squashed patch file
-  local f = io.open(pvc._patchPath(bdir, bot), 'w')
+  local f = ctx.open(pvc._patchPath(bdir, bot), 'w')
   for _, line in ipairs(desc) do f:write(line, '\n') end
   f:write(patch); f:close()
 
@@ -937,12 +937,12 @@ function pvc._squash(P, br, bot,top)
     ix.rmRecursive(pvc.snapDir(bdir, i))
     local botPat = pvc._patchPath(bdir, bi)
     local topPat = pvc._patchPath(bdir, i)
-    io.fmt:styled('notify', sfmt('mv %s %s', topPat, botPat), '\n')
+    ctx.fmtlog:styled('notify', sfmt('mv %s %s', topPat, botPat), '\n')
     ix.mv(topPat, botPat)
   end
 
   pvc._rawat(P, br,bot); pvc._rawtip(bdir,bi)
-  io.fmt:styled('notify',
+  ctx.fmtlog:styled('notify',
     sfmt('squashed [%s - %s] into %s. New tip=%i', bot, top, bot, bi), '\n')
 end
 
@@ -959,20 +959,20 @@ function pvc.init:__call()
   pth.write(P..pvc.PVCPATHS, pvc.INIT_PVCPATHS)
   pth.write(P..pvc.PVCIGNORE, pvc.INIT_PVCIGNORE)
   pvc._rawat(P, self.branch, 0)
-  io.fmt:styled('notice', 'initialized pvc repo '..dot, '\n')
+  ctx.fmtlog:styled('notice', 'initialized pvc repo '..dot, '\n')
 end
 
 function pvc.diff:__call()
   trace('diff%q', self)
   local P = self._dir
   local d = pvc._diff(P, self[1], self[2])
-  d:format(io.fmt, not self.paths)
+  d:format(ctx.fmtlog, not self.paths)
   if self.paths then
     for _, path in ipairs(untracked(P)) do
-      io.user:styled('notify', path, '\n')
+      ctx.fmtout:styled('notify', path, '\n')
     end
   end
-  io.fmt:write'\n'
+  ctx.fmtlog:write'\n'
   return d
 end
 
@@ -1026,9 +1026,9 @@ function pvc.show:__call()
       if full then
         local bdir = pvc.branchDir(D, br)
         local tip, base,bid = pvc._rawtip(bdir), pvc._getbase(bdir, nil)
-        io.user:styled('notify', sfmt('%s\ttip=%s%s',
+        ctx.fmtout:styled('notify', sfmt('%s\ttip=%s%s',
           br, tip, base and sfmt('\tbase=%s#%s', base,bid) or ''), '\n')
-      else io.user:styled('notify', br, '\n') end
+      else ctx.fmtout:styled('notify', br, '\n') end
     end
     return branches
   end
@@ -1046,11 +1046,11 @@ function pvc.show:__call()
     end
     local ppath = pvc._patchPath(dir, i)
     local desc = pvc._desc(ppath, not full and 1 or nil)
-    io.user:styled('notify', sfmt('%s#%s:', br,i), '')
-    io.user:level(1)
-    io.user:write(full and '\n' or ' ', concat(desc, '\n'))
-    io.user:level(-1)
-    io.user:write'\n'
+    ctx.fmtout:styled('notify', sfmt('%s#%s:', br,i), '')
+    ctx.fmtout:level(1)
+    ctx.fmtout:write(full and '\n' or ' ', concat(desc, '\n'))
+    ctx.fmtout:level(-1)
+    ctx.fmtout:write'\n'
   end
 end
 
@@ -1067,9 +1067,9 @@ function pvc.desc:__call()
   if not desc then return print(olddesc) end
   -- Write new description
   local newp = sconcat('', bdir, tostring(id))
-  local n = assert(io.open(newp, 'w'))
+  local n = assert(ctx.open(newp, 'w'))
   n:write(desc, '\n')
-  local o = assert(io.open(oldp, 'r'))
+  local o = assert(ctx.open(oldp, 'r'))
   for line in o:lines() do -- skip old desc
     if isPatchLike(line) then n:write(line, '\n'); break end
   end
@@ -1078,10 +1078,10 @@ function pvc.desc:__call()
   local back = pvc.backupDir(P, sfmt('%s#%s', br, id)); ix.mkDirs(back)
   back = back..id..'.p'
   ix.mv(oldp, back)
-  io.fmt:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
-  io.fmt:styled('notify', 'Old description (deleted):', '\n', olddesc, '\n')
+  ctx.fmtlog:styled('notify', sfmt('moved %s -> %s', oldp, back), '\n')
+  ctx.fmtlog:styled('notify', 'Old description (deleted):', '\n', olddesc, '\n')
   ix.mv(newp, oldp)
-  io.fmt:styled('notify', 'updated desc of '..oldp, '\n')
+  ctx.fmtlog:styled('notify', 'updated desc of '..oldp, '\n')
 end
 
 function pvc.squash:__call()
@@ -1127,11 +1127,11 @@ function pvc.prune:__call()
       push(undo, sfmt('mv %s %s', to, from))
     end
     pth.write(back..'UNDO', table.concat(undo, '\n'))
-    io.fmt:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
+    ctx.fmtlog:styled('notify', sfmt('pruned [%s -> %s]. Undo with %s',
       id, tip, back..'UNDO'))
   else
     ix.mv(bdir, back)
-    io.fmt:styled('notify', sfmt('moved %s -> %s', bdir, back))
+    ctx.fmtlog:styled('notify', sfmt('moved %s -> %s', bdir, back))
   end
 end
 
@@ -1155,7 +1155,7 @@ function pvc.export:__call()
   for id=bbr and (bid+1) or bid, tip do
     ix.forceCp(pvc._patchPath(bdir,id, pvc._patchPath(to,id)))
   end
-  io.fmt:styled('notify', sfmt('exported %s to %s', bdir, to))
+  ctx.fmtlog:styled('notify', sfmt('exported %s to %s', bdir, to))
   return to
 end
 
@@ -1163,7 +1163,7 @@ function pvc.snap:__call()
   local P = self._dir
   local br, id = pvc.resolve(P, self[1] or 'at')
   local snap = pvc.snapshot(P, br, id)
-  io.stdout:write(snap, '\n')
+  ctx.stdout:write(snap, '\n')
   return pth.nice(snap)
 end
 

@@ -6,7 +6,7 @@ a style (bold for foreground, underlined for background).
 
 
 [<#asciicolor.style.Styler>] enables [<fmt.html>] to function ergonomically you
-can color text by simply writing [$io.fmt:styled('error', 'some error message')]
+can color text by simply writing [$ctx.fmtlog:styled('error', 'some error message')]
 and it will automatically load the user's configuration (see [<shim.html>] for
 details on how).
 

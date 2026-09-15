@@ -324,7 +324,7 @@ end
 --- load lines from file or path. On error return (nil, errstr)
 function M.load(f, close) --> (table?, errstr?)
   local err
-  if type(f) == 'string' then close, f, err = true, io.open(f, 'r') end
+  if type(f) == 'string' then close, f, err = true, ctx.open(f, 'r') end
   if f == nil then return nil, err or 'load(f=nil)' end
   local i, t = 1, {}
   for line in f:lines() do set(t,i, line); i = i + 1 end
@@ -336,7 +336,7 @@ end
 --- if f is a string then it is opened as a file and closed when done
 function M.dump(t, f, close, chunk)
   if type(f) == 'string' then
-    f = assert(io.open(f, 'w')); close = true
+    f = assert(ctx.open(f, 'w')); close = true
   end
   if #t == 0 then
     if close then f:close() end

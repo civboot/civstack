@@ -100,7 +100,7 @@ forth so that tests can be run in both modes.
 function getLines(path, fn)
   local lines = {}
   -- File API can be configured to either block or yield.
-  for line in io.lines(path) do
+  for line in ctx.lines(path) do
     table.insert(lines, line)
   end
   return lines

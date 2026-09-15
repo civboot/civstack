@@ -23,7 +23,7 @@ M.Fake.input = ds.nosupport
 
 --- start rawmode using tmpfiles
 function M.startTmp() --> out, err
-  local err = io.tmpfile()
+  local err = ctx.tmpfile()
   vt.start(err)
   return err
 end
@@ -39,7 +39,7 @@ function M.run(fn)
   local lap = require'lap'
   local cx = require'civix'
   local fd = require'fd'
-  local ioin, ioread = io.stdin, io.read
+  local ioin, ioread = ctx.stdin, ctx.read
 
   local t = vt.Term{h=10, w=80}
   local stderr = M.startTmp()
@@ -47,14 +47,14 @@ function M.run(fn)
   local rawRecv = lap.Recv{}
   local rawSend = rawRecv:sender()
   local byTh = co.create(function() while true do
-    rawSend(byte(io.read(1)))
+    rawSend(byte(ctx.read(1)))
   end end)
   local szTh = co.create(function() t:resize() end)
   local inTh = co.create(function() t:input(r, rawRecv) end)
 
   local ok, err = ds.try(function()
     -- make stdin async
-    io.stdin, io.read = fd.stdin, fd.read
+    ctx.stdin, ctx.read = fd.stdin, fd.read
     fd.stdin:toNonblock()
 
     -- send size request and wait until it is recieved
@@ -73,12 +73,12 @@ function M.run(fn)
     fn(t)
   end)
   -- undo async stdin
-  io.stdin, io.read = ioin, ioread
+  ctx.stdin, ctx.read = ioin, ioread
   fd.stdin:toBlock()
   vt.stop();
 
-  io.flush()
-  io.stderr:write('\nvt100.testing.run '..
+  ctx.flush()
+  ctx.stdlog:write('\nvt100.testing.run '..
     (ok and 'DONE' or ('ERROR:\n'..tostring(err)))
     ..'\n')
   stderr:flush(); stderr:seek'set'

@@ -11,7 +11,7 @@ G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
 G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
 --- cache the original values.
-io._stdout, io._stderr = io.stdout, io.stderr
+io._stdout, io._stderr = ctx.stdout, ctx.stdlog
 
 local trace = G.LOG and G.LOG.trace or function() end
 local S = require'fd.lib' -- fd.c, fd.h
@@ -22,7 +22,7 @@ local sfmt      = string.format
 local push, pop = table.insert, table.remove
 local yield     = coroutine.yield
 local NL        = -string.byte'\n'
-local iotype    = io.type
+local iotype    = ctx.fileType
 local sconcat   = string.concat -- note: from ds
 
 local S_IFMT = S.S_IFMT
@@ -312,7 +312,7 @@ M.tmpfile = M._sync.tmpfile
 
 function M.read(...)
   local inp = M.input()
-  io.stderr:flush()
+  ctx.stdlog:flush()
   return inp:read(...)
 end
 function M.lines(path, mode)
@@ -342,7 +342,7 @@ function M.flush()  return M.output():flush() end
 
 local FD_TYPES = {[S.FD] = true, [S.FDT] = true}
 
---- Like io.type but supports fd files as well.
+--- Like ctx.fileType but supports fd files as well.
 function M.type(fd)
   local mt = getmetatable(fd)
   if mt and FD_TYPES[mt] then

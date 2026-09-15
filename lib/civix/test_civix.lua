@@ -84,17 +84,17 @@ T'testSh'; do
   T.eq('from stdin', sh{stdin='from stdin', 'cat'})
 
   local path = '.out/echo.test'
-  local f = io.open(path, 'w+')
+  local f = ctx.open(path, 'w+')
   out, err, s = sh{'echo', 'send to file', stdout=f}
   T.eq(nil, out); T.eq(nil, err);
   T.eq(nil, s.stdin); T.eq(nil, s.stdout)
-  T.eq('send to file\n', io.open(path):read'a')
+  T.eq('send to file\n', ctx.open(path):read'a')
   f:seek'set'; T.eq('send to file\n', f:read'a')
 
   f:seek'set'
-  out, err, s = sh{stdin=f, 'cat', stdout=io.open('.out/cat.test', 'w+')}
+  out, err, s = sh{stdin=f, 'cat', stdout=ctx.open('.out/cat.test', 'w+')}
   T.eq(nil, out); T.eq(nil, err)
-  T.eq('send to file\n', io.open('.out/cat.test'):read'a')
+  T.eq('send to file\n', ctx.open('.out/cat.test'):read'a')
 
   out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
   T.eq(nil, out); T.eq('on STDERR\n', err)

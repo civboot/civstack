@@ -672,6 +672,7 @@ stdout stdin  popen
 input  output flush
 ]]):gmatch'%w+' do G.CTX_BASE[k] = io[k] end
 
+CTX_BASE.stdlog   = io.stderr
 CTX_BASE.fileType = io.type
 
 do -- set current working directory

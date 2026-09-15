@@ -184,10 +184,10 @@ M.Styler.__newindex = function(st, k, v)
 end
 
 
---- Setup standard formatters (io.fmt and io.user).
+--- Setup standard formatters (ctx.fmtlog and ctx.fmtout).
 function M.setup(to, user)
-  io.fmt  = M.Fmt{to=to   or io.stderr}
-  io.user = M.Fmt{to=user or io.stdout}
+  ctx.fmtlog  = M.Fmt{to=to   or ctx.stdlog}
+  ctx.fmtout = M.Fmt{to=user or ctx.stdout}
 end
 
 return M

@@ -65,7 +65,7 @@ M.setLevel(G.LOGLEVEL)
 
 function M.logFn(lvl, loc, fmt, ...)
   if LOGLEVEL < lvl then return end
-  local f, args, nargs = io.fmt, {...}, select('#', ...)
+  local f, args, nargs = ctx.fmtlog, {...}, select('#', ...)
   f:styled(STYLES[lvl], sfmt('%s %s %s',
     SHORT[lvl], M._time(), loc), ': ')
   f:level(1)

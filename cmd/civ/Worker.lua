@@ -94,7 +94,7 @@ function Worker:link(tgt)
     ix.sh{'ln', '-s', pth.relative(t, f), t}
     if not G.NOLIB and select(2, pth.last(pth.dir(t))) == 'bin/' then
       info('chmod a+x', f)
-      local f = assert(io.open(f))
+      local f = assert(ctx.open(f))
       ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
       f:close()
     end
