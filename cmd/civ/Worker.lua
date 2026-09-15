@@ -9,7 +9,6 @@ local dload = require'ds.load'
 local info = require'ds.log'.info
 local pth = require'ds.path'
 local lson = require'lson'
-local fd = require'fd'
 local ix = require'civix'
 local core = require'civ.core'
 local File = require'lines.File'
@@ -93,7 +92,7 @@ function Worker:link(tgt)
     local f, t = O..from, O..to
     info('ln %q -> %q: %q', f, t, pth.relative(t, f))
     ix.sh{'ln', '-s', pth.relative(t, f), t}
-    if select(2, pth.last(pth.dir(t))) == 'bin/' then
+    if not G.NOLIB and select(2, pth.last(pth.dir(t))) == 'bin/' then
       info('chmod a+x', f)
       local f = assert(io.open(f))
       ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
