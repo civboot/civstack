@@ -284,7 +284,7 @@ function M.Civ.load(T, cfgPath)
   local self = {}
   local hpath, hdir, cwd = ix.findBack'HUB.luk'
   if hpath then
-    cwd, hdir = pth.cwd(), pth.dir(hpath)
+    cwd, hdir = ctx.CWD, pth.dir(hpath)
     self.thisPkg = pth.toNonDir(pth.relative(hdir, cwd))
     info('thisPkg=%q', self.thisPkg)
     pth.cd(hdir)

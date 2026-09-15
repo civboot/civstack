@@ -39,7 +39,7 @@ local function new(T, args)
   args = shim.parseStr(args)
   local dir = pk(args, 'dir')
   local cmd = shim.constructNew(T, args)
-  cmd._dir = dir and toDir(dir) or pth.cwd()
+  cmd._dir = dir and toDir(dir) or ctx.CWD
   return cmd
 end
 Base.new = new
@@ -947,7 +947,7 @@ function pvc._squash(P, br, bot,top)
 end
 
 local function popdir(args)
-  return pth.toDir(pk(args, 'dir') or pth.cwd())
+  return pth.toDir(pk(args, 'dir') or ctx.CWD)
 end
 
 function pvc.init:__call()

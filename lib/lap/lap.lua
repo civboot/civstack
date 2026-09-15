@@ -423,7 +423,9 @@ function M.Lap:execute(cor, note) --> errstr?
              table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
     return
   end
+  ctx:push(CTX_ASYNC) -- TODO: also push coroutine-specific one if specified.
   local ok, kind, a, b = resume(cor)
+  ctx:pop()
   if not ok then return kind end -- kind=error
   local fn = LAP_UPDATE[kind]
   if fn then return fn(self, cor, a, b)
@@ -480,8 +482,13 @@ function M.Lap:isDone()
   return not (next(LAP_READY) or (#self.monoHeap > 0) or next(self.pollMap))
 end
 
+-- Register with ctx
+for k, v in pairs(M._sync)  do CTX_BASE[k]  = v end
+for k, v in pairs(M._async) do CTX_ASYNC[k] = v end
+
 ----------------------
 -- Global Modifiers
+-- FIXME: remove
 
 local function toAsync()
   for k, v in pairs(M._async) do M[k] = v end

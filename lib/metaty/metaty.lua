@@ -662,8 +662,8 @@ function M.enum(name)
   return function(nameIds) return namedEnum(name, nameIds) end
 end
 
-G.CTX_BASE  = {} -- the base (sync) context.
-G.CTX_ASYNC = {} -- the base async context.
+G.CTX_BASE  = {__name='CTX_BASE'} -- the base (sync) context.
+G.CTX_ASYNC = {__name='CTX_ASYNC'} -- the base async context.
 
 for k in ([[
 open   close  tmpfile
@@ -673,6 +673,12 @@ input  output flush
 ]]):gmatch'%w+' do G.CTX_BASE[k] = io[k] end
 
 CTX_BASE.fileType = io.type
+
+do -- set current working directory
+  local cwd = assert(G.CWD or os.getenv'PWD' or os.getenv'CD', 'no CWD')
+  assert(cwd:find'^/', 'CWD/PWD/CD is not absolute')
+  CTX_BASE.CWD = cwd:match'(.-)/?$'..'/' -- guarantee it's a directory
+end
 
 --- An object for creating a layered "context", specifically
 --- used for the global ctx variable.

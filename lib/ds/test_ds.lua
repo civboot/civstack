@@ -43,6 +43,9 @@ local LL = require'ds.LL'
 
 local D = ds.srcdir()
 
+assert(pth.isDir(ctx.CWD))
+T.eq(pth.abs(ctx.CWD), ctx.CWD)
+
 ---------------------
 -- ds.lua
 
@@ -490,9 +493,9 @@ T'ds_path'; do
   T.throws('before root', function() pr('/a/../..') end)
   T.throws('before root', function() pr('/a/../../') end)
 
-  assert(#pth.cwd() ~= 1, pth.cwd())
-  T.eq(pth.abs'', pth.cwd())
-  T.eq(pth.abs{}, pth(pth.cwd()))
+  assert(#ctx.CWD ~= 1, ctx.CWD)
+  T.eq(pth.abs'', ctx.CWD)
+  T.eq(pth.abs{}, pth(ctx.CWD))
 
   local pn = pth.nice
   T.eq('./',        pn('a/..'))

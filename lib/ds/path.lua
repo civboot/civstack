@@ -62,11 +62,6 @@ function M.pathenv(var, alt)
   return d
 end
 
---- get the current working directory
-function M.cwd(dir) --> /...cwd/
-  return M.pathenv('PWD', 'CD')
-end
-
 --- Get path to data in $DATA_PATH
 function M.data(relPath)
   local d = assert(G.DATA_PATH, 'must export or set global DATA_PATH')
@@ -74,11 +69,11 @@ function M.data(relPath)
   return M.concat{d, relPath}
 end
 
---- Set the CWD, changing the result of [@ds.cwd].
+--- Set [$ctx.CWD]
 function M.cd(dir)
   if not M.isDir(dir) then error(dir..' must be a dir/') end
-  M.PWD = M.abs(dir)
-  return M.PWD
+  local cwd = M.abs(dir); ctx.CWD = cwd
+  return cwd
 end
 
 --- get the user's home directory
@@ -115,12 +110,12 @@ end
 function M.abs(path, wd) --> /absolute/path
   if type(path) == 'string' then
     if (path:sub(1,1) == '/') then return path end
-    wd = wd or M.cwd()
+    wd = wd or ctx.CWD
     return wd..path
   end
   local st = path[1]
   if st and st:sub(1,1) == '/' then return path end
-  return extend(M(wd or M.cwd()), path)
+  return extend(M(wd or ctx.CWD), path)
 end
 
 --- resolve any `..` or `.` path components, making the path
@@ -143,7 +138,7 @@ function M.resolve(path, wd) --> list|str
         assert(path[1]:sub(-1) ~= '/', '../ backtrack before root')
       end
       if i < 1 then
-        local abs = M(wd or M.cwd())
+        local abs = M(wd or ctx.CWD)
         len = #abs
         table.move(path, j, #path + 1, len, abs)
         i, j      = len, len
@@ -181,7 +176,7 @@ end
 --- It's 'nice' because it has no '/../' or '/./' elements
 --- and has CWD stripped.
 function M.nice(path, wd) --> string
-  wd = wd or M.cwd()
+  wd = wd or ctx.CWD
   path, wd = M.resolve(M(path), wd), M(wd)
   M.rmleft(path, wd)
   if #path == 0 or path[1] == '' then path[1] = './' end
@@ -272,5 +267,7 @@ function M.cmpDirsLast(a, b)
   elseif isDir(b) then return true end
   return a < b
 end
+
+M.cd(ctx.CWD)
 
 return M

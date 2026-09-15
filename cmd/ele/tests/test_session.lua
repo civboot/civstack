@@ -26,8 +26,7 @@ local bindings = require'ele.bindings'
 local info = mty.from'ds.log  info'
 local push = mty.from(table, 'insert')
 
-local _PWD = PWD
-G.PWD = path.abs(ds.srcdir())
+ctx:push{ CWD = path.abs(ds.srcdir()) }
 
 local SC = '[mode:command]'
 local SI = '[mode:insert]'
@@ -642,4 +641,4 @@ Test{'gameBasic', dat=CODE, function(tst)
     T.eq(nil,  g.container)
 end}
 
-G.PWD = _PWD
+ctx:pop()

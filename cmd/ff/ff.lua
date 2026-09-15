@@ -55,7 +55,7 @@ FF.new = function(T, self) --> ff callable
     assertf(#self.cnt == 0, 'content=false but content search set: %q', self.cnt)
   end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
-  if #self.root == 0 then self.root[1] = pth.cwd() end
+  if #self.root == 0 then self.root[1] = ctx.CWD end
   do local pos -- ensure path has at least one postive matcher
     for _, p in ipairs(self.path) do
       if p:sub(1,1) ~= '-' then pos = true; break end

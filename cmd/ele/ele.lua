@@ -26,7 +26,7 @@ local sysprint = G.print
 
 local byte = mty.from(string, 'byte')
 
-local ELE_STATE = '/tmp/'..pth.cwd():gsub('/', '_')
+local ELE_STATE = '/tmp/'..ctx.CWD:gsub('/', '_')
                 ..'_elestate.lson'
 
 function ele:__call()

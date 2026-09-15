@@ -465,7 +465,7 @@ end
 
 --- Find the filename path going backwards.
 function M.findBack(name, dir) --> path
-  dir = dir or pth.cwd()
+  dir = dir or ctx.CWD
   while true do
     local path = pth.concat{dir, name}
     if M.exists(path) then return path end
@@ -680,7 +680,7 @@ function M._sh(cmd) --> Sh
     sh.env    = pk(cmd, 'ENV')
     sh.cwd    = pk(cmd, 'CWD')
     if sh.env then
-      push(sh.env, 'PWD='..(sh.cwd or pth.cwd()))
+      push(sh.env, 'PWD='..(sh.cwd or ctx.CWD))
     end
   end
   sh.args = shim.expand(cmd)

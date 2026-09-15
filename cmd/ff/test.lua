@@ -14,7 +14,7 @@ local ff = require'ff'
 local push, sfmt = table.insert, string.format
 
 local O = '.out/ff/'
-local dir = pth.cwd()..O
+local dir = ctx.CWD..O
 if civix.exists(dir) then civix.rmRecursive(dir) end
 local a = {}; for i=1,100 do push(a, 'a '..i) end
 local b = {}; for i=1,100 do push(b, 'b '..i) end

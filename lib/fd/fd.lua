@@ -5,8 +5,8 @@ local G = G or _G
 --- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
 
+-- FIXME: remove
 --- protocol globals (CIV and LAP protocols)
-G.CWD = G.CWD or os.getenv'PWD' or os.getenv'CD' -- current working dir
 G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
 G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
 
@@ -336,12 +336,13 @@ end
 M.stdin  = M.openFileno(S.STDIN_FILENO)
 M.stdout = M.openFileno(S.STDOUT_FILENO)
 
-function M.input() return M.stdin end
+function M.input()  return M.stdin end
 function M.output() return M.stdout end
-function M.flush() return M.output():flush() end
+function M.flush()  return M.output():flush() end
 
 local FD_TYPES = {[S.FD] = true, [S.FDT] = true}
 
+--- Like io.type but supports fd files as well.
 function M.type(fd)
   local mt = getmetatable(fd)
   if mt and FD_TYPES[mt] then
@@ -364,8 +365,18 @@ function M.isatty(fd)
   return fd and S.isatty(fd)
 end
 
+-- Register with the CTX objects.
+CTX_BASE.fileType = M.type
+for k in ([[
+open   close  tmpfile
+read   lines  write
+stdout stdin
+input  output flush
+]]):gmatch'%w+' do CTX_ASYNC[k] = M[k] end
+
 ----------------------------
 -- To Sync / Async
+-- FIXME: remove this
 
 push(LAP_FNS_ASYNC, function()
   for k, v in pairs(M._async) do M[k] = v end

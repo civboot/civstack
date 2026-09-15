@@ -423,7 +423,7 @@ end
 
 M.DO_NAV = {
   cwd = function(ed, e1, e)
-    navInit(ed, e, pth.cwd())
+    navInit(ed, e, ctx.CWD)
   end,
   cbd = function(ed, e1, e)
     e:clear(); local p = e1.buf.dat.path
