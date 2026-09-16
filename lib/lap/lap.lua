@@ -23,8 +23,6 @@ M._async = {}; M._sync = {}
 
 -- lap protocol globals
 G.LAP_READY     = G.LAP_READY or {}
-G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
-G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
 G.LAP_TRACE     = G.LAP_TRACE or {}
 G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
 G.LAP_ASYNC     = G.LAP_ASYNC or false
@@ -43,20 +41,6 @@ function M.formatCorErrors(corErrors)
     f(ce); f:write'\n'
   end
   return table.concat(f)
-end
-
---- Switch lua to synchronous (blocking) mode.
-function M.sync()
-  if not LAP_ASYNC then return end
-  for _, fn in ipairs(LAP_FNS_SYNC)  do fn() end
-  assert(not LAP_ASYNC)
-end
-
---- Switch lua to asynchronous (yielding) mode.
-function M.async()
-  if LAP_ASYNC then return end
-  for _, fn in ipairs(LAP_FNS_ASYNC) do fn() end
-  assert(LAP_ASYNC)
 end
 
 --- yield(fn) [+
@@ -333,7 +317,7 @@ local LAP_UPDATE = {
 ---
 --- Example [{$$ lang=lua}
 ---   -- schedule your main fn, which may schedule other fns
----   lap.schedule(myMainFn)
+---   ctx.schedule(myMainFn)
 ---
 ---   -- create a Lap instance with the necessary configs
 ---   local Lap = lap.Lap{
@@ -372,6 +356,9 @@ end
 
 --- Stop the executor, ending all coroutines.
 function M.Lap:stop() self.pollMap, self.pollList = {}, {} end
+
+function M.async() G.LAP_ASYNC = true  end
+function M.sync()  G.LAP_ASYNC = false end
 
 --- Main entry point, schedules a list of functions in
 --- the executor and returns when they are done.
@@ -485,21 +472,5 @@ end
 -- Register with ctx
 for k, v in pairs(M._sync)  do CTX_BASE[k]  = v end
 for k, v in pairs(M._async) do CTX_ASYNC[k] = v end
-
-----------------------
--- Global Modifiers
--- FIXME: remove
-
-local function toAsync()
-  for k, v in pairs(M._async) do M[k] = v end
-  LAP_ASYNC = true
-end; push(LAP_FNS_ASYNC, toAsync)
-
-local function toSync()
-  for k, v in pairs(M._sync)  do M[k] = v end
-  LAP_ASYNC = false
-end; push(LAP_FNS_SYNC,  toSync)
-
-if LAP_ASYNC then toAsync() else toSync() end
 
 return M

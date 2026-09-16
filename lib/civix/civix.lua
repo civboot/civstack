@@ -664,7 +664,7 @@ M.Sh.finish = function(sh, other) --> out, err
   end
   if outf then push(fns, function() out = outf:read'a' end) end
   if errf then push(fns, function() err = errf:read'a' end) end
-  if LAP_ASYNC then lap.all(fns) else M.Lap():run(fns) end
+  if LAP_ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return out, err
 end
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end

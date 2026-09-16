@@ -5,11 +5,6 @@ local G = G or _G
 --- Can override default `io` module for global async mode.
 local M = mod and mod'fd' or {}
 
--- FIXME: remove
---- protocol globals (CIV and LAP protocols)
-G.LAP_FNS_ASYNC = G.LAP_FNS_ASYNC or {}
-G.LAP_FNS_SYNC  = G.LAP_FNS_SYNC  or {}
-
 --- cache the original values.
 io._stdout, io._stderr = ctx.stdout, ctx.stdlog
 

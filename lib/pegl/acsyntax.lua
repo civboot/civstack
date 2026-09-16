@@ -99,7 +99,7 @@ function M.tokenize:_dfs(node)
       n.style = n.kind and (style[n.kind] or 'keyword')
              or sty
       push(self._nodeTokens, n)
-      if #self._nodeTokens % YIELD_FREQ == 0 then lap.yield(true) end
+      if #self._nodeTokens % YIELD_FREQ == 0 then ctx.yield(true) end
     else
       self:_dfs(n)
     end
@@ -130,7 +130,7 @@ function M.Highlighter:_highlight(tz, fg, bg) --> nil
   local sc = self.styleColor
   local l,c = 1,0
   for i, t in ipairs(tz) do
-    if i % YIELD_FREQ == 0 then lap.yield(true) end
+    if i % YIELD_FREQ == 0 then ctx.yield(true) end
     local tc = sc[t.style] or '  '
     local tf = assert(CODES[tc:sub(1,1)])
     local tb = assert(CODES[tc:sub(2,2)])

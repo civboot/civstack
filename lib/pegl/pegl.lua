@@ -238,7 +238,7 @@ function M.Maybe(spec) return M.Or{spec, M.Empty} end
 M.Many = mty'Many' {
   'min [int]', min = 0,
   'kind [string]', 'name [string]',
-  'yield [int]: call lap.yield() on every int loop',
+  'yield [int]: call ctx.yield() on every int loop',
   __fmt = M.fmtSpec,
 }
 
@@ -475,7 +475,7 @@ function M.Many:parse(p)
     if ty(t) ~= M.Token and #t == 1 then push(out, t[1])
     else _seqAdd(p, out, self, t) end
     if y then
-      if y == 1 then y = self.yield; lap.yield(true)
+      if y == 1 then y = self.yield; ctx.yield(true)
       else           y = y - 1 end
     end
   end

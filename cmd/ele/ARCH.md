@@ -43,7 +43,7 @@ function action([self,] data, ev, evsend)
 ```
 
 The action body is free to mutate both `data` and `ev` as well as call
-`evsend(newEvent)`. It is also free to call `lap.schedule(...)` to
+`evsend(newEvent)`. It is also free to call `ctx.schedule(...)` to
 schedule coroutines which themselves call `evsend(newEvent)` asynchronously
 in order ot update the main loop.
 
@@ -83,7 +83,7 @@ It is extremely simple to add plugins:
   `push(ele.changes.fileOpened, myPluginFunction)`. It will be called like it
   is an action for such events.
 * (optional) for listening to real events, schedule your plugin using
-  `lap.schedule(...)` (i.e. the builtin `Keys` plugin does this).
+  `ctx.schedule(...)` (i.e. the builtin `Keys` plugin does this).
 
 ## Keys Builtin Plugin {#keys}
 Keys is a builtin plugin which handles actions associated with modal or chorded

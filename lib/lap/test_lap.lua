@@ -34,9 +34,10 @@ local l = M.Lap {
 
 local DONE
 local _, errors = l:run{function()
+assert(LAP_ASYNC)
 T'schedule'; do
   local i = 0
-  local cor = M.schedule(function()
+  local cor = ctx.schedule(function()
     for _=1,3 do i = i + 1; yield(true) end
     i = 99
   end)
@@ -54,7 +55,7 @@ T'ch'; do
   local r = M.Recv(); local s = r:sender()
 
   local t = {}
-  M.schedule(function()
+  ctx.schedule(function()
     for v in r do push(t, v) end
   end)
   T.eq({}, t);

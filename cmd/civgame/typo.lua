@@ -136,7 +136,7 @@ getmetatable(M.Typo).__call = function(T, t)
   t = mty.construct(T, t)
 
   -- TODO:
-  -- lap.schedule(function()
+  -- ctx.schedule(function()
   --   local ok, err = ds.try(function()
       t.levels = t.levels or M.Categorizer{}
              :walk(pth.data'../lua')

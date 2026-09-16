@@ -53,10 +53,10 @@ function ele:__call()
     G.print = ds.eprint
     info'ele: started display'
     s:handleEvents()
-    lap.schedule(function() while s.ed.run do
+    ctx.schedule(function() while s.ed.run do
       rawKeySend(byte(ctx.read(1)))
     end end)
-    lap.schedule(function()
+    ctx.schedule(function()
       LAP_TRACE[coroutine.running()] = true
       info'start term:input()'
       while s.ed.run do
@@ -65,10 +65,10 @@ function ele:__call()
       end
       info'exit term:input()'
     end)
-    lap.schedule(function()
+    ctx.schedule(function()
       s:draw()
     end)
-    lap.schedule(function()
+    ctx.schedule(function()
       info'ele: start highlight'
       s:highlight()
     end)
@@ -81,7 +81,7 @@ function ele:__call()
       s.ed:focus(self[1])
     else
       info('saving ele state to %s', ELE_STATE)
-      lap.schedule(function() while s.ed.run do
+      ctx.schedule(function() while s.ed.run do
         lap.sleep(1)
         pth.write(ELE_STATE, lson.lson(s.ed:state(), true))
       end end)
@@ -93,7 +93,8 @@ function ele:__call()
     end
     info'ele: end of setup'
   end,
-  function() lap.async() -- setup: change to async()
+  function()
+    LAP_ASYNC = true
     ctx.stdlog = assert(ioopen('/tmp/ele.err', 'w'))
     ctx.fmtlog = require'vt100'.Fmt{to=ctx.stdlog}
     savedmode = vt.start()
@@ -101,7 +102,8 @@ function ele:__call()
     fd.stdin:toNonblock()
     fd.stdout:toNonblock()
   end,
-  function() lap.sync() -- teardown: change to sync()
+  function()
+     LAP_ASYNC= false
     fd.stdout:toBlock()
     fd.stdin:toBlock()
 
