@@ -215,16 +215,17 @@ end
 if not G.NOLIB then
 local fd = require'fd'
 local ixt = require'civix.testing'
-fd.ioStd(); T.SUBNAME = '[ioStd]'
+T.SUBNAME = '[ioStd]'
 fin = false; tests(); assert(fin)
 
-fd.ioSync(); T.SUBNAME = '[ioSync]'
+T.SUBNAME = '[ioSync]'; ctx:push(fd.CTX_IO_SYNC)
 fin = false; tests(); assert(fin)
+T.eq(fd.CTX_IO_SYNC, ctx:pop())
 
 T.SUBNAME = '[ioAsync]'
 fin=false; ixt.runAsyncTest(tests); assert(fin)
 
-fd.ioSync(); T.SUBNAME = ''
+T.SUBNAME = ''
 
 -- TODO: consider re-working and enabling
 -- T.fd_perf = function()
@@ -252,5 +253,4 @@ fd.ioSync(); T.SUBNAME = ''
 --   -- assert(count > 50, tostring(count))
 -- end
 
-fd.ioStd()
 end -- if not G.NOLIB

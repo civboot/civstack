@@ -297,11 +297,12 @@ if G.NOLIB then return end
 -- Continue tests with fd
 local fd = require'fd'
 
-fd.ioSync(); T.SUBNAME = '[ioSync]'
+T.SUBNAME = '[ioSync]'; ctx:push(fd.CTX_IO_SYNC)
 fin = false; tests(); assert(fin)
+T.eq(fd.CTX_IO_SYNC, ctx:pop())
 
 -- TODO: file async not working.
 -- T.SUBNAME = '[ioAsync]'
 -- fin=false; require'civix.testing'.runAsyncTest(tests); assert(fin)
 
-fd.ioStd(); T.SUBNAME = ''
+T.SUBNAME = ''

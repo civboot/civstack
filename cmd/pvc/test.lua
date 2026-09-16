@@ -11,8 +11,6 @@ local TD, D = 'cmd/pvc/testdata/', '.out/pvc/'
 local pc = pth.concat
 local s = ds.simplestr
 
-fd.ioStd()
-
 --- test some basic internal functions
 T'internal'; do
   T.eq(0, pvc._calcPatchDepth(1))

@@ -98,18 +98,16 @@ function ele:__call()
     ctx.fmtlog = require'vt100'.Fmt{to=ctx.stdlog}
     savedmode = vt.start()
 
-    fd.ioAsync()
     fd.stdin:toNonblock()
     fd.stdout:toNonblock()
   end,
   function() lap.sync() -- teardown: change to sync()
     fd.stdout:toBlock()
     fd.stdin:toBlock()
-    fd.ioSync()
 
     vt.stop(ctx.stdout, savedmode)
     ctx.stdlog = iostderr
-    ctx.fmtlog    = iofmt
+    ctx.fmtlog = iofmt
   end)
   return s, l
 end

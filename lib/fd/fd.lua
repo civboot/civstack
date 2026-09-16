@@ -295,8 +295,13 @@ function M.openWith(openFn, path, mode)
   if f:code() ~= 0 then return nil, f:codestr() end
   return f
 end
-function M.openFD(...) return M.openWith(S.openFD, ...)  end
+function M.openFD(...)  return M.openWith(S.openFD, ...)  end
 function M.openFDT(...) return M.openWith(S.openFDT, ...) end
+
+-- FIXME: uncomment
+-- M._sync.open = M.openFD
+-- M._async.open = M.openFD
+
 function M.open(...)
   return M.openWith((LAP_ASYNC and S.openFDT) or S.openFD, ...)
 end
@@ -365,6 +370,10 @@ function M.isatty(fd)
   return fd and S.isatty(fd)
 end
 
+--- Can be used independently of CTX_ASYNC to use fd
+--- instead of io for ctx.
+M.CTX_IO_SYNC = {}
+
 -- Register with the CTX objects.
 CTX_BASE.fileType = M.type
 for k in ([[
@@ -372,47 +381,14 @@ open   close  tmpfile
 read   lines  write
 stdout stdin
 input  output flush
-]]):gmatch'%w+' do CTX_ASYNC[k] = M[k] end
-
-----------------------------
--- To Sync / Async
--- FIXME: remove this
-
-push(LAP_FNS_ASYNC, function()
-  for k, v in pairs(M._async) do M[k] = v end
-end)
-push(LAP_FNS_SYNC, function()
-  for k, v in pairs(M._sync)  do M[k] = v end
-end)
-
-local IO_KEYS = {}; for k in ([[
-open   close  tmpfile
-read   lines  write
-stdout stdin
-input  output flush
-type
-]]):gmatch'%w+' do push(IO_KEYS, k) end
-
-local function copyKeysM(keys, from, to)
-  for _, k in ipairs(keys) do
-    to[k] = assert(rawget(from, k) or M[k])
-  end
+]]):gmatch'%w+' do
+  CTX_ASYNC[k]     = M[k]
+  M.CTX_IO_SYNC[k] = M[k]
 end
-copyKeysM(IO_KEYS, io, M.io)
 
---- Switch the global [$io] module to use builtin functions.
-function M.ioStd()
-  assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M.io,    io)
-end
---- Switch the global [$io] module to use sync functions from
---- this module.
-function M.ioSync()
-  assert(not LAP_ASYNC); copyKeysM(IO_KEYS, M._sync, io)
-end
---- Switch the global [$io] module to use async functions from
---- this module.
-function M.ioAsync()
-  assert(LAP_ASYNC);     copyKeysM(IO_KEYS, M._async, io)
-end
+-- override sync/async specific functions from the general
+-- ones.
+for k,v in pairs(M._sync)  do M.CTX_IO_SYNC[k] = v  end
+for k,v in pairs(M._async) do CTX_ASYNC[k]     = v  end
 
 return M

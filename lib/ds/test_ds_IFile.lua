@@ -32,10 +32,11 @@ if G.NOLIB then return end
 
 local fd   = require'fd'
 
-T.SUBNAME = '[ioStd]'; fd.ioStd()
+T.SUBNAME = '[ioStd]'
 fin=false; generalTest(); assert(fin)
 
-T.SUBNAME = '[ioSync]'; fd.ioSync()
+T.SUBNAME = '[ioSync]'; ctx:push(fd.CTX_IO_SYNC)
 fin=false; generalTest(); assert(fin)
+T.eq(fd.CTX_IO_SYNC, ctx:pop())
 
-fd.ioStd(); T.SUBNAME = ''
+T.SUBNAME = ''

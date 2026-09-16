@@ -18,9 +18,8 @@ local fd  = require'fd'
 function M.runAsyncTest(fn)
   assert(not G.LAP_ASYNC, 'already in async mode')
   local lr = ix.Lap()
-  local _, errors = lr:run{fd.ioAsync, fn}
+  local _, errors = lr:run{fn}
   lap.reset()
-  fd.ioStd()
   if errors then error(
     'testLapEnv found errors:\n'..fmt(errors)
   )end

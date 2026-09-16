@@ -8,6 +8,7 @@ local ixt = require'civix.testing'
 local info = require'ds.log'.info
 
 local push = table.insert
+local fd = M
 
 local S = M.sys
 
@@ -128,11 +129,12 @@ end
 fin=true
 end -- generalTest
 
-T.SUBNAME = '[ioStd]'; M.ioStd()
+T.SUBNAME = '[ioStd]';
 fin=false; generalTest(); assert(fin)
 
-T.SUBNAME = '[ioSync]'; M.ioSync()
+T.SUBNAME = '[ioSync]'; ctx:push(fd.CTX_IO_SYNC)
 fin=false; generalTest(); assert(fin)
+T.eq(fd.CTX_IO_SYNC, ctx:pop())
 
 T.SUBNAME = ''
 
@@ -185,4 +187,4 @@ T.eq(3, fin)
 T.SUBNAME = '[ioAsync]'
 fin=false; ixt.runAsyncTest(generalTest); assert(fin)
 
-M.ioStd(); T.SUBNAME = ''
+T.SUBNAME = ''
