@@ -6,7 +6,10 @@ local M  = require'lap'
 local push, yield = table.insert, coroutine.yield
 local co = coroutine
 
-T'execute'; do
+T.eq(ctx.__parent, CTX_BASE)
+
+T'direct execute'; do
+  local ctxBase = ctx.__parent
   local l = M.Lap{}
   local v = 0
   local res = l:execute(co.create(
@@ -22,8 +25,10 @@ T'execute'; do
   local errFn = function() error'bar' end
   local res = l:execute(co.create(errFn))
   T.matches(': bar', res)
+  ctx.__parent = ctxBase
 end
 
+T.eq(ctx.__parent, CTX_BASE)
 local finished = 0
 local slept, mono = 0, 0
 local l = M.Lap {

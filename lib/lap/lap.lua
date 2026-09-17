@@ -23,14 +23,16 @@ M._async = {}; M._sync = {}
 
 -- lap protocol globals
 G.LAP_READY     = G.LAP_READY or {}
-G.LAP_TRACE     = G.LAP_TRACE or {}
-G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
+G.LAP_TRACE     = G.LAP_TRACE or ds.WeakK{}
+G.LAP_CORS      = G.LAP_CORS  or ds.WeakK{}
+G.LAP_CTX       = G.LAP_CTX   or ds.WeakK{}
 
 --- Clear all lap globals.
 function M.reset()
   assert(not ctx.ASYNC, "don't clear while still running")
-  G.LAP_READY, G.LAP_TRACE = {}, {}
-  G.LAP_CORS = ds.WeakKV{}
+  G.LAP_READY, G.LAP_TRACE = {}, ds.WeakK{}
+  G.LAP_CORS = ds.WeakK{}
+  G.LAP_CTX = ds.WeakK{}
 end
 
 function M.formatCorErrors(corErrors)
@@ -46,6 +48,8 @@ end
 --- * sync: noop
 --- * async: coroutine.yield
 --- ]
+---
+--- Call ctx.yield instead.
 function M.yield() end
 M._sync.yield = M.yield
 M._async.yield = yield
@@ -54,6 +58,8 @@ M._async.yield = yield
 --- * sync:  run the fn immediately and return nil
 --- * async: create and schedule returned coroutine
 --- ]
+---
+--- Call ctx.schedule instead.
 function M.schedule(fn, ...) fn(...) end
 M._sync.schedule = M.schedule
 function M._async.schedule(fn, ...)
@@ -67,6 +73,7 @@ end
 
 --- Yield a sleep signal for the number of  seconds (float).
 function M.sleep(s) return yield('sleep', s) end
+CTX_ASYNC.sleep = M.sleep
 
 ----------------------------------
 -- Ch: channel sender and receiver (Send/Recv)
@@ -332,6 +339,7 @@ local LAP_UPDATE = {
 ---   end
 --- ]$
 M.Lap = mty'Lap' {
+  'ctxBase',
   'sleepFn [function]',
   'monoFn  [function]',
   'monoHeap [Heap]',
@@ -348,6 +356,7 @@ M.Lap = mty'Lap' {
 }
 M.Lap.defaultSleep = 0.01
 getmetatable(M.Lap).__call = function(T, ex)
+
   ex.monoHeap = ex.monoHeap or heap.Heap{cmp = lt1}
   ex.pollMap  = ex.pollMap  or {}
   return mty.construct(T, ex)
@@ -359,6 +368,7 @@ function M.Lap:stop() self.pollMap, self.pollList = {}, {} end
 --- Main entry point, schedules a list of functions in
 --- the executor and returns when they are done.
 function M.Lap:run(fns, setup, teardown)
+  self.ctxBase, CTX_ASYNC.__parent = ctx.__parent, ctx.__parent  -- store context
   setup, teardown = setup or ds.noop, teardown or ds.noop
   local errors
   assert(self:isDone(), "cannot run non-done Lap")
@@ -380,6 +390,7 @@ function M.Lap:run(fns, setup, teardown)
     errors = errors or {}
     push(errors, ierr)
   end
+  ctx.__parent = self.ctxBase -- reset context
   teardown()
   if errors then
     errors = M.formatCorErrors(errors)
@@ -406,10 +417,10 @@ function M.Lap:execute(cor, note) --> errstr?
              table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
     return
   end
-  ctx:push(CTX_ASYNC) -- TODO: also push coroutine-specific one if specified.
+  ctx.__parent = LAP_CTX[cor] or CTX_ASYNC
   local ok, kind, a, b = resume(cor)
-  ctx:pop()
   if not ok then return kind end -- kind=error
+  LAP_CTX[cor] = ctx.__parent
   local fn = LAP_UPDATE[kind]
   if fn then return fn(self, cor, a, b)
   elseif kind then return 'unknown kind: '..kind end

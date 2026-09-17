@@ -305,6 +305,7 @@ function M.sleep(d) --> nil
   if type(d) == 'number' then d = Duration:fromSeconds(d) end
   if d.s >= 0 then lib.nanosleep(d.s, d.ns) end
 end
+CTX_BASE.sleep = CTX_BASE.sleep or M.sleep
 
 --- Return the Epoch/Mono time
 --- Time according to realtime clock

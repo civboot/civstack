@@ -716,6 +716,7 @@ M.ctx = setmetatable({
       v = p[k]; if v ~= nil then return v end
       p = p.__parent
     end
+    error(sfmt('no context layer has key %s', k))
   end,
   __newindex = function(self, k, v) self.__parent[k] = v end,
 })
