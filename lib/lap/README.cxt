@@ -88,7 +88,7 @@ There are four global variables defined by the LAP protocol: [+
   resume.
 * [$LAP_FNS_SYNC] / [$LAP_FNS_ASYNC]: contains functions to switch lua to synchronous /
   asynchronous modes, respectively.
-* [$LAP_ASYNC]: is set to true when in async mode to determine behavior at
+* [$ctx.ASYNC]: is set to true when in async mode to determine behavior at
   runtime.
 ]
 

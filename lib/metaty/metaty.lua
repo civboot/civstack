@@ -672,14 +672,18 @@ stdout stdin  popen
 input  output flush
 ]]):gmatch'%w+' do G.CTX_BASE[k] = io[k] end
 
+CTX_BASE.ASYNC    = false
 CTX_BASE.stdlog   = io.stderr
 CTX_BASE.fileType = io.type
+
 
 do -- set current working directory
   local cwd = assert(G.CWD or os.getenv'PWD' or os.getenv'CD', 'no CWD')
   assert(cwd:find'^/', 'CWD/PWD/CD is not absolute')
   CTX_BASE.CWD = cwd:match'(.-)/?$'..'/' -- guarantee it's a directory
 end
+
+CTX_ASYNC.ASYNC   = true
 
 --- An object for creating a layered "context", specifically
 --- used for the global ctx variable.

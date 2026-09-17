@@ -636,7 +636,7 @@ M.Sh.rc     = function(sh) return sh._sh:rc()     end
 
 --- wait for shell to complete, returns return code
 M.Sh.wait = function(sh) --> int
-  if LAP_ASYNC then
+  if ctx.ASYNC then
     while not sh:isDone() do yield('sleep', 1e-4) end
   else sh._sh:wait() end
   return sh:rc()
@@ -664,7 +664,7 @@ M.Sh.finish = function(sh, other) --> out, err
   end
   if outf then push(fns, function() out = outf:read'a' end) end
   if errf then push(fns, function() err = errf:read'a' end) end
-  if LAP_ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return out, err
 end
 M.Sh.write = function(sh, ...) return sh.stdin:write(...) end

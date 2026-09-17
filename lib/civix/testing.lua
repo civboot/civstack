@@ -16,7 +16,7 @@ local fd  = require'fd'
 ---   equivalent for that.
 --- ]
 function M.runAsyncTest(fn)
-  assert(not G.LAP_ASYNC, 'already in async mode')
+  assert(not ctx.ASYNC, 'already in async mode')
   local lr = ix.Lap()
   local _, errors = lr:run{fn}
   lap.reset()

@@ -34,7 +34,7 @@ local l = M.Lap {
 
 local DONE
 local _, errors = l:run{function()
-assert(LAP_ASYNC)
+assert(ctx.ASYNC)
 T'schedule'; do
   local i = 0
   local cor = ctx.schedule(function()

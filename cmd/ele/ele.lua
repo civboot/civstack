@@ -94,7 +94,6 @@ function ele:__call()
     info'ele: end of setup'
   end,
   function()
-    LAP_ASYNC = true
     ctx.stdlog = assert(ioopen('/tmp/ele.err', 'w'))
     ctx.fmtlog = require'vt100'.Fmt{to=ctx.stdlog}
     savedmode = vt.start()
@@ -103,7 +102,6 @@ function ele:__call()
     fd.stdout:toNonblock()
   end,
   function()
-     LAP_ASYNC= false
     fd.stdout:toBlock()
     fd.stdin:toBlock()
 

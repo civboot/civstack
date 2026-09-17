@@ -298,7 +298,7 @@ function M.openFDT(...) return M.openWith(S.openFDT, ...) end
 -- M._async.open = M.openFD
 
 function M.open(...)
-  return M.openWith((LAP_ASYNC and S.openFDT) or S.openFD, ...)
+  return M.openWith((ctx.ASYNC and S.openFDT) or S.openFD, ...)
 end
 function M.close(fd) fd:close() end
 function M.tmpfileFn(sysFn)

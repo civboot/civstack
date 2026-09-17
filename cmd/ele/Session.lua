@@ -145,7 +145,7 @@ end
 
 -- Start a user session
 Session.handleEvents = function(s)
-  assert(LAP_ASYNC, 'must be started in async mode')
+  assert(ctx.ASYNC, 'must be started in async mode')
   assert(s.ed and s.keys)
   ctx.schedule(function()
     LAP_TRACE[coroutine.running()] = true

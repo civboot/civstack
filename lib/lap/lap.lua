@@ -25,11 +25,10 @@ M._async = {}; M._sync = {}
 G.LAP_READY     = G.LAP_READY or {}
 G.LAP_TRACE     = G.LAP_TRACE or {}
 G.LAP_CORS      = G.LAP_CORS or ds.WeakKV{}
-G.LAP_ASYNC     = G.LAP_ASYNC or false
 
 --- Clear all lap globals.
 function M.reset()
-  assert(not LAP_ASYNC, "don't clear while still running")
+  assert(not ctx.ASYNC, "don't clear while still running")
   G.LAP_READY, G.LAP_TRACE = {}, {}
   G.LAP_CORS = ds.WeakKV{}
 end
@@ -357,16 +356,13 @@ end
 --- Stop the executor, ending all coroutines.
 function M.Lap:stop() self.pollMap, self.pollList = {}, {} end
 
-function M.async() G.LAP_ASYNC = true  end
-function M.sync()  G.LAP_ASYNC = false end
-
 --- Main entry point, schedules a list of functions in
 --- the executor and returns when they are done.
 function M.Lap:run(fns, setup, teardown)
-  setup, teardown = setup or M.async, teardown or M.sync
+  setup, teardown = setup or ds.noop, teardown or ds.noop
   local errors
   assert(self:isDone(), "cannot run non-done Lap")
-  assert(not LAP_ASYNC, 'already in async mode')
+  assert(not ctx.ASYNC, 'already in async mode')
   if type(fns) == 'function' then
     LAP_READY[coroutine.create(fns)] = 'run'
   else
