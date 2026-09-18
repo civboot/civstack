@@ -65,7 +65,7 @@ function M.Edit:save(ed)
   -- TODO: schedule the rest as coroutine to not block.
   dat:flush()
   local tmp = assert(ctx.open(tpath, 'w'))
-  dat:dumpf(tmp); tmp:flush()
+  dat:dumpf(tmp)  tmp:flush()
   dat:close();    tmp:close()
   -- TODO: I should move with :move (need to implement)
   ix.mv(tpath, path)

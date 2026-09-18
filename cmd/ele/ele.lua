@@ -66,6 +66,7 @@ function ele:__call()
       info'exit term:input()'
     end)
     ctx.schedule(function()
+      ix.sleep(0.5) -- FIXME: remove. there is a race condition I need to track down.
       s:draw()
     end)
     ctx.schedule(function()
