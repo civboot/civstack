@@ -46,7 +46,7 @@ end
 local running = false
 
 local function noTmp(s)
-  return s:gsub('/tmp/lua_%w+', 'TMP')
+  return s:gsub('/tmp/ele%d+_%w+', 'TMP')
 end
 
 -- Test{th=5, ..., 'name', function(test) ed = test.s.ed; ... end}
@@ -259,12 +259,12 @@ local LINES3_wLN = [[
  01 3 5 7 9
  1 2 4 6
  2
-| TMP:1.1 (b#5) ==]]
+| TMP:1.1 (b#5 ]]
 local INSERTED_3 = [[
  0inserted
   
   
-| TMP:1.9 (b#5) ==]]
+| TMP:1.9 (b#5 ]]
 Test{'empty', dat=LINES3, th=5, tw=30, function(tst)
   local s, ed, e = tst.s, tst.s.ed, tst.s.ed.pane
   local g = e.buf.dat
@@ -286,7 +286,7 @@ local NAV_1 = [[
  1  * small.lua
  2  * seuss/
   
-| TMP:2.8 b#nav ( ]]
+| TMP:2.8 b#na ]]
 
 local NAV_2 = [[
  3% p:-/%.
@@ -294,7 +294,7 @@ local NAV_2 = [[
  1  * small.lua
  0  * seuss/
  1    * thing1.txt
-| TMP:4.8 b#nav ( ]]
+| TMP:4.8 b#na ]]
 
 local NAV_3 = [[
  5% p:-/%.
@@ -302,15 +302,15 @@ local NAV_3 = [[
  3  * small.lua
  2  * seuss/
  1
-| TMP:6.8 b#nav ( ]]
+| TMP:6.8 b#na ]]
 
 local BUF_1 = 
 " 0b#7        ./data/seuss/thin\
  1b#6        ./data/small.lua\
- 2b#5        TMP\
- 3b#nav      TMP\
- 4b#search   TMP\
-| TMP:1.1 b#nav ( "
+ 2b#search   TMP\
+ 3b#misc     TMP\
+ 4b#nav      TMP\
+| TMP:1.1 b#na "
 
 Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   local s, ed = tst.s, tst.s.ed
@@ -341,12 +341,12 @@ Test{'nav', open=SMALL, th=7, tw=30, function(tst)
   -- The 'o' is gone because of bufSearch
   local searchMode = '[m de:system]\n'
   s:play'g b'
-    -- FIXME: T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
+    T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
     T.eq('system', ed.mode)
   s:play'd a t a / enter enter'
     T.matches('data/seuss/thing1.txt$', ed.pane:path())
   s:play'g b' -- should be same as before
-    -- FIXME: T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
+    T.eq(searchMode..BUF_1, noTmp(fmt(ed.display)))
 end}
 
 Test{'overlay', dat=LINES3, function(tst)

@@ -434,8 +434,7 @@ M.DO_NAV = {
     e:clear()
     local bufs = {};
     for _, b in pairs(ed.buffers) do push(bufs, b) end
-    ds.sort(bufs)
-    for _, b in ipairs(bufs) do
+    for _, b in ipairs(ds.sort(bufs)) do
       local p = b:path()
       e:insert(sfmt('b#%-8s %s\n', b.name or b.id,
         p and pth.small(p) or '(tmp)'))
