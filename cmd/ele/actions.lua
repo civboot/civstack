@@ -432,9 +432,12 @@ M.DO_NAV = {
   end,
   buf = function(ed, e1, e)
     e:clear()
-    for i, b in It:ofOrdMap(ed.buffers) do
+    local bufs = {};
+    for _, b in pairs(ed.buffers) do push(bufs, b) end
+    ds.sort(bufs)
+    for _, b in ipairs(bufs) do
       local p = b:path()
-      e:insert(sfmt('b#%-8s %s\n', b.name or i,
+      e:insert(sfmt('b#%-8s %s\n', b.name or b.id,
         p and pth.small(p) or '(tmp)'))
     end
     e.l,e.c = 1,1
