@@ -10,12 +10,18 @@ local C = buffer.Change
 
 T'insert & remove'; do
   local b = Buffer.new'a\nb\n'; local g = b.dat
+  T.eq(0, b.v)
   T.eq('a\nb\n', fmt(g))
   b:changeStart(0,0)
+    T.eq(0, b.v)
   b:insert('l', 1);         T.eq('la\nb\n',      fmt(g));
+    T.eq(1, b.v)
   b:insert(' hi', 1, 'end') T.eq('la hi\nb\n',   fmt(g))
+    T.eq(2, b.v)
   b:insert('la', 1, -3)     T.eq('lala hi\nb\n', fmt(g))
+    T.eq(3, b.v)
   b:remove(1, -3, 1, -1)    T.eq('lala\nb\n',    fmt(g))
+    T.eq(4, b.v)
 
   T.eq({'lala', 'b', ''}, ds.icopy(g))
   b:insert('\nlob\n', 1,5)
@@ -36,39 +42,47 @@ end
 
 T'undoIns'; do
   local b = Buffer.new(''); local g = b.dat
+    T.eq(0, b.v)
 
   local ch1 = C{1,1, k='INSERT', s='hello '}
   local ch2 = C{1,7, k='INSERT', s='world!'}
   b:changeStart(0, 0)
   local ch = b:insert('hello ', 1, 2)
-  T.eq(ch1, ch)
-  T.eq('hello ', fmt(g))
+    T.eq(1, b.v)
+    T.eq(ch1, ch)
+    T.eq('hello ', fmt(g))
 
   b:changeStart(0, 1)
   ch = b:insert('world!', 1, 7)
-  T.eq(ch2, ch)
-  T.eq('hello world!', fmt(g))
+    T.eq(2, b.v)
+    T.eq(ch2, ch)
+    T.eq('hello world!', fmt(g))
 
   -- undo + redo + undo again
   local chs = b:undo()
-  T.eq({C{k='START', 0, 1}, ch2}, chs)
-  T.eq('hello ', fmt(g))
+    T.eq(3, b.v)
+    T.eq({C{k='START', 0, 1}, ch2}, chs)
+    T.eq('hello ', fmt(g))
 
   chs = b:redo()
-  T.eq({C{k='START', 0,1}, ch2}, chs)
-  T.eq('hello world!', fmt(g))
+    T.eq(4, b.v)
+    T.eq({C{k='START', 0,1}, ch2}, chs)
+    T.eq('hello world!', fmt(g))
 
   chs = b:undo()
-  T.eq({C{k='START', 0,1}, ch2}, chs)
-  T.eq('hello ', fmt(g))
+    T.eq(5, b.v)
+    T.eq({C{k='START', 0,1}, ch2}, chs)
+    T.eq('hello ', fmt(g))
 
   -- undo final, then redo twice
   chs = b:undo()
-  T.eq({C{k='START', 0,0}, ch1}, chs)
-  T.eq('', fmt(g))
+    T.eq(6, b.v)
+    T.eq({C{k='START', 0,0}, ch1}, chs)
+    T.eq('', fmt(g))
   b:redo(); chs = b:redo()
-  T.eq({C{k='START', 0,1}, ch2}, chs)
-  T.eq('hello world!', fmt(g))
+    T.eq(8, b.v)
+    T.eq({C{k='START', 0,1}, ch2}, chs)
+    T.eq('hello world!', fmt(g))
 end
 
 T'undoInsRm'; do
