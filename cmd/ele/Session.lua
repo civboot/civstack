@@ -28,6 +28,8 @@ local push = table.insert
 -- local FRAME = 0.05
 local FRAME = 0.05
 
+local HIGHLIGHT_V = {'ext', 'highlight', 'v'}
+
 Session.BUILTIN_ACTIONS = {
   clearEvents = function(s) s.events:clear() end,
 
@@ -184,7 +186,9 @@ function Session:highlight()
   local function highlight()
     local p = self.ed.pane
     if mty.ty(p) ~= edit.Edit then return end
-    local buf = self.ed.pane.buf
+    local e, buf = self.ed.pane, self.ed.pane.buf
+    if ds.getp(e,HIGHLIGHT_V) == buf.v then return end
+    ds.setp(e,HIGHLIGHT_V, buf.v)
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then
       local fg,bg = Gap{}, Gap{}

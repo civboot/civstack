@@ -91,6 +91,7 @@ M.BasePane = mty'BasePane' {
   'closed [bool]', closed = false,
 
   'modes [table]: override specific keybindings for this pane',
+  'ext [table]: arbitrary extensions (nil if unused, use ds.setp for setting)',
 
   IS_PANE = true,
 }
