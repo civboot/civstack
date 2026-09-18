@@ -183,12 +183,13 @@ function Session:highlight()
   local hl = mty.from'pegl.lua  highlighter'
   local hlAcs = mty.from'asciigame.acs  highlight'
   hl.styleColor = require'asciicolor'.dark
+  local hlRan = false
   local function highlight()
     local p = self.ed.pane
     if mty.ty(p) ~= edit.Edit then return end
     local e, buf = self.ed.pane, self.ed.pane.buf
     if ds.getp(e,HIGHLIGHT_V) == buf.v then return end
-    ds.setp(e,HIGHLIGHT_V, buf.v)
+    hlRan = true; ds.setp(e,HIGHLIGHT_V, buf.v)
     local path = buf.dat.path
     if path and path:find'%.lu[ak]$' then
       local fg,bg = Gap{}, Gap{}
@@ -205,6 +206,7 @@ function Session:highlight()
   while self.ed.run do
     lap.sleep(1)
     local ok, err = ds.try(highlight)
+    if hlRan then self.ed.redraw = true end
     if not ok then log.warn('highlight error:\n%q', err) end
   end
 end
