@@ -40,6 +40,7 @@ end
 
 M.Buffer = mty'Buffer' {
   'id  [int]', 'name [str?]',
+  'v [int]: continuously incrementing version on each change', v = 0,
   'dat [lines.File]: i.e. Gap, EdFile',
   'fg [lines.File]: foreground asciicolor',
   'bg [lines.File]: background asciicolor',
@@ -75,6 +76,7 @@ end
 
 function Buffer:doRm(ch)
   local len = #ch.s; if len <= 0 then return ch end
+  self.v = self.v + 1
   local dat = self.dat
   local l,c = ch[1],ch[2]
   local l2, c2 = lines.offset(dat, len-1, l,c)
@@ -106,6 +108,7 @@ function Buffer:_matchColorLine(l)
 end
 
 function Buffer:doInsert(ch)
+  self.v = self.v + 1
   local l,c = ch[1],ch[2]
   if self.fg then self:_matchColorLine(l) end
   lines.insert(self.dat, ch.s, l,c)
