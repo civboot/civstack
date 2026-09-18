@@ -14,6 +14,7 @@ local Session = mty'Session' {
 local ds = require'ds'
 local log = require'ds.log'
 local lap = require'lap'
+local pth = require'ds.path'
 local civix = require'civix'
 local et = require'ele.types'
 local Editor = require'ele.Editor'
@@ -27,6 +28,8 @@ local push = table.insert
 
 -- local FRAME = 0.05
 local FRAME = 0.05
+
+local HIGHLIGHT_V = {'ext', 'highlight', 'v'}
 
 Session.BUILTIN_ACTIONS = {
   clearEvents = function(s) s.events:clear() end,
@@ -181,26 +184,21 @@ function Session:highlight()
   local hl = mty.from'pegl.lua  highlighter'
   local hlAcs = mty.from'asciigame.acs  highlight'
   hl.styleColor = require'asciicolor'.dark
+  local hlRan = false
   local function highlight()
     local p = self.ed.pane
     if mty.ty(p) ~= edit.Edit then return end
-    local buf = self.ed.pane.buf
+    local e, buf = self.ed.pane, self.ed.pane.buf
+    if ds.getp(e,HIGHLIGHT_V) == buf.v then return end
+    hlRan = true; ds.setp(e,HIGHLIGHT_V, buf.v)
     local path = buf.dat.path
-    if path and path:find'%.lu[ak]$' then
-      local fg,bg = Gap{}, Gap{}
-      hl:highlight(buf.dat:reader(), fg,bg)
-      if #buf == #fg then
-        buf.fg, buf.bg = fg, bg
-      end
-    elseif path and path:find'%.acs$' then
-      local fg,bg = Gap{}, Gap{}
-      hlAcs(path, buf.dat:reader(), fg,bg)
-      buf.fg, buf.bg = fg, bg
-    end
+    local hlFn = self.ed.highlightExt[pth.ext(path)]
+    if hlFn then return hlFn(buf) end
   end
   while self.ed.run do
     lap.sleep(1)
     local ok, err = ds.try(highlight)
+    if hlRan then self.ed.redraw = true end
     if not ok then log.warn('highlight error:\n%q', err) end
   end
 end

@@ -91,6 +91,7 @@ M.BasePane = mty'BasePane' {
   'closed [bool]', closed = false,
 
   'modes [table]: override specific keybindings for this pane',
+  'ext [table]: arbitrary extensions (nil if unused, use ds.setp for setting)',
 
   IS_PANE = true,
 }
@@ -251,6 +252,19 @@ function M.EditLoc.parse(T, str, defaultBuf)
   b = b=='' and defaultBuf or b
   assertf(l and c and b, 'invalid EditLoc: %s b=%s', str, b)
   return T{b=b, l=toint(l), c=toint(c)}
+end
+
+--- Register an ele highlighter from a mty.from string.
+function M.eleHighlighter(requireFrom)
+  return function(buf)
+      local hl = mty.from(requireFrom)
+      local Gap = require'lines.Gap'
+      -- TODO: use global style settings.
+      hl.styleColor = require'asciicolor'.dark
+      local fg,bg = Gap{}, Gap{}
+      hl:highlight(buf.dat:reader(), fg,bg)
+      buf.fg, buf.bg = fg, bg
+  end
 end
 
 return M
