@@ -259,6 +259,11 @@ function Buffer:remove(...)
   return ch
 end
 
+function Buffer:__lt(r)
+  return (self:path() or self.name or tostring(self.id))
+       < (   r:path() or    r.name or    tostring(r.id))
+end
+
 function Change:__tostring()
   return sfmt('Ch{%s %s.%s %s}', self.k, self[1],self[2],
       ('len='..#self.s) or sfmt('%s.%s', self[3],self[4]))

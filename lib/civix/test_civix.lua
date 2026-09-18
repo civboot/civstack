@@ -196,6 +196,15 @@ T'cpTree'; do
   assert(not M.exists(d2..'b/b2.txt'))
 end
 
+T'tmpPath'; do
+  local tmp = O..'tmp/'; M.mkDirs(tmp)
+  ctx:push{ TMP_DIR = tmp }
+  local t = { M.tmpPath'foo_', M.tmpPath'bar_', M.tmpPath() }
+  T.eq(3, #t)
+  for _, p in ipairs(t) do T.exists(p) end
+  ctx:pop()
+end
+
 T'stat'; do
   local path = O..'stat.txt'
   pth.write(path, 'hello\n')

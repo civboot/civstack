@@ -13,6 +13,7 @@ local lap  = require'lap'
 
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
+local Rand            = mty.from'ds.rand  Rand'
 local pth = require'ds.path'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
@@ -179,6 +180,18 @@ ds.update(M, {
   DIR  = "dir",  CHR  = "chr",
   FIFO = "fifo",
 })
+
+--- Create a temporary file with a specific prefix, returning the path.
+--- The file 
+function M.tmpPath(prefix) --> path
+  local prefix, p = ctx.TMP_DIR..(prefix or 'lua_'), nil
+  while true do
+    p = prefix..ctx.rand:string(6)
+    if not M.exists(p) then break end
+  end
+  pth.write(p, '')
+  return p
+end
 
 --- Block size used as default for file moves/etc
 --- Default is 32 KiB

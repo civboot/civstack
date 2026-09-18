@@ -8,6 +8,7 @@ local ds     = require'ds'
 local fmt    = require'fmt'
 local log    = require'ds.log'
 local pod    = require'pod'
+local ix     = require'civix'
 M._term      = require'vt100'
 local assertf = fmt.assertf
 local sfmt = string.format
@@ -20,6 +21,9 @@ M.ID = 1
 function M.uniqueId()
   local id = M.ID; M.ID = M.ID+1; return id
 end
+
+--- Get path to an incrementing-prefix temporary file.
+function M.tmpPath() return ix.tmpPath(sfmt('ele%s_', M.uniqueId())) end
 
 M.INIT_BUFS = 4 -- the default number of bufs on init (for testing)
 

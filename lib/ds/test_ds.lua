@@ -993,3 +993,15 @@ T'want'; do
   T.eq(mty,         ds.wantpath'metaty')
   T.eq(true,        ds.wantpath'metaty.CONCRETE.boolean')
 end
+
+T'rand'; do
+  local r = require'ds.rand'.Rand(0) -- seed with 0
+  T.eq({1,1,36},  {r(1,1), r(1,1), r(1,100)})
+  T.eq({1,6,1},   {r(1,10), r(1,10), r(1,10)})
+  T.eq({916,841}, {r(1,1000), r(1,1000)})
+
+  r.state = 0
+  local s = function(l) return r:string(l) end
+  T.eq({"v", "yj", "fxl", "kjef", "hzdrl", "yljmnr"},
+       {s(1), s(2), s(3), s(4),   s(5),    s(6)    })
+end

@@ -270,4 +270,8 @@ end
 
 M.cd(ctx.CWD)
 
+CTX_BASE.TMP_DIR = M.toDir(CTX_BASE.TMP_DIR
+                or os.getenv("TMP") or os.getenv("TEMP")
+                or os.getenv("USERPROFILE") or "/tmp")
+
 return M

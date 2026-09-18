@@ -53,7 +53,7 @@ local Editor = mty'Editor' {
   'newDat [callable(path)]: function to create new buffer',
     newDat = function(f)
       if not f then
-        f = os.tmpname(); info('creating tmp', f)
+        f = et.tmpPath(); info('creating tmp', f)
       end
       return Gap:load(f)
     end,
@@ -151,7 +151,7 @@ function Editor:getBuffer(v) --> Buffer?
   elseif type(v) == 'string' then
     local id = v:match'^b#(%d+)$'; if id then return self.buffers[tonumber(id)] end
     id = v:match'^b#([%w_-]+)$' if id then
-      if id == 'tmp' then return self:buffer(os.tmpname()) end
+      if id == 'tmp' then return self:buffer(et.tmpPath()) end
       return assertf(self.namedBuffers[id], 'unknown named buffer: %q', id)
     end
     id = v:match'^%d+$'; if id then return self.buffers[tonumber(id)] end
