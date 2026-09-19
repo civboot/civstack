@@ -82,11 +82,20 @@ local function addToken(p, node, l1, c1, l2, c2)
   end
 end
 
+--- Add syntax element
+local function addX(p, node, l1,c1, l2,c2)
+  if l2 >= l1 and (l2>l1 or c2>=c1) then
+    local x = {kind='X'}
+    addToken(p, x, l1,c1, l2,c2)
+    add(node, x)
+  end
+end
+
 local function nodeText(p, node, errNode)
   local txt = {}; for _, t in ipairs(node) do
     if mty.ty(t) ~= Token then
       p.c, p.l = (errNode or t).pos
-      return p:error(sfmt('text must be of node with only strings %q', ctrl))
+      return p:error('text must be of node with only strings')
     end
     add(txt, p:tokenStr(t))
   end
@@ -284,9 +293,9 @@ end
 
 local CONTENT_SPEC = {kind='cxt'}
 
---- parse normal content, adding to node
---- p is a [$pegl.Parser]. isRoot indicates
---- it is currently parsing plain text.
+--- parse normal content, adding to node.
+--- p is a [$pegl.Parser].
+--- isRoot indicates it is currently parsing plain text.
 function cxt.content(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   p:dbgEnter(CONTENT_SPEC)
@@ -328,7 +337,9 @@ function cxt.content(p, node, isRoot, altEnd)
     -- '\*' --> '*' -- the loop will pick it up as raw.
     goto refind
   end
-  addToken(p, node, l, c, p.l, c2-1)
+  -- add text until this point, and the syntax node.
+  addToken(p, node, l,  c,  p.l,c2-1)
+  addX(    p, node, p.l,c1, p.l,c2)
   local posL, posC = p.l, p.c
   if p.line:sub(c1,c2) == ']' then
     if isRoot then return p:error"Unopened ']' found" end

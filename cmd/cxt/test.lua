@@ -17,10 +17,11 @@ local s, bytearray        = mty.from'ds    simplestr,bytearray'
 
 hl.styleColor = ac.dark
 
+local X    = function(s) return {s, kind='X'}                          end
 local code = function(t) return ds.update(t, {kind='code', code=true}) end
-local u    = function(t) return ds.update(t, {kind='u',    u=true}) end
-local b    = function(t) return ds.update(t, {kind='b',    b=true}) end
-local i    = function(t) return ds.update(t, {kind='i',    i=true}) end
+local u    = function(t) return ds.update(t, {kind='u',    u=true})    end
+local b    = function(t) return ds.update(t, {kind='b',    b=true})    end
+local i    = function(t) return ds.update(t, {kind='i',    i=true})    end
 local BR   = {br=true, kind='br'}
 
 T'escape'; do
@@ -49,11 +50,12 @@ end
 T'simple'; do
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {
-    'hi there ', b{'bob'},
+    'hi there ', X'[', b{'bob', X']'},
   })
   M.assertParse('The [$inline code]', {
-    'The ', code{'inline code'},
+    'The ', X'[', code{'inline code'},
   })
+  ds.yeet'ok'
   M.assertParse('For [$inline], [$$any [brackets] need money]$', {
     'For ', code{'inline'}, ', ', code{
       'any [brackets] need money'
