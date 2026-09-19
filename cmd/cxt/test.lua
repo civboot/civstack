@@ -273,7 +273,7 @@ T'named'; do
   { -- src
     {'N1', id='n1', href='hi.com', kind='href'},
     '\n',
-    {'N1', href='hi.com', kind='clone'},
+    {'N1', href='hi.com', kind='clone', cloneOf='n1'},
     '\n',
   })
 
@@ -284,7 +284,8 @@ see [@N_2], I like [<@N_2>links]
   { -- src
     {'N 2', id='N_2', href='hi.com', kind='id'},
     '\n', 'see ',
-    {'N 2', href='hi.com', kind='clone'}, ', I like ',
+    {'N 2', href='hi.com', kind='clone', cloneOf='N_2'},
+    ', I like ',
     {'links', href='hi.com'},
     '\n',
   })

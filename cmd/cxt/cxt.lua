@@ -401,10 +401,11 @@ local function resolveFetches(p, node, idToNode)
   local nty = mty.ty(node)
   if nty == Token or nty == 'string' then return node end
   if node.clone then
-    local n = idToNode[node.clone]; if n then
+    local id = node.clone
+    local n = idToNode[id]; if n then
       local n = update({}, n)
       n.hidden, n.id, n.value = nil, nil, nil
-      n.kind = 'clone'
+      n.cloneOf, n.kind = id, 'clone'
       return n
     else return node end
   end
