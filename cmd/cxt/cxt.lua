@@ -381,8 +381,7 @@ function cxt.content(p, node, isRoot, altEnd)
   goto loop
 end
 
--- FIXME: rename extractId
-local function extractNamed(node, idToNode)
+local function extractId(node, idToNode)
   if rawget(node, 'id') then
     if idToNode[node.id] then
       local l,  c  = unpack(idToNode[node.id].pos)
@@ -394,17 +393,8 @@ local function extractNamed(node, idToNode)
     idToNode[node.id] = node
   end
   for _, n in ipairs(node) do
-    if mty.ty(n) ~= Token then extractNamed(n, idToNode) end
+    if mty.ty(n) ~= Token then extractId(n, idToNode) end
   end
-end
-
--- FIXME: rename getId
-local function getNamed(node, idToNode, id)
-  local n = idToNode[id]; if not n then
-   local l, c = node.pos; error(sfmt(
-     'ERROR %s.%s: id %q not found', l, c, id))
-  end
-  return n
 end
 
 local function resolveFetches(p, node, idToNode)
@@ -439,7 +429,7 @@ function cxt.parse(dat, dbg, path)
   skipWs(p)
   local config, idToNode= {}, {}
   cxt.content(p, config, true)
-  extractNamed(config, idToNode)
+  extractId(config, idToNode)
   resolveFetches(p, config, idToNode)
   return config, p
 end
