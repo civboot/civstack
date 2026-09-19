@@ -99,7 +99,9 @@ function M.hasBacktrack(path) --> bool. path: [str|list]
     if c == '..' then return true end
   end; return false
 end
-function M.ext(path) --> string. path: [str|list]
+
+--- return path's extension (.ext)
+function M.ext(path) --> string
   if type(path) == 'table' then path = path[#path] end
   return path:match'.*%.([^/]+)$'
 end

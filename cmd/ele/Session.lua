@@ -14,6 +14,7 @@ local Session = mty'Session' {
 local ds = require'ds'
 local log = require'ds.log'
 local lap = require'lap'
+local pth = require'ds.path'
 local civix = require'civix'
 local et = require'ele.types'
 local Editor = require'ele.Editor'
@@ -191,17 +192,8 @@ function Session:highlight()
     if ds.getp(e,HIGHLIGHT_V) == buf.v then return end
     hlRan = true; ds.setp(e,HIGHLIGHT_V, buf.v)
     local path = buf.dat.path
-    if path and path:find'%.lu[ak]$' then
-      local fg,bg = Gap{}, Gap{}
-      hl:highlight(buf.dat:reader(), fg,bg)
-      if #buf == #fg then
-        buf.fg, buf.bg = fg, bg
-      end
-    elseif path and path:find'%.acs$' then
-      local fg,bg = Gap{}, Gap{}
-      hlAcs(path, buf.dat:reader(), fg,bg)
-      buf.fg, buf.bg = fg, bg
-    end
+    local hlFn = self.ed.highlightExt[pth.ext(path)]
+    if hlFn then return hlFn(path, self.ed, e) end
   end
   while self.ed.run do
     lap.sleep(1)

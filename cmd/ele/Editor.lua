@@ -30,24 +30,31 @@ local EdSettings = mty'EdSettings' {
 --
 -- action signature: function(data, event, evsend)
 local Editor = mty'Editor' {
-  's [EdSettings]',
+  -- Current state
+  'run [boolean]: set to false to stop the app', run=true,
   'mode  [string]: current editor mode',
-  'modes [table]: keyboard bindings per mode (see: bindings.lua)',
+  'pane [Buffer]: the currently active pane.',
+  'view [RootView]: the root view',
+  'redraw [boolean]: set to true to force a redraw',
+
+  -- Editor configurations
+  's [EdSettings]',
+  'bindings [table]: set to bindings.lua',
   'actions [table]: actions which events can trigger (see: actions.lua)',
+  'modes [table]: keyboard bindings per mode (see: bindings.lua)',
+  'highlightExt {string: fn(path, ed, ed)}: highlighters by file.ext',
+  'ext [table]: table for extensions to store data',
+
+  -- Mostly internal details
   'resources [table]: resources to close when shutting down',
   'buffers {Buffer}', 'bufferId{Buffer: id}',
   'namedBuffers {string: Buffer}',
   'overlay [Buffer]: the overlay buffer',
-  'pane [Buffer]: the currently active pane.',
-  'view [RootView]: the root view',
   'display [Term|other]: display/terminal to write+paint text',
-  'run [boolean]: set to false to stop the app', run=true,
-  'ext [table]: table for extensions to store data',
   'search [str]: search pattern for searchBuf, etc',
   'listeners {fn(ev)}: list of functions to call for each successful event',
   'yank [ds.Deq]: a deque of removed text. See yankMax.',
-  'bindings [table]: set to bindings.lua',
-  
+
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
   'newDat [callable(path)]: function to create new buffer',
@@ -72,7 +79,6 @@ local Editor = mty'Editor' {
       table.remove(r, ds.indexOf(r, ''))
       return r
     end,
-  'redraw [boolean]: set to true to force a redraw',
   DEFAULT_BUFFERS = ds.BiMap{'find', 'misc', 'nav', 'overlay', 'search'},
 }
 
@@ -94,6 +100,25 @@ getmetatable(Editor).__call = function(T, self)
   self.namedBuffers.overlay = self.overlay
   self.namedBuffers.search  = self:namedBuffer'search'
   self.namedBuffers.misc    = self:namedBuffer'misc'
+  local function hlLua(path, ed, e)
+    local hl = mty.from'pegl.lua  highlighter'
+    hl.styleColor = require'asciicolor'.dark
+    local fg,bg = Gap{}, Gap{}
+    hl:highlight(e.buf.dat:reader(), fg,bg)
+    if #e.buf == #fg then
+      e.buf.fg, e.buf.bg = fg, bg
+    end
+  end
+  self.highlightExt = {
+    lua = hlLua, luk = hlLua,
+    acs = function(path, ed, e)
+      local hl = mty.from'asciigame.acs  highlight'
+      hl.styleColor = require'asciicolor'.dark
+      local fg,bg = Gap{}, Gap{}
+      hl(path, e.buf.dat:reader(), fg,bg)
+      e.buf.fg, e.buf.bg = fg, bg
+    end
+  }
   return self
 end
 
