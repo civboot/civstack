@@ -22,7 +22,6 @@ function M.load(path)
   return o
 end
 
-
 function M.highlight(path, lf, fgFile, bgFile)
   local l = 1
   local function iter()

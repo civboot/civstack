@@ -168,6 +168,7 @@ function M.Highlighter:highlight(lf, fgFile, bgFile) --> nil
   assert(self.styleColor, 'must set styleColor')
   self:_highlight(self:tokenize(lf), fgFile, bgFile)
 end
+M.Highlighter.__call = M.Highlighter.highlight
 
 function M.Highlighter:assertHighlight(str, fgExpect, bgExpect)
   local fg, bg = ds.bytearray(), ds.bytearray()
