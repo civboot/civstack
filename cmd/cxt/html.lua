@@ -63,11 +63,8 @@ local function startFmt(w, n, kind, line)
   end
   if n.href then
     push(line, '<a ')
-    if n.id then addAttr(line, 'id', n.id) end
     addAttr(line, 'href', n.href)
     push(line, '>')
-  elseif n.id then
-    push(line, '<div '); addAttr(line, 'id', n.id); push(line, '>')
   end
   if n.path then
     push(line, '<a '); addAttr(line, 'href', w.config.pathUrl(n.path)); push(line, '>')
@@ -83,9 +80,9 @@ local function endFmt(n, line)
   for _, f in ds.ireverse(fmtAttrs) do
     if n[f] then push(line, '</'..f..'>') end
   end
+  if n.id   then push(line, '</a>') end
   if n.href then push(line, '</a>') end
   if n.path then push(line, '</a>') end
-  if n.id   then push(line, '</a>') end
 end
 local function startNode(n, kind, line)
   if not kind then return end
