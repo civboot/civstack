@@ -535,6 +535,7 @@ end
 cxt.highlighter = require'pegl.acsyntax'.Highlighter {
   config = pegl.Config{},
   spec = cxt.src,
+  styleColor = require'asciicolor'.dark,
 
   style = {
     h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',

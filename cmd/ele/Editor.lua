@@ -103,7 +103,8 @@ getmetatable(Editor).__call = function(T, self)
   local hlLua = et.eleHighlighter'pegl.lua  highlighter'
   self.highlightExt = {
     lua = hlLua, luk = hlLua,
-    acs = et.eleHighlighter'asciigame.acs  highlight'
+    acs = et.eleHighlighter'asciigame.acs  highlight',
+    cxt = et.eleHighlighter'cxt            highlighter',
   }
   return self
 end

@@ -3,12 +3,10 @@ The fmt module is a small module which formats arbitrary lua types as well as
 enables users to define formatting for their own [<metaty.html>metatypes] via
 the [$:__fmt(fmter)] method.
 
-
 It also provides several helper methods such as [$print], [$assertf] and
 [$errorf], making it more convienent to print or format types. In addition, it
 sets [$ctx.fmtlog = ctx.fmtlog or Fmt{to=ctx.stdlog}], providing a default hook for
 [<ds.html#ds.log>] and command line utilities to write formatted text to.
-
 
 The [<#fmt.Fmt>] interface (which is passed to a metaty's [$__fmt] method if
 present) accepts both [$:write(...)] (like a file) and

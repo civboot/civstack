@@ -13,7 +13,7 @@ local Config, Token       = mty.from'pegl  Config,Token'
 local testing, EMPTY, EOF = mty.from'pegl  testing,EMPTY,EOF'
 local KW, N, NUM, HEX     = mty.from(testing, 'KW, N, NUM, HEX')
 local hl                  = mty.from'cxt   highlighter'
-local s = ds.simplestr
+local s, bytearray        = mty.from'ds    simplestr,bytearray'
 
 hl.styleColor = ac.dark
 
@@ -491,4 +491,16 @@ T'highlight-tokens'; do
     Tk(1,20, 1,22, nil, 'key'),
     Tk(1,24, 1,24),
   }, tz)
+  
+  local txt = s[[
+  [{h1}The title]
+  Some [*bold] text.
+  ]]
+  local fg,bg = bytearray(), bytearray()
+  hl:highlight(txt, fg,bg)
+  T.eq(
+"     NNNNNNNNN z\
+zzzzz  ZZZZ z\
+",
+  tostring(fg))
 end
