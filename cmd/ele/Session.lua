@@ -193,7 +193,7 @@ function Session:highlight()
     hlRan = true; ds.setp(e,HIGHLIGHT_V, buf.v)
     local path = buf.dat.path
     local hlFn = self.ed.highlightExt[pth.ext(path)]
-    if hlFn then return hlFn(path, self.ed, e) end
+    if hlFn then return hlFn(buf) end
   end
   while self.ed.run do
     lap.sleep(1)

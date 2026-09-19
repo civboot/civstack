@@ -100,24 +100,10 @@ getmetatable(Editor).__call = function(T, self)
   self.namedBuffers.overlay = self.overlay
   self.namedBuffers.search  = self:namedBuffer'search'
   self.namedBuffers.misc    = self:namedBuffer'misc'
-  local function hlLua(path, ed, e)
-    local hl = mty.from'pegl.lua  highlighter'
-    hl.styleColor = require'asciicolor'.dark
-    local fg,bg = Gap{}, Gap{}
-    hl:highlight(e.buf.dat:reader(), fg,bg)
-    if #e.buf == #fg then
-      e.buf.fg, e.buf.bg = fg, bg
-    end
-  end
+  local hlLua = et.eleHighlighter'pegl.lua  highlighter'
   self.highlightExt = {
     lua = hlLua, luk = hlLua,
-    acs = function(path, ed, e)
-      local hl = mty.from'asciigame.acs  highlight'
-      hl.styleColor = require'asciicolor'.dark
-      local fg,bg = Gap{}, Gap{}
-      hl(path, e.buf.dat:reader(), fg,bg)
-      e.buf.fg, e.buf.bg = fg, bg
-    end
+    acs = et.eleHighlighter'asciigame.acs  highlight'
   }
   return self
 end
