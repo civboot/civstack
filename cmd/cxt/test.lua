@@ -482,10 +482,13 @@ local function Tk(...) return pegl.Token:encode(nil, ...)        end
 T'highlight-tokens'; do
   hl:assertTokens({'hi there ', 'bob', '. '}, [[hi there [*bob]. ]])
   local _, tz = hl:assertTokens(
-    {"hi there ", "bob", ". ", "okay bye", "."},
-    [[hi there [*bob]. [$okay bye].]])
+    {"hi there ", "bob", ". ", "bye", "."},
+    [[hi there [*bob]. [@bye].]])
   T.ieq({
-    Tkn(1,1, 1,9),
-    Tkn(1,12, 1,14, 'bold', 'bold'),
-    -- Tkn(1.16 1.17), Tkn(1.20 1.27), Tkn(1.29 1.29)}, tz)
+    Tk(1,1, 1,9),
+    Tk(1,12, 1,14, nil, 'bold'),
+    Tk(1,16, 1,17),
+    Tk(1,20, 1,22, nil, 'key'),
+    Tk(1,24, 1,24),
+  }, tz)
 end
