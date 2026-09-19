@@ -124,7 +124,8 @@ local function bracketedStrRaw(p, node, raw, startCol)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
-      return addToken(p, node, l, c, lt, ct) --> nil
+      addToken(p, node, l, c, lt, ct)
+      return addX(p, node, l,c1, l,c2)
     end
     p:incLine(); node.block = true
     ::continue::
@@ -146,6 +147,7 @@ local function bracketedStr(p, node, raw, startCol)
     ::continue::
   end
   add(node, Token:encode(p, l, c, p.l, p.c - 2))
+  addX(node, p, p.l,p.c-1, p.l,p.c-1)
 end
 
 local fmtAttr = {
@@ -161,7 +163,9 @@ local shortAttrs = {v='value'}
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
+  local xl,xc = p.l, p.c-1
   local attrs = p:parse(cxt.attrs)
+  addX(p, node, xl,xc, p.l,p.c-1)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
@@ -353,7 +357,8 @@ function cxt.content(p, node, isRoot, altEnd)
     local c1, c2 = p.line:find('^$+', p.c)
     assert(c2)
     p.c, raw = c2, c2 - c1 + 1
-  end
+    addX(p, node, p.l,c1, p.l,c2)
+  elseif ctrl ~= '{' then addX(p, node, p.l,p.c, p.l,p.c) end
   p.c = p.c + 1
   local sub = {}
   if     raw           then sub.kind, sub.raw, sub.code = 'code', raw, true

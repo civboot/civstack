@@ -50,20 +50,19 @@ end
 T'simple'; do
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {
-    'hi there ', X'[', b{'bob', X']'},
+    'hi there ', X'[', X'*', b{'bob', X']'},
   })
   M.assertParse('The [$inline code]', {
-    'The ', X'[', code{'inline code'},
+    'The ', X'[', X'$', code{'inline code', X']'},
   })
-  ds.yeet'ok'
   M.assertParse('For [$inline], [$$any [brackets] need money]$', {
-    'For ', code{'inline'}, ', ', code{
-      'any [brackets] need money'
-    },
+    'For ', X'[', X'$', code{'inline', X']'}, ', ', 
+    X'[', X'$$', code{'any [brackets] need money', X']$'},
   })
 
-  M.assertParse('[$$code]$.', { code{'code'}, '.'})
-
+  M.assertParse('[$$code]$.', { X'[', X'$$', code{'code', X']$'}, '.'})
+  ds.yeet'ok'
+  
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
     'multiple\n', u{'lines'},
     '\n', {p=true},
