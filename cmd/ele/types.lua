@@ -254,15 +254,19 @@ function M.EditLoc.parse(T, str, defaultBuf)
   return T{b=b, l=toint(l), c=toint(c)}
 end
 
---- Register an ele highlighter from a mty.from string.
+--- Register an ele highlighter from a mty.from string. The output
+--- will be called with [$buf.dat:reader(), fg,bg] line objects.
+---
+--- Example: [{$$ lang=lua}
+--- -- register the default lua highlighter to ele.Editor
+--- Editor.highlightExt.lua = eleHighlighter'pegl.lua  highlighter'
+--- ]$
 function M.eleHighlighter(requireFrom)
   return function(buf)
       local hl = mty.from(requireFrom)
       local Gap = require'lines.Gap'
-      -- TODO: use global style settings.
-      hl.styleColor = require'asciicolor'.dark
       local fg,bg = Gap{}, Gap{}
-      hl:highlight(buf.dat:reader(), fg,bg)
+      hl(buf.dat:reader(), fg,bg)
       buf.fg, buf.bg = fg, bg
   end
 end

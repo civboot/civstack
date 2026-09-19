@@ -58,6 +58,7 @@ M.Highlighter = mty'Highlighter' {
 }
 
 getmetatable(M.Highlighter).__call = function(T, t)
+  t.builtin = t.builtin or {}
   for _, key in ipairs(t.builtin) do t.builtin[key] = 1 end
   return construct(T, t)
 end
@@ -108,6 +109,9 @@ function M.tokenize:_dfs(node)
     pop(self._stystack)
   end
 end
+
+M.tokenize.get   = rawget
+M.tokenize.icopy = ds.defaultICopy
 
 --- Given the file path to be highlighted, return the configured foreground
 --- and background paths.
@@ -168,6 +172,7 @@ function M.Highlighter:highlight(lf, fgFile, bgFile) --> nil
   assert(self.styleColor, 'must set styleColor')
   self:_highlight(self:tokenize(lf), fgFile, bgFile)
 end
+M.Highlighter.__call = M.Highlighter.highlight
 
 function M.Highlighter:assertHighlight(str, fgExpect, bgExpect)
   local fg, bg = ds.bytearray(), ds.bytearray()

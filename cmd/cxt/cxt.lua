@@ -67,7 +67,7 @@ end
 cxt.attrSym = Key{kind='attrSym', {
   '!',             -- hidden
   '*', '/', '_',   -- bold, italic, underline
-  ':',             -- define node name
+  ':',             -- define node id
 }}
 cxt.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
@@ -82,13 +82,26 @@ local function addToken(p, node, l1, c1, l2, c2)
   end
 end
 
+--- Add syntax element
+local function addX(p, l1,c1, l2,c2)
+  if l2 < l1 or (l1==l2 and c2<c1) then return end
+  local cL =  p.commentLC[l1]; if not cL then
+    cL = {}; p.commentLC[l1] = cL
+  end
+  if cL[c1] then return end -- comment already added
+  local cmt = Token:encode(p, l1,c1, l2,c2)
+  cL[c1] = cmt; add(p.comments, cmt)
+end
+
 local function nodeText(p, node, errNode)
   local txt = {}; for _, t in ipairs(node) do
     if mty.ty(t) ~= Token then
+      if t.kind == 'X' then goto cont end
       p.c, p.l = (errNode or t).pos
-      return p:error(sfmt('text must be of node with only strings %q', ctrl))
+      return p:error('text must be of node with only strings')
     end
     add(txt, p:tokenStr(t))
+    ::cont::
   end
   return table.concat(txt)
 end
@@ -115,7 +128,8 @@ local function bracketedStrRaw(p, node, raw, startCol)
     local c1, c2 = p.line:find(closePat, p.c)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
-      return addToken(p, node, l, c, lt, ct) --> nil
+      addToken(p, node, l, c, lt, ct)
+      return addX(p, p.l,c1, p.l,c2)
     end
     p:incLine(); node.block = true
     ::continue::
@@ -137,30 +151,36 @@ local function bracketedStr(p, node, raw, startCol)
     ::continue::
   end
   add(node, Token:encode(p, l, c, p.l, p.c - 2))
+  addX(p, p.l,p.c-1, p.l,p.c-1)
 end
 
 local fmtAttr = {
   ['*'] = 'b', [','] = 'i', ['_'] ='u',
   ['"'] = 'quote',
-  [':'] = 'name', -- both here and txtCtrl. This sets node.name=true
+  [':'] = 'id', -- both here and txtCtrl. This sets node.id=true
 }
 local strAttr = {
   ['!'] = 'hidden',
 }
-local txtCtrl = {[':'] = 'name', ['@'] = 'clone', ['/'] = 'path'}
-local shortAttrs = {n='name', v='value'}
+local txtCtrl = {[':'] = 'id', ['@'] = 'clone', ['/'] = 'path'}
+local shortAttrs = {v='value'}
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
+  local xl,xc = p.l, p.c-1
   local attrs = p:parse(cxt.attrs)
+  addX(p, xl,xc, p.l,p.c-1)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
-      node[assert(fmtAttr[attr] or strAttr[attr])] = true
+      attr = assert(fmtAttr[attr] or strAttr[attr])
+      node[attr] = true
+      node.kind = node.kind or attr
     elseif attr.kind == 'keyval' then
+      local key = p:tokenStr(attr[1])
       local val = attr[2]
       val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
-      node[p:tokenStr(attr[1])] = val
+      node[key], node.kind = val, node.kind or key
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
@@ -168,6 +188,7 @@ local function parseAttrs(p, node)
       end
       local _, c1, _, c2 = attr:span()
       raw = c2 - c1 + 1
+      node.kind = node.kind or 'raw'
     end
   end
   return raw
@@ -188,11 +209,14 @@ expected bullet item followed by whitespace (or EoL). Examples:\n
 local function parseList(p, list)
   p:skipEmpty()
   if p:isEof() then return rp:error'Expected a list got EOF' end
+  local l,c = p.l,p.c
+  -- get the list delimiter
   local ipat, ikind; for ip, i in pairs(ITEM) do
     if p:consume(ip) then ipat, ikind = ip, i
       break
     end
   end
+  addX(p, l,c, l,p.c-1)
   if not ipat then return p:error(LIST_ITEM_ERR) end
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
@@ -202,8 +226,9 @@ local function parseList(p, list)
     local item = {}
     local r = cxt.content(p, item, false, altEnd)
     if r then
-      addToken(p, item, r[1], r[2], p.l, p.c - 1)
-      local c1, c2 = p.line:find(ipat, p.c)
+      addToken(p, item, r[1],r[2], p.l,p.c - 1)
+      local c1,c2 = p.line:find(ipat, p.c)
+      addX(p, p.l,c1, p.l,c2)
       p.c = c2 + 1
     end
     if rawget(item[#item], 'br') then pop(item) end
@@ -280,9 +305,9 @@ end
 
 local CONTENT_SPEC = {kind='cxt'}
 
---- parse normal content, adding to node
---- p is a [$pegl.Parser]. isRoot indicates
---- it is currently parsing plain text.
+--- parse normal content, adding to node.
+--- p is a [$pegl.Parser].
+--- isRoot indicates it is currently parsing plain text.
 function cxt.content(p, node, isRoot, altEnd)
   local l, c = p.l, p.c
   p:dbgEnter(CONTENT_SPEC)
@@ -317,6 +342,7 @@ function cxt.content(p, node, isRoot, altEnd)
   p.c = c2 + 1
   if c1 ~= c2 then -- \[ or \]
     addToken(p, node, l, c, p.l, c1-1)
+    addX(p, l,c1, p.l,c1) -- FIXME: to c2?
     c = c2; goto loop
   end
   -- found unescaped syntax character: [ ] \
@@ -324,7 +350,9 @@ function cxt.content(p, node, isRoot, altEnd)
     -- '\*' --> '*' -- the loop will pick it up as raw.
     goto refind
   end
-  addToken(p, node, l, c, p.l, c2-1)
+  -- add text until this point, and the syntax node.
+  addToken(p, node, l,  c,  p.l,c2-1)
+  addX(p, p.l,c1, p.l,c2)
   local posL, posC = p.l, p.c
   if p.line:sub(c1,c2) == ']' then
     if isRoot then return p:error"Unopened ']' found" end
@@ -338,17 +366,20 @@ function cxt.content(p, node, isRoot, altEnd)
     local c1, c2 = p.line:find('^$+', p.c)
     assert(c2)
     p.c, raw = c2, c2 - c1 + 1
-  end
+    addX(p, p.l,c1, p.l,c2)
+  elseif ctrl ~= '{' then addX(p, p.l,p.c, p.l,p.c) end
   p.c = p.c + 1
   local sub = {}
-  if     raw           then sub.raw, sub.code       = raw, true
+  if     raw           then sub.kind, sub.raw, sub.code = 'code', raw, true
   elseif txtCtrl[ctrl] then -- handled after content
-  elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
-  elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
+  elseif fmtAttr[ctrl] then
+   sub.kind, sub[fmtAttr[ctrl]] = fmtAttr[ctrl], true
+  elseif strAttr[ctrl] then
+    sub.kind, sub[strAttr[ctrl]], raw = sub[strAttr[ctrl]], true, 0
   else return p:error(sfmt(
     "Unrecognized control character after '[': %q", ctrl
   ))end
@@ -358,57 +389,52 @@ function cxt.content(p, node, isRoot, altEnd)
   elseif sub.list  then parseList(p, sub)
   else                  cxt.content(p, sub) end
   -- clean up attributes
-  local txtAttr = txtCtrl[ctrl] or (sub.name == true) and 'name'
+  local txtAttr = txtCtrl[ctrl] or (sub.id== true) and 'id'
   if txtAttr then
     sub[txtAttr] = nodeText(p, sub):gsub('%s', '_')
   end
   for s, a in pairs(shortAttrs) do
     if sub[s] then sub[a] = sub[s]; sub[s] = nil end
   end
+  if sub.clone then sub.kind = 'clone' end
   sub.pos = {posL,posC,p.l,p.c-1}
   add(node, sub)
   l, c = p.l, p.c
   goto loop
 end
 
-local function extractNamed(node, named)
-  if rawget(node, 'name') then
-    if named[node.name] then
-      local l,  c  = unpack(named[node.name].pos)
+local function extractId(node, idToNode)
+  if rawget(node, 'id') then
+    if idToNode[node.id] then
+      local l,  c  = unpack(idToNode[node.id].pos)
       local l2, c2 = unpack(node.pos)
-      log.warn('Node %q is named twice: %s.%s and %s.%s',
-               node.name, l, c, l2, c2)
+      log.warn('id=%q assigned on two nodes: %s.%s and %s.%s',
+               node.id, l, c, l2, c2)
       return
     end
-    named[node.name] = node
+    idToNode[node.id] = node
   end
   for _, n in ipairs(node) do
-    if mty.ty(n) ~= Token then extractNamed(n, named) end
+    if mty.ty(n) ~= Token then extractId(n, idToNode) end
   end
 end
 
-local function getNamed(node, named, name)
-  local n = named[name]; if not n then
-   local l, c = node.pos; error(sfmt(
-     'ERROR %s.%s: name %q not found', l, c, name))
-  end
-  return n
-end
-
-local function resolveFetches(p, node, named)
+local function resolveFetches(p, node, idToNode)
   local nty = mty.ty(node)
   if nty == Token or nty == 'string' then return node end
   if node.clone then
-    local n = named[node.clone]; if n then
+    local id = node.clone
+    local n = idToNode[id]; if n then
       local n = update({}, n)
-      n.hidden, n.name, n.value = nil, nil, nil
+      n.hidden, n.id, n.value = nil, nil, nil
+      n.cloneOf, n.kind = id, 'clone'
       return n
     else return node end
   end
   -- replace all @attr values
   for k, v in pairs(node) do
     if type(k) ~= 'number' and type(v) == 'string' and v:sub(1,1) == '@' then
-      local n = named[v:sub(2)]; if n then
+      local n = idToNode[v:sub(2)]; if n then
         local attr = n.value or (n.href and 'href') or 'text'
         if attr == 'text' then v = nodeText(p, n, v)
         else                   v = n[attr] end
@@ -416,20 +442,25 @@ local function resolveFetches(p, node, named)
       end
     end
   end
-  for i, n in ipairs(node) do node[i] = resolveFetches(p, n, named) end
+  for i, n in ipairs(node) do node[i] = resolveFetches(p, n, idToNode) end
   return node
+end
+
+--- The root parsing node
+function cxt.src(p)
+  skipWs(p)
+  local config, idToNode= {}, {}
+  cxt.content(p, config, true)
+  extractId(config, idToNode)
+  resolveFetches(p, config, idToNode)
+  return config, p
 end
 
 --- Main parsing entry point.
 function cxt.parse(dat, dbg, path)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   p.path = path
-  skipWs(p)
-  local config, named = {}, {}
-  cxt.content(p, config, true)
-  extractNamed(config, named)
-  resolveFetches(p, config, named)
-  return config, p
+  return cxt.src(p)
 end
 
 function cxt.checkParse(dat, context) --> dat
@@ -461,10 +492,13 @@ function cxt.parsedStrings(p, node)
   return n
 end
 
-function cxt.assertParse(dat, expected, dbg) --> node
+--- Assert parse. Set expected.dbg to get dbg outputs.
+function cxt.assertParse(dat, expected, comments) --> node
+  local dbg = ds.popk(expected, 'dbg')
   local node, p = cxt.parse(dat, dbg)
   node = cxt.parsedStrings(p, node)
   T.eq(expected, node)
+  if comments then T.eq(comments, cxt.parsedStrings(p, p.commentLC)) end
   return node
 end
 
@@ -524,6 +558,22 @@ function cxt.html:__call()
   html.convert(inp, to)
   inp:close(); to:flush(); to:close()
 end
+
+--- The default lua syntax highlighter.
+cxt.highlighter = require'pegl.acsyntax'.Highlighter {
+  config = pegl.Config{},
+  spec = cxt.src,
+  styleColor = require'asciicolor'.dark,
+
+  style = {
+    h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',
+    bi = 'boldital', biu = 'bolditalul',
+    b = 'bold', i = 'ital', u = 'underlined',
+    href = 'api', clone = 'key', id = 'var',
+
+    comment = 'comment',
+  },
+}
 
 if shim.isMain(cxt) then cxt:main(arg) end
 return cxt

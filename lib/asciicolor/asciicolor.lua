@@ -78,6 +78,7 @@ M.dark = {
   -- Document Styles
   code = 'hb',
   bold = 'Z', ul = 'zZ', boldul = 'ZZ',
+  ital = 'c', boldital = 'C', bolditalul = 'CZ',
   h1 = 'N', h2 = 'S', h3 = 'W', h4 = 'Z',
 
   -- Code Syntax

@@ -16,7 +16,11 @@ P.ele = lua {
     'game.lua',
     'testing.lua',
   },
-  dep = { 'civ:lib', 'civ:cmd/ff' },
+  dep = {
+   'civ:lib',
+   'civ:cmd/ff',
+   'civ:cmd/cxt',
+  },
   link = {['lua/ele.lua'] = 'bin/ele'},
 }
 
