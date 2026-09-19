@@ -404,6 +404,7 @@ local function resolveFetches(p, node, idToNode)
     local n = idToNode[node.clone]; if n then
       local n = update({}, n)
       n.hidden, n.id, n.value = nil, nil, nil
+      n.kind = 'clone'
       return n
     else return node end
   end
