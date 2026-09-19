@@ -7,11 +7,15 @@ local term = require'cxt.term'
 local html = require'cxt.html'
 local T = require'civtest'
 local pegl = require'pegl'
+local ac   = require'asciicolor'
 
 local Config, Token       = mty.from'pegl  Config,Token'
 local testing, EMPTY, EOF = mty.from'pegl  testing,EMPTY,EOF'
 local KW, N, NUM, HEX     = mty.from(testing, 'KW, N, NUM, HEX')
+local hl                  = mty.from'cxt   highlighter'
 local s = ds.simplestr
+
+hl.styleColor = ac.dark
 
 local code = function(t) return ds.update(t, {kind='code', code=true}) end
 local u    = function(t) return ds.update(t, {kind='u',    u=true}) end
@@ -471,4 +475,17 @@ local _, node, p = term.convert(
   + Example      Ty<Example>\9lib/doc/test.lua:11\
   + __name       string\9 "
   T.eq(expect, f:tostring())
+end
+
+local function Tk(...) return pegl.Token:encode(nil, ...)        end
+
+T'highlight-tokens'; do
+  hl:assertTokens({'hi there ', 'bob', '. '}, [[hi there [*bob]. ]])
+  local _, tz = hl:assertTokens(
+    {"hi there ", "bob", ". ", "okay bye", "."},
+    [[hi there [*bob]. [$okay bye].]])
+  T.ieq({
+    Tkn(1,1, 1,9),
+    Tkn(1,12, 1,14, 'bold', 'bold'),
+    -- Tkn(1.16 1.17), Tkn(1.20 1.27), Tkn(1.29 1.29)}, tz)
 end

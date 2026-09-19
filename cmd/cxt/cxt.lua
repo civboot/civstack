@@ -157,16 +157,13 @@ local function parseAttrs(p, node)
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
       attr = assert(fmtAttr[attr] or strAttr[attr])
-      dbg('attrSym', attr)
       node[attr] = true
       node.kind = node.kind or attr
     elseif attr.kind == 'keyval' then
       local key = p:tokenStr(attr[1])
       local val = attr[2]
       val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
-      dbg('keyval', key, val, 'node.kind=', node.kind)
       node[key], node.kind = val, node.kind or key
-      dbg('  * node.kind=', node.kind)
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
       if raw then
@@ -424,16 +421,21 @@ local function resolveFetches(p, node, idToNode)
   return node
 end
 
---- Main parsing entry point.
-function cxt.parse(dat, dbg, path)
-  local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
-  p.path = path
+--- The root parsing node
+function cxt.src(p)
   skipWs(p)
   local config, idToNode= {}, {}
   cxt.content(p, config, true)
   extractId(config, idToNode)
   resolveFetches(p, config, idToNode)
   return config, p
+end
+
+--- Main parsing entry point.
+function cxt.parse(dat, dbg, path)
+  local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
+  p.path = path
+  return cxt.src(p)
 end
 
 function cxt.checkParse(dat, context) --> dat
@@ -531,9 +533,8 @@ end
 
 --- The default lua syntax highlighter.
 cxt.highlighter = require'pegl.acsyntax'.Highlighter {
-  -- FIXME:
-  -- config = M.lenientConfig,
-  -- spec   = M.lenientBlock,
+  config = pegl.Config{},
+  spec = cxt.src,
 
   style = {
     h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',

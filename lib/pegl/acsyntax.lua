@@ -110,6 +110,9 @@ function M.tokenize:_dfs(node)
   end
 end
 
+M.tokenize.get   = rawget
+M.tokenize.icopy = ds.defaultICopy
+
 --- Given the file path to be highlighted, return the configured foreground
 --- and background paths.
 function M.Highlighter:paths(path) --> fgPath, bgPath
