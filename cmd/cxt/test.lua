@@ -312,7 +312,7 @@ T'html'; do
   html.assertHtml('p1\n\n<p>p2\n\n<p>p3\n', 'p1\n\np2\n  \np3')
   html.assertHtml(
     'name <a id="named" href="#named" class=anchor><b>thing</b></a>\n',
-    'name [{*name=named}thing]')
+    'name [{*id=named}thing]')
   html.assertHtml(
     'hi <b>there</b>\n'
   ..'newline\n',
