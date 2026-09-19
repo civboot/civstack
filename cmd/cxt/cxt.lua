@@ -67,7 +67,7 @@ end
 cxt.attrSym = Key{kind='attrSym', {
   '!',             -- hidden
   '*', '/', '_',   -- bold, italic, underline
-  ':',             -- define node name
+  ':',             -- define node id
 }}
 cxt.keyval = {kind='keyval',
   Pat'[_.%-%w]+',
@@ -142,13 +142,13 @@ end
 local fmtAttr = {
   ['*'] = 'b', [','] = 'i', ['_'] ='u',
   ['"'] = 'quote',
-  [':'] = 'name', -- both here and txtCtrl. This sets node.name=true
+  [':'] = 'id', -- both here and txtCtrl. This sets node.id=true
 }
 local strAttr = {
   ['!'] = 'hidden',
 }
-local txtCtrl = {[':'] = 'name', ['@'] = 'clone', ['/'] = 'path'}
-local shortAttrs = {n='name', v='value'}
+local txtCtrl = {[':'] = 'id', ['@'] = 'clone', ['/'] = 'path'}
+local shortAttrs = {v='value'}
 
 local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
@@ -157,21 +157,24 @@ local function parseAttrs(p, node)
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
       attr = assert(fmtAttr[attr] or strAttr[attr])
+      dbg('attrSym', attr)
       node[attr] = true
       node.kind = node.kind or attr
     elseif attr.kind == 'keyval' then
       local key = p:tokenStr(attr[1])
       local val = attr[2]
       val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
+      dbg('keyval', key, val, 'node.kind=', node.kind)
       node[key], node.kind = val, node.kind or key
+      dbg('  * node.kind=', node.kind)
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
-      node.kind = node.kind or 'raw'
       if raw then
         p.l, p.c = l, c; return p:error'multiple raw ($$...) attributes'
       end
       local _, c1, _, c2 = attr:span()
       raw = c2 - c1 + 1
+      node.kind = node.kind or 'raw'
     end
   end
   return raw
@@ -352,7 +355,7 @@ function cxt.content(p, node, isRoot, altEnd)
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
   elseif fmtAttr[ctrl] then
-   sub.kind, sub[fmtAttr[ctrl]] = sub[fmtAttr[ctrl]], true
+   sub.kind, sub[fmtAttr[ctrl]] = fmtAttr[ctrl], true
   elseif strAttr[ctrl] then
     sub.kind, sub[strAttr[ctrl]], raw = sub[strAttr[ctrl]], true, 0
   else return p:error(sfmt(
@@ -364,57 +367,60 @@ function cxt.content(p, node, isRoot, altEnd)
   elseif sub.list  then parseList(p, sub)
   else                  cxt.content(p, sub) end
   -- clean up attributes
-  local txtAttr = txtCtrl[ctrl] or (sub.name == true) and 'name'
+  local txtAttr = txtCtrl[ctrl] or (sub.id== true) and 'id'
   if txtAttr then
     sub[txtAttr] = nodeText(p, sub):gsub('%s', '_')
   end
   for s, a in pairs(shortAttrs) do
     if sub[s] then sub[a] = sub[s]; sub[s] = nil end
   end
+  if sub.clone then sub.kind = 'clone' end
   sub.pos = {posL,posC,p.l,p.c-1}
   add(node, sub)
   l, c = p.l, p.c
   goto loop
 end
 
-local function extractNamed(node, named)
-  if rawget(node, 'name') then
-    if named[node.name] then
-      local l,  c  = unpack(named[node.name].pos)
+-- FIXME: rename extractId
+local function extractNamed(node, idToNode)
+  if rawget(node, 'id') then
+    if idToNode[node.id] then
+      local l,  c  = unpack(idToNode[node.id].pos)
       local l2, c2 = unpack(node.pos)
-      log.warn('Node %q is named twice: %s.%s and %s.%s',
-               node.name, l, c, l2, c2)
+      log.warn('id=%q assigned on two nodes: %s.%s and %s.%s',
+               node.id, l, c, l2, c2)
       return
     end
-    named[node.name] = node
+    idToNode[node.id] = node
   end
   for _, n in ipairs(node) do
-    if mty.ty(n) ~= Token then extractNamed(n, named) end
+    if mty.ty(n) ~= Token then extractNamed(n, idToNode) end
   end
 end
 
-local function getNamed(node, named, name)
-  local n = named[name]; if not n then
+-- FIXME: rename getId
+local function getNamed(node, idToNode, id)
+  local n = idToNode[id]; if not n then
    local l, c = node.pos; error(sfmt(
-     'ERROR %s.%s: name %q not found', l, c, name))
+     'ERROR %s.%s: id %q not found', l, c, id))
   end
   return n
 end
 
-local function resolveFetches(p, node, named)
+local function resolveFetches(p, node, idToNode)
   local nty = mty.ty(node)
   if nty == Token or nty == 'string' then return node end
   if node.clone then
-    local n = named[node.clone]; if n then
+    local n = idToNode[node.clone]; if n then
       local n = update({}, n)
-      n.hidden, n.name, n.value = nil, nil, nil
+      n.hidden, n.id, n.value = nil, nil, nil
       return n
     else return node end
   end
   -- replace all @attr values
   for k, v in pairs(node) do
     if type(k) ~= 'number' and type(v) == 'string' and v:sub(1,1) == '@' then
-      local n = named[v:sub(2)]; if n then
+      local n = idToNode[v:sub(2)]; if n then
         local attr = n.value or (n.href and 'href') or 'text'
         if attr == 'text' then v = nodeText(p, n, v)
         else                   v = n[attr] end
@@ -422,7 +428,7 @@ local function resolveFetches(p, node, named)
       end
     end
   end
-  for i, n in ipairs(node) do node[i] = resolveFetches(p, n, named) end
+  for i, n in ipairs(node) do node[i] = resolveFetches(p, n, idToNode) end
   return node
 end
 
@@ -431,10 +437,10 @@ function cxt.parse(dat, dbg, path)
   local p = pegl.Parser:new(dat, pegl.Config{dbg=dbg})
   p.path = path
   skipWs(p)
-  local config, named = {}, {}
+  local config, idToNode= {}, {}
   cxt.content(p, config, true)
-  extractNamed(config, named)
-  resolveFetches(p, config, named)
+  extractNamed(config, idToNode)
+  resolveFetches(p, config, idToNode)
   return config, p
 end
 

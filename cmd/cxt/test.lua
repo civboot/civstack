@@ -13,6 +13,12 @@ local testing, EMPTY, EOF = mty.from'pegl  testing,EMPTY,EOF'
 local KW, N, NUM, HEX     = mty.from(testing, 'KW, N, NUM, HEX')
 local s = ds.simplestr
 
+local code = function(t) return ds.update(t, {kind='code', code=true}) end
+local u    = function(t) return ds.update(t, {kind='u',    u=true}) end
+local b    = function(t) return ds.update(t, {kind='b',    b=true}) end
+local i    = function(t) return ds.update(t, {kind='i',    i=true}) end
+local BR   = {br=true, kind='br'}
+
 T'escape'; do
   T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
 end
@@ -39,31 +45,30 @@ end
 T'simple'; do
   M.assertParse('hi there', {'hi there'})
   M.assertParse('hi there [*bob]', {
-    'hi there ', {'bob', b=true},
+    'hi there ', b{'bob'},
   })
   M.assertParse('The [$inline code]', {
-    'The ', {'inline code', code=true, kind='code'},
+    'The ', code{'inline code'},
   })
   M.assertParse('For [$inline], [$$any [brackets] need money]$', {
-    'For ', {code=true, 'inline', kind='code'}, ', ',
-    { code=true, kind='code',
+    'For ', code{'inline'}, ', ', code{
       'any [brackets] need money'
     },
   })
 
-  M.assertParse('[$$code]$.', { {'code', code=true}, '.'})
+  M.assertParse('[$$code]$.', { code{'code'}, '.'})
 
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
-    'multiple\n', {'lines', u=true},
+    'multiple\n', u{'lines'},
     '\n', {p=true},
-    'with ', {'break', b=true},
+    'with ', b{'break'},
   })
   M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
     'has ', '[ and ', '] in it\n', '\\and ', '\\foo',
   })
 
   M.assertParse('with \\[[@foo]\\] okay', {
-    'with ', '[', {'foo', clone='foo'}, '] okay',
+    'with ', '[', {'foo', clone='foo', kind='clone'}, '] okay',
   })
 
   M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
@@ -87,7 +92,7 @@ This is a bit
 ]$
 ]], {
     "Some code:\n",
-    {"\nThis is a bit\n  of code.\n", code=true, block=true},
+    code{"\nThis is a bit\n  of code.\n", block=true},
     '\n',
   })
 
@@ -105,7 +110,7 @@ T'attrs'; do
     },
   }
   M.assertParse('[,some] [{i}italic] blocks', {
-    {'some', i=true}, ' ', {'italic', i=true}, ' blocks'
+    i{'some'}, ' ', i{'italic'}, ' blocks'
   })
   M.assertParse('go to [/the/right] path', {
     'go to ',
@@ -124,8 +129,8 @@ A quote:
 ]
 ]], {
     'A quote:\n',
-    { quote=true,
-      "We work with being,", {br=true}, "\n",
+    { quote=true, kind='quote',
+      "We work with being,", BR, "\n",
       "but non-being is what we use.\n",
       {p=true},
       "-- Tao De Ching, Stephen Mitchel\n",
@@ -179,13 +184,13 @@ A list:[+
     "A list:", { list=true,
       {
         '\n',
-        { code=true, block=true,
+        code{ block=true,
           '\n', 'one block\n',
         }, "",
       },
       {
         'second block:\n', {p=true},
-        { code=true, block=true,
+        code{ block=true,
           '\n',
           'start\n', '  two block\n', 'end\n',
         }, "",
@@ -211,7 +216,7 @@ T'nested'; do
       {
         "list item\n",
         {p=true},
-        { block=true, code=true,
+        code{ block=true,
           "\n", "with inner code\n",
         }, ""
       },
@@ -231,9 +236,9 @@ T'table'; do
 ]]
   local noIndent = M.assertParse(doc,
   { -- src
-    { table=true,
+    { table=true, kind='table',
       { header=true,
-        {"", {b=true, 'h'}, '1'},
+        {"", b{'h'}, '1'},
         {"h2"},
         {"h3"},
       },
@@ -262,13 +267,13 @@ end
 
 T'named'; do
   M.assertParse([[
-[{n=n1 href=hi.com}N1]
+[{href=hi.com id=n1}N1]
 [@n1]
 ]],
   { -- src
-    {'N1', name='n1', href='hi.com'},
+    {'N1', id='n1', href='hi.com', kind='href'},
     '\n',
-    {'N1', href='hi.com'},
+    {'N1', href='hi.com', kind='href'},
     '\n',
   })
 
@@ -277,9 +282,10 @@ T'named'; do
 see [@N_2], I like [<@N_2>links]
 ]],
   { -- src
-    {'N 2', name='N_2', href='hi.com'},
+    {'N 2', id='N_2', href='hi.com', kind='id'},
     '\n', 'see ',
-    {'N 2', href='hi.com'}, ', I like ',
+    -- FIXME: this should be kind=clone
+    {'N 2', href='hi.com', kind='id'}, ', I like ',
     {'links', href='hi.com'},
     '\n',
   })

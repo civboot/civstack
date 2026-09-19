@@ -56,10 +56,10 @@ local function startFmt(w, n, kind, line)
   for _, f in ipairs(preNameAttrs) do
     if n[f] then push(line, '<'..f..'>') end
   end
-  if n.name then
-    local id = n.name:gsub('%s+', '-')
+  if n.id then
+    local id = n.id:gsub('%s+', '-')
     push(line, sfmt('<a id="%s" href="#%s" class=anchor>', id, id))
-    if #n == 0 then push(n, n.name) end
+    if #n == 0 then push(n, n.id) end
   end
   if n.href then
     push(line, '<a ')
@@ -85,7 +85,7 @@ local function endFmt(n, line)
   end
   if n.href then push(line, '</a>') end
   if n.path then push(line, '</a>') end
-  if n.name then push(line, '</a>') end
+  if n.id   then push(line, '</a>') end
 end
 local function startNode(n, kind, line)
   if not kind then return end
