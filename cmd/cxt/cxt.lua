@@ -156,13 +156,17 @@ local function parseAttrs(p, node)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
-      node[assert(fmtAttr[attr] or strAttr[attr])] = true
+      attr = assert(fmtAttr[attr] or strAttr[attr])
+      node[attr] = true
+      node.kind = node.kind or attr
     elseif attr.kind == 'keyval' then
+      local key = p:tokenStr(attr[1])
       local val = attr[2]
       val = (val == pegl.EMPTY) and true or p:tokenStr(val[2])
-      node[p:tokenStr(attr[1])] = val
+      node[key], node.kind = val, node.kind or key
     else
       fmt.assertf(attr.kind == 'raw', 'kind: %s', attr.kind)
+      node.kind = node.kind or 'raw'
       if raw then
         p.l, p.c = l, c; return p:error'multiple raw ($$...) attributes'
       end
@@ -341,14 +345,16 @@ function cxt.content(p, node, isRoot, altEnd)
   end
   p.c = p.c + 1
   local sub = {}
-  if     raw           then sub.raw, sub.code       = raw, true
+  if     raw           then sub.kind, sub.raw, sub.code = 'code', raw, true
   elseif txtCtrl[ctrl] then -- handled after content
-  elseif fmtAttr[ctrl] then sub[fmtAttr[ctrl]]      = true
-  elseif strAttr[ctrl] then sub[strAttr[ctrl]], raw = true, 0
   elseif ctrl == '+'   then sub.list                = true
   elseif ctrl == '{'   then raw = parseAttrs(p, sub)
   elseif ctrl == '<' then
     sub.href = p:tokenStr(assert(p:parse{PIN, Pat'[^>]*', '>'}[1]))
+  elseif fmtAttr[ctrl] then
+   sub.kind, sub[fmtAttr[ctrl]] = sub[fmtAttr[ctrl]], true
+  elseif strAttr[ctrl] then
+    sub.kind, sub[strAttr[ctrl]], raw = sub[strAttr[ctrl]], true, 0
   else return p:error(sfmt(
     "Unrecognized control character after '[': %q", ctrl
   ))end
@@ -524,6 +530,23 @@ function cxt.html:__call()
   html.convert(inp, to)
   inp:close(); to:flush(); to:close()
 end
+
+--- The default lua syntax highlighter.
+cxt.highlighter = require'pegl.acsyntax'.Highlighter {
+  -- FIXME:
+  -- config = M.lenientConfig,
+  -- spec   = M.lenientBlock,
+
+  style = {
+    h1 = 'h1', h2 = 'h2', h3 = 'h3', h4 = 'h4',
+    bi = 'boldital', biu = 'bolditalul',
+    b = 'bold', i = 'ital', u = 'underlined',
+    href = 'api', clone = 'key',
+
+    ['['] = 'literal', [']'] = 'literal', ['\\'] = 'literal',
+    ['{'] = 'literal', ['}'] = 'literal',
+  },
+}
 
 if shim.isMain(cxt) then cxt:main(arg) end
 return cxt

@@ -58,6 +58,7 @@ M.Highlighter = mty'Highlighter' {
 }
 
 getmetatable(M.Highlighter).__call = function(T, t)
+  t.builtin = t.builtin or {}
   for _, key in ipairs(t.builtin) do t.builtin[key] = 1 end
   return construct(T, t)
 end
