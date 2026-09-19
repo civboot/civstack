@@ -42,10 +42,11 @@ T'simple'; do
     'hi there ', {'bob', b=true},
   })
   M.assertParse('The [$inline code]', {
-    'The ', {'inline code', code=true},
+    'The ', {'inline code', code=true, kind='code'},
   })
   M.assertParse('For [$inline], [$$any [brackets] need money]$', {
-    'For ', {code=true, 'inline'}, ', ', { code=true,
+    'For ', {code=true, 'inline', kind='code'}, ', ',
+    { code=true, kind='code',
       'any [brackets] need money'
     },
   })
