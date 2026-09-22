@@ -94,10 +94,12 @@ end
 local function nodeText(p, node, errNode)
   local txt = {}; for _, t in ipairs(node) do
     if mty.ty(t) ~= Token then
+      if t.kind == 'X' then goto cont end
       p.c, p.l = (errNode or t).pos
       return p:error('text must be of node with only strings')
     end
     add(txt, p:tokenStr(t))
+    ::cont::
   end
   return table.concat(txt)
 end
@@ -125,7 +127,7 @@ local function bracketedStrRaw(p, node, raw, startCol)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
       addToken(p, node, l, c, lt, ct)
-      return addX(p, node, l,c1, l,c2)
+      return addX(p, node, p.l,c1, p.l,c2)
     end
     p:incLine(); node.block = true
     ::continue::
@@ -334,10 +336,12 @@ function cxt.content(p, node, isRoot, altEnd)
   p.c = c2 + 1
   if c1 ~= c2 then -- \[ or \]
     addToken(p, node, l, c, p.l, c1-1)
+    addX(p, node, l,c1, p.l,c1)
     c = c2; goto loop
   end
   -- found unescaped syntax character: [ ] \
   if p.line:sub(c2,c2) == '\\' then
+    -- addX(p, node, p.l,c2, p.l,c2)
     -- '\*' --> '*' -- the loop will pick it up as raw.
     goto refind
   end

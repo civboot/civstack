@@ -61,22 +61,25 @@ T'simple'; do
   })
 
   M.assertParse('[$$code]$.', { X'[', X'$$', code{'code', X']$'}, '.'})
-  ds.yeet'ok'
-  
+
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
-    'multiple\n', u{'lines'},
+    'multiple\n', X'[', X'_', u{'lines', X']'},
     '\n', {p=true},
-    'with ', b{'break'},
+    'with ', X'[', X'*', b{'break', X']'},
   })
   M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
-    'has ', '[ and ', '] in it\n', '\\and ', '\\foo',
+    'has ', X'\\', '[ and ', X'\\', '] in it\n', '\\and ', X'\\', '\\foo',
   })
 
   M.assertParse('with \\[[@foo]\\] okay', {
-    'with ', '[', {'foo', clone='foo', kind='clone'}, '] okay',
+    'with ', X'\\', '[',
+    X'[', X'@', {'foo', clone='foo', kind='clone', X']'},
+    X'\\', '] okay',
   })
 
-  M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
+  M.assertParse('empty [{}block works].',
+    {'empty ', X'[', {X'{}', 'block works', X']'}, '.'})
+
   M.assertThrows('[$ unclosed',    'Got EOF, expected')
   M.assertThrows('[$$ unclosed ]', 'Got EOF, expected')
   M.assertThrows('[$a[]]', "Unopened ']' found")
@@ -88,6 +91,7 @@ T'simple'; do
   })
 end
 
+
 T'block'; do
   M.assertParse([[
 Some code:
@@ -96,12 +100,12 @@ This is a bit
   of code.
 ]$
 ]], {
-    "Some code:\n",
-    code{"\nThis is a bit\n  of code.\n", block=true},
+    "Some code:\n", X'[', X'$$',
+    code{"\nThis is a bit\n  of code.\n", block=true, X']$'},
     '\n',
   })
-
 end
+ds.yeet'FIXME: finish up'
 
 T'attrs'; do
   pegl.assertParse{dat='i', spec=M.attr, expect={

@@ -679,7 +679,7 @@ function M.Parser:error(msg)
   local lmsg = sfmt('[LINE %s.%s]', self.l, self.c)
   local err = fmt.format("ERROR\nPath: %s\n%s%s\n%s\nCause: %s\nParse stack:\n  %s",
     rawget(self.dat, 'path') or self.path or '(rawdata)',
-    lmsg, self.line or '(eof)', srep(' ', #lmsg + self.c - 1)..'^',
+    lmsg, self.line or '(eof)', srep(' ', #lmsg + (self.c or 0) - 1)..'^',
     msg, fmtStack(self))
   if not self.firstError then self.firstError = {l=self.l, c=self.c, err} end
   if not self.config.lenient then error(err) end
