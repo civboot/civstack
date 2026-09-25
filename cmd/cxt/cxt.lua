@@ -89,7 +89,8 @@ local function addX(p, l1,c1, l2,c2)
     cL = {}; p.commentLC[l1] = cL
   end
   if cL[c1] then return end -- comment already added
-  cL[c1] = Token:encode(p, l1,c1, l2,c2)
+  local cmt = Token:encode(p, l1,c1, l2,c2)
+  cL[c1] = cmt; add(p.comments, cmt)
 end
 
 local function nodeText(p, node, errNode)

@@ -482,15 +482,22 @@ end
 local function Tk(...) return pegl.Token:encode(nil, ...)        end
 
 T'highlight-tokens'; do
-  hl:assertTokens({'hi there ', 'bob', '. '}, [[hi there [*bob]. ]])
+  hl:assertTokens({'hi there ', '[', '*', 'bob', ']', '. '},
+                  [[hi there [*bob]. ]])
   local _, tz = hl:assertTokens(
-    {"hi there ", "bob", ". ", "bye", "."},
+    {"hi there ", '[', '*', "bob", ']', ". ", '[', '@', "bye", ']', "."},
     [[hi there [*bob]. [@bye].]])
   T.ieq({
     Tk(1,1, 1,9),
+    Tk(1,10, 1,10, nil, 'comment'),
+    Tk(1,11, 1,11, nil, 'comment'),
     Tk(1,12, 1,14, nil, 'bold'),
+    Tk(1,15, 1,15, nil, 'comment'),
     Tk(1,16, 1,17),
+    Tk(1,18, 1,18, nil, 'comment'),
+    Tk(1,19, 1,19, nil, 'comment'),
     Tk(1,20, 1,22, nil, 'key'),
+    Tk(1,23, 1,23, nil, 'comment'),
     Tk(1,24, 1,24),
   }, tz)
   
@@ -501,8 +508,8 @@ T'highlight-tokens'; do
   local fg,bg = bytearray(), bytearray()
   hl:highlight(txt, fg,bg)
   T.eq(
-"     NNNNNNNNN z\
-zzzzz  ZZZZ z\
+"fffffNNNNNNNNNfz\
+zzzzzffZZZZfz\
 ",
   tostring(fg))
 end
