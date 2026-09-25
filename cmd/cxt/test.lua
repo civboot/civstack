@@ -17,12 +17,11 @@ local s, bytearray        = mty.from'ds    simplestr,bytearray'
 
 hl.styleColor = ac.dark
 
-local X    = function(s) return {s, kind='X'}                          end
 local code = function(t) return ds.update(t, {kind='code', code=true}) end
-local u    = function(t) return ds.update(t, {kind='u',    u=true})    end
-local b    = function(t) return ds.update(t, {kind='b',    b=true})    end
-local i    = function(t) return ds.update(t, {kind='i',    i=true})    end
-local BR   = {X'{br}', X']', br=true, kind='br'}
+local u    = function(t) return ds.update(t, {kind='u',    u=true}) end
+local b    = function(t) return ds.update(t, {kind='b',    b=true}) end
+local i    = function(t) return ds.update(t, {kind='i',    i=true}) end
+local BR   = {br=true, kind='br'}
 
 T'escape'; do
   T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
@@ -48,38 +47,39 @@ end
 
 
 T'simple'; do
-  M.assertParse('hi there', {'hi there'})
+  M.assertParse('hi there', {'hi there'}, {})
   M.assertParse('hi there [*bob]', {
-    'hi there ', X'[', X'*', b{'bob', X']'},
+    'hi there ', b{'bob'},
+  }, {
+    [1] = {
+      [10] = '[', [11] = '*', [15]=']',
+    }
   })
   M.assertParse('The [$inline code]', {
-    'The ', X'[', X'$', code{'inline code', X']'},
+    'The ', code{'inline code'},
   })
   M.assertParse('For [$inline], [$$any [brackets] need money]$', {
-    'For ', X'[', X'$', code{'inline', X']'}, ', ', 
-    X'[', X'$$', code{'any [brackets] need money', X']$'},
+    'For ', code{'inline'}, ', ', code{
+      'any [brackets] need money'
+    },
   })
 
-  M.assertParse('[$$code]$.', { X'[', X'$$', code{'code', X']$'}, '.'})
+  M.assertParse('[$$code]$.', { code{'code'}, '.'})
 
   M.assertParse('multiple\n [_lines]\n\n  with [*break]', {
-    'multiple\n', X'[', X'_', u{'lines', X']'},
+    'multiple\n', u{'lines'},
     '\n', {p=true},
-    'with ', X'[', X'*', b{'break', X']'},
+    'with ', b{'break'},
   })
   M.assertParse('has \\[ and \\] in it\n\\and \\\\foo', {
-    'has ', X'\\', '[ and ', X'\\', '] in it\n', '\\and ', X'\\', '\\foo',
+    'has ', '[ and ', '] in it\n', '\\and ', '\\foo',
   })
 
   M.assertParse('with \\[[@foo]\\] okay', {
-    'with ', X'\\', '[',
-    X'[', X'@', {'foo', clone='foo', kind='clone', X']'},
-    X'\\', '] okay',
+    'with ', '[', {'foo', clone='foo', kind='clone'}, '] okay',
   })
 
-  M.assertParse('empty [{}block works].',
-    {'empty ', X'[', {X'{}', 'block works', X']'}, '.'})
-
+  M.assertParse('empty [{}block works].', {'empty ', {'block works'}, '.'})
   M.assertThrows('[$ unclosed',    'Got EOF, expected')
   M.assertThrows('[$$ unclosed ]', 'Got EOF, expected')
   M.assertThrows('[$a[]]', "Unopened ']' found")
@@ -91,7 +91,6 @@ T'simple'; do
   })
 end
 
-
 T'block'; do
   M.assertParse([[
 Some code:
@@ -100,10 +99,11 @@ This is a bit
   of code.
 ]$
 ]], {
-    "Some code:\n", X'[', X'$$',
-    code{"\nThis is a bit\n  of code.\n", block=true, X']$'},
+    "Some code:\n",
+    code{"\nThis is a bit\n  of code.\n", block=true},
     '\n',
   })
+
 end
 
 T'attrs'; do
@@ -118,11 +118,11 @@ T'attrs'; do
     },
   }
   M.assertParse('[,some] [{i}italic] blocks', {
-    X'[', X',', i{'some', X']'}, ' ', X'[', i{X'{i}', 'italic', X']'}, ' blocks'
+    i{'some'}, ' ', i{'italic'}, ' blocks'
   })
   M.assertParse('go to [/the/right] path', {
-    'go to ', X'[', X'/',
-    {'the/right', path='the/right', X']'},
+    'go to ',
+    {'the/right', path='the/right'},
     ' path',
   })
 end
@@ -136,16 +136,15 @@ A quote:
   -- Tao De Ching, Stephen Mitchel
 ]
 ]], {
-    'A quote:\n', X'[', X'"',
+    'A quote:\n',
     { quote=true, kind='quote',
-      "We work with being,", X'[', BR, "\n",
+      "We work with being,", BR, "\n",
       "but non-being is what we use.\n",
       {p=true},
       "-- Tao De Ching, Stephen Mitchel\n",
-      X']',
     },
     '\n',
-  }, true)
+  })
 end
 
 T'list'; do
@@ -161,21 +160,17 @@ A list:[+
 ]
 ]],
   {
-    "A list:", X'[', X'+', { list=true,
-      X'* ', {"first item\n", X'*'},
+    "A list:", { list=true,
+      {"first item"},
       {
-        "second item:", X'[', X'+', { list=true,
-          X'* ', {"sub first\n", X'*'},
-          {"sub second\n", X']'},
+        "second item:", { list=true,
+          {"sub first"}, {"sub second"},
         },
         "\n", {p=true},
       },
       {"third item"},
-    }, "\n", X']',
-  },
-  true)
-  
-  ds.yeet'FIXME: finish up'
+    }, "\n"
+  })
 
   -- bracketedStrRaw whitespace handling
   M.assertParse([[
@@ -209,8 +204,7 @@ A list:[+
       },
     },
     '\n',
-  },
-  true)
+  })
 end
 
 T'nested'; do
@@ -233,7 +227,7 @@ T'nested'; do
         }, ""
       },
     }, "\n"
-  }, true)
+  })
 
 end
 

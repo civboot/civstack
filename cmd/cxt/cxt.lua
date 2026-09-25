@@ -83,12 +83,13 @@ local function addToken(p, node, l1, c1, l2, c2)
 end
 
 --- Add syntax element
-local function addX(p, node, l1,c1, l2,c2)
-  if l2 >= l1 and (l2>l1 or c2>=c1) then
-    local x = {kind='X'}
-    addToken(p, x, l1,c1, l2,c2)
-    add(node, x)
+local function addX(p, l1,c1, l2,c2)
+  if l2 < l1 or (l1==l2 and c2<c1) then return end
+  local cL =  p.commentLC[l1]; if not cL then
+    cL = {}; p.commentLC[l1] = cL
   end
+  if cL[c1] then return end -- comment already added
+  cL[c1] = Token:encode(p, l1,c1, l2,c2)
 end
 
 local function nodeText(p, node, errNode)
@@ -127,7 +128,7 @@ local function bracketedStrRaw(p, node, raw, startCol)
     if c2 then
       p.c = c2 + 1; local lt, ct = p.l, c1 - 1
       addToken(p, node, l, c, lt, ct)
-      return addX(p, node, p.l,c1, p.l,c2)
+      return addX(p, p.l,c1, p.l,c2)
     end
     p:incLine(); node.block = true
     ::continue::
@@ -149,7 +150,7 @@ local function bracketedStr(p, node, raw, startCol)
     ::continue::
   end
   add(node, Token:encode(p, l, c, p.l, p.c - 2))
-  addX(node, p, p.l,p.c-1, p.l,p.c-1)
+  addX(p, p.l,p.c-1, p.l,p.c-1)
 end
 
 local fmtAttr = {
@@ -167,7 +168,7 @@ local function parseAttrs(p, node)
   local l, c, raw = p.l, p.c, nil
   local xl,xc = p.l, p.c-1
   local attrs = p:parse(cxt.attrs)
-  addX(p, node, xl,xc, p.l,p.c-1)
+  addX(p, xl,xc, p.l,p.c-1)
   for _, attr in ds.islice(attrs, 1, #attrs-1) do
     if attr.kind == 'attrSym' then
       local attr = p:tokenStr(attr)
@@ -205,7 +206,6 @@ expected bullet item followed by whitespace (or EoL). Examples:\n
       [x] checked
 ]]
 local function parseList(p, list)
-  dbg('parseList', p.l,p.c)
   p:skipEmpty()
   if p:isEof() then return rp:error'Expected a list got EOF' end
   local l,c = p.l,p.c
@@ -215,8 +215,7 @@ local function parseList(p, list)
       break
     end
   end
-  dbg('* ipat=', ipat, 'X=', p.line:sub(c,p.c-1), p.l,c,p.c-1)
-  addX(p, list, l,c, l,p.c-1)
+  addX(p, l,c, l,p.c-1)
   if not ipat then return p:error(LIST_ITEM_ERR) end
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
@@ -224,13 +223,11 @@ local function parseList(p, list)
   end
   while true do
     local item = {}
-    dbg('* content', p.l,p.c)
     local r = cxt.content(p, item, false, altEnd)
     if r then
       addToken(p, item, r[1],r[2], p.l,p.c - 1)
       local c1,c2 = p.line:find(ipat, p.c)
-      dbg('* X=', p.line:sub(c1,c2), p.l,c1,c2)
-      addX(p, item, p.l,c1, p.l,c2)
+      addX(p, p.l,c1, p.l,c2)
       p.c = c2 + 1
     end
     if rawget(item[#item], 'br') then pop(item) end
@@ -344,18 +341,17 @@ function cxt.content(p, node, isRoot, altEnd)
   p.c = c2 + 1
   if c1 ~= c2 then -- \[ or \]
     addToken(p, node, l, c, p.l, c1-1)
-    addX(p, node, l,c1, p.l,c1) -- FIXME: to c2?
+    addX(p, l,c1, p.l,c1) -- FIXME: to c2?
     c = c2; goto loop
   end
   -- found unescaped syntax character: [ ] \
   if p.line:sub(c2,c2) == '\\' then
-    -- addX(p, node, p.l,c2, p.l,c2)
     -- '\*' --> '*' -- the loop will pick it up as raw.
     goto refind
   end
   -- add text until this point, and the syntax node.
   addToken(p, node, l,  c,  p.l,c2-1)
-  addX(    p, node, p.l,c1, p.l,c2)
+  addX(p, p.l,c1, p.l,c2)
   local posL, posC = p.l, p.c
   if p.line:sub(c1,c2) == ']' then
     if isRoot then return p:error"Unopened ']' found" end
@@ -369,8 +365,8 @@ function cxt.content(p, node, isRoot, altEnd)
     local c1, c2 = p.line:find('^$+', p.c)
     assert(c2)
     p.c, raw = c2, c2 - c1 + 1
-    addX(p, node, p.l,c1, p.l,c2)
-  elseif ctrl ~= '{' then addX(p, node, p.l,p.c, p.l,p.c) end
+    addX(p, p.l,c1, p.l,c2)
+  elseif ctrl ~= '{' then addX(p, p.l,p.c, p.l,p.c) end
   p.c = p.c + 1
   local sub = {}
   if     raw           then sub.kind, sub.raw, sub.code = 'code', raw, true
@@ -495,10 +491,13 @@ function cxt.parsedStrings(p, node)
   return n
 end
 
-function cxt.assertParse(dat, expected, dbg) --> node
+--- Assert parse. Set expected.dbg to get dbg outputs.
+function cxt.assertParse(dat, expected, comments) --> node
+  local dbg = ds.popk(expected, 'dbg')
   local node, p = cxt.parse(dat, dbg)
   node = cxt.parsedStrings(p, node)
   T.eq(expected, node)
+  if comments then T.eq(comments, cxt.parsedStrings(p, p.commentLC)) end
   return node
 end
 
@@ -571,8 +570,7 @@ cxt.highlighter = require'pegl.acsyntax'.Highlighter {
     b = 'bold', i = 'ital', u = 'underlined',
     href = 'api', clone = 'key',
 
-    ['['] = 'literal', [']'] = 'literal', ['\\'] = 'literal',
-    ['{'] = 'literal', ['}'] = 'literal',
+    comment = 'comment',
   },
 }
 
