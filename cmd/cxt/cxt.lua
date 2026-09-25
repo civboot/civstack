@@ -205,13 +205,18 @@ expected bullet item followed by whitespace (or EoL). Examples:\n
       [x] checked
 ]]
 local function parseList(p, list)
+  dbg('parseList', p.l,p.c)
   p:skipEmpty()
   if p:isEof() then return rp:error'Expected a list got EOF' end
+  local l,c = p.l,p.c
+  -- get the list delimiter
   local ipat, ikind; for ip, i in pairs(ITEM) do
     if p:consume(ip) then ipat, ikind = ip, i
       break
     end
   end
+  dbg('* ipat=', ipat, 'X=', p.line:sub(c,p.c-1), p.l,c,p.c-1)
+  addX(p, list, l,c, l,p.c-1)
   if not ipat then return p:error(LIST_ITEM_ERR) end
   local altEnd = function(p, node, l, c)
     local c1, c2 = p.line:find(ipat)
@@ -219,10 +224,13 @@ local function parseList(p, list)
   end
   while true do
     local item = {}
+    dbg('* content', p.l,p.c)
     local r = cxt.content(p, item, false, altEnd)
     if r then
-      addToken(p, item, r[1], r[2], p.l, p.c - 1)
-      local c1, c2 = p.line:find(ipat, p.c)
+      addToken(p, item, r[1],r[2], p.l,p.c - 1)
+      local c1,c2 = p.line:find(ipat, p.c)
+      dbg('* X=', p.line:sub(c1,c2), p.l,c1,c2)
+      addX(p, item, p.l,c1, p.l,c2)
       p.c = c2 + 1
     end
     if rawget(item[#item], 'br') then pop(item) end
@@ -336,7 +344,7 @@ function cxt.content(p, node, isRoot, altEnd)
   p.c = c2 + 1
   if c1 ~= c2 then -- \[ or \]
     addToken(p, node, l, c, p.l, c1-1)
-    addX(p, node, l,c1, p.l,c1)
+    addX(p, node, l,c1, p.l,c1) -- FIXME: to c2?
     c = c2; goto loop
   end
   -- found unescaped syntax character: [ ] \

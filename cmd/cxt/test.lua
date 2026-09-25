@@ -22,7 +22,7 @@ local code = function(t) return ds.update(t, {kind='code', code=true}) end
 local u    = function(t) return ds.update(t, {kind='u',    u=true})    end
 local b    = function(t) return ds.update(t, {kind='b',    b=true})    end
 local i    = function(t) return ds.update(t, {kind='i',    i=true})    end
-local BR   = {br=true, kind='br'}
+local BR   = {X'{br}', X']', br=true, kind='br'}
 
 T'escape'; do
   T.eq('foo \\[bar\\] \\\\ baz', M.escape'foo [bar] \\ baz')
@@ -105,7 +105,6 @@ This is a bit
     '\n',
   })
 end
-ds.yeet'FIXME: finish up'
 
 T'attrs'; do
   pegl.assertParse{dat='i', spec=M.attr, expect={
@@ -119,11 +118,11 @@ T'attrs'; do
     },
   }
   M.assertParse('[,some] [{i}italic] blocks', {
-    i{'some'}, ' ', i{'italic'}, ' blocks'
+    X'[', X',', i{'some', X']'}, ' ', X'[', i{X'{i}', 'italic', X']'}, ' blocks'
   })
   M.assertParse('go to [/the/right] path', {
-    'go to ',
-    {'the/right', path='the/right'},
+    'go to ', X'[', X'/',
+    {'the/right', path='the/right', X']'},
     ' path',
   })
 end
@@ -137,12 +136,13 @@ A quote:
   -- Tao De Ching, Stephen Mitchel
 ]
 ]], {
-    'A quote:\n',
+    'A quote:\n', X'[', X'"',
     { quote=true, kind='quote',
-      "We work with being,", BR, "\n",
+      "We work with being,", X'[', BR, "\n",
       "but non-being is what we use.\n",
       {p=true},
       "-- Tao De Ching, Stephen Mitchel\n",
+      X']',
     },
     '\n',
   }, true)
@@ -161,18 +161,21 @@ A list:[+
 ]
 ]],
   {
-    "A list:", { list=true,
-      {"first item"},
+    "A list:", X'[', X'+', { list=true,
+      X'* ', {"first item\n", X'*'},
       {
-        "second item:", { list=true,
-          {"sub first"}, {"sub second"},
+        "second item:", X'[', X'+', { list=true,
+          X'* ', {"sub first\n", X'*'},
+          {"sub second\n", X']'},
         },
         "\n", {p=true},
       },
       {"third item"},
-    }, "\n"
+    }, "\n", X']',
   },
   true)
+  
+  ds.yeet'FIXME: finish up'
 
   -- bracketedStrRaw whitespace handling
   M.assertParse([[

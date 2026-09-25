@@ -27,8 +27,9 @@ local num = Or{name='num', common.base16, common.base10}
 local stmt = Or{name='stmt'}
 
 local KEYWORDS = {
-  'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'local', 'until',
-  'then', 'function', 'return', 'goto',
+  'end', 'if', 'else', 'elseif', 'while', 'do', 'repeat', 'until',
+  'then', 'function', 'return', 'break', 'goto',
+  'local',
 }
 local keyW           = Key{name='keyword',       KEYWORDS}
 local name           = {UNPIN, Not{keyW}, common.name}
