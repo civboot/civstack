@@ -17,6 +17,7 @@ local running        = coroutine.running
 local log = require'ds.log'
 local Error = ds.Error
 local TRACE = log.LEVEL.TRACE
+local INFO = log.LEVEL.INFO
 local update = table.update
 
 M._async = {}; M._sync = {}
@@ -69,6 +70,17 @@ function M._async.schedule(fn, ...)
   LAP_CORS[cor] = fn
   log.trace('schedule %s [%q]', cor, fn)
   return cor
+end
+
+function M.scheduleTraced(fn, ...)
+  local cor = M.schedule(function()
+    log.info('scheduling', fn)
+    local ok, err, b,c = ds.try(fn, ...)
+    log.info('coroutine %s done with status: %q', fn, ok and 'ok' or err)
+    if not ok then error(err) end
+    return ok, err, b,c
+  end)
+  LAP_TRACE[cor] = true
 end
 
 --- Yield a sleep signal for the number of  seconds (float).
