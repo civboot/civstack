@@ -570,6 +570,7 @@ cxt.highlighter = require'pegl.acsyntax'.Highlighter {
     bi = 'boldital', biu = 'bolditalul',
     b = 'bold', i = 'ital', u = 'underlined',
     href = 'api', clone = 'key', id = 'var',
+    code = 'code',
 
     comment = 'comment',
   },

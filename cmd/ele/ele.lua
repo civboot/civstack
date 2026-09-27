@@ -53,24 +53,20 @@ function ele:__call()
     G.print = ds.eprint
     info'ele: started display'
     s:handleEvents()
-    ctx.schedule(function() while s.ed.run do
+    lap.scheduleTraced('ele read stdin', function() while s.ed.run do
       rawKeySend(byte(ctx.read(1)))
     end end)
-    ctx.schedule(function()
-      LAP_TRACE[coroutine.running()] = true
-      info'start term:input()'
+    lap.scheduleTraced('ele read display', function()
       while s.ed.run do
         local ok, err = ds.try(s.ed.display.input, s.ed.display, keysend, rawKeyRecv)
         (ok and info or log.error)('display.input exited with: %s', err)
       end
-      info'exit term:input()'
     end)
-    ctx.schedule(function()
+    lap.scheduleTraced('ele draw', function()
       ix.sleep(0.5) -- FIXME: remove. there is a race condition I need to track down.
       s:draw()
     end)
-    ctx.schedule(function()
-      info'ele: start highlight'
+    lap.scheduleTraced('ele highlight', function()
       s:highlight()
     end)
     info'ele: started'
@@ -82,7 +78,7 @@ function ele:__call()
       s.ed:focus(self[1])
     else
       info('saving ele state to %s', ELE_STATE)
-      ctx.schedule(function() while s.ed.run do
+      lap.scheduleTraced('ele run', function() while s.ed.run do
         lap.sleep(1)
         pth.write(ELE_STATE, lson.lson(s.ed:state(), true))
       end end)

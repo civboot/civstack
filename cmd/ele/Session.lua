@@ -150,12 +150,10 @@ end
 Session.handleEvents = function(s)
   assert(ctx.ASYNC, 'must be started in async mode')
   assert(s.ed and s.keys)
-  ctx.schedule(function()
-    LAP_TRACE[coroutine.running()] = true
+  lap.scheduleTraced('ele keyactions', function()
     bindings.keyactions(s.ed, s.keys, s.evsend)
   end)
-  ctx.schedule(function()
-    LAP_TRACE[coroutine.running()] = true
+  lap.scheduleTraced('ele events', function()
     while s.ed.run do
       s.events:wait()
       s:run()

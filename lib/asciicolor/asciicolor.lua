@@ -63,7 +63,7 @@ M.dark = {
   path  = 'm',  -- file/dir path
   match = 'Bf', -- search match
   line  = 'ld', -- line number / etc
-  meta  = 'd',  -- Meta=metadata such as description of ops, etc
+  meta  = 'l',  -- Meta=metadata such as description of ops, etc
   info  = 'bl', -- info box, i.e. editor overlay.
   -- TODO: rename notice
   notify = 'C', -- make very visible
@@ -76,7 +76,7 @@ M.dark = {
   ref    = 'cZ',
 
   -- Document Styles
-  code = 'hb',
+  code = 'zd',
   bold = 'Z', ul = 'zZ', boldul = 'ZZ',
   ital = 'c', boldital = 'C', bolditalul = 'CZ',
   h1 = 'N', h2 = 'S', h3 = 'W', h4 = 'Z',
@@ -89,7 +89,7 @@ M.dark = {
   symbol        = 'A', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   comment       = 'f', -- content of comment:  /*content*/
-  stringbox     = 'd', -- start/end of string: '' "" [[]] etc
+  stringbox     = 'l', -- start/end of string: '' "" [[]] etc
   string        = 'g', -- content of string inside quotes
   key           = 'T', -- key in map/struct/etc
   char          = 'g', -- single character: 'c'
