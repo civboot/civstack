@@ -178,6 +178,7 @@ function M.Edit:insert(s, l,c)
   self:changeUpdate2()
 end
 
+--- remove span
 function M.Edit:remove(...)
   local ch = self.buf:remove(...)
   self:changeUpdate2()

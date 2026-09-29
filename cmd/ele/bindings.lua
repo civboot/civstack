@@ -425,6 +425,7 @@ M.save   = {action='edit', save=true, mode='command'}
 M.undo   = {action='edit', undo=true}
 M.redo   = {action='edit', redo=true}
 M.tmpBuf = {action='edit', focus='b#tmp'}
+M.systemCommit = {action='systemCommit'}
 
 --- CWD: current working directory
 M.navCwd = {action='nav', nav='cwd', mode='system'}
@@ -640,6 +641,7 @@ ds.update(M.system, {
   enter = M.goEnter,
   h = M.pathBack,   H = M.pathBackExpand,
   l = M.pathExpand, L = M.pathFocusExpand,
+  c = M.systemCommit,
   -- TODO: J/K: focus below/above
 })
 

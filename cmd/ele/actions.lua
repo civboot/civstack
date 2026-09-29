@@ -444,13 +444,13 @@ M.DO_NAV = {
 }
 
 function nav.getFocus(line)
-  return line:match'^%-?([.~]?/[^\n]*)'
+  return line:match'^%!?[-]?[+]?([.~]?/[^\n]*)'
 end
 function nav.getBuffer(line)
   return line:match'^(b#%S+)'
 end
 function nav.getEntry(line) --> (indent, kind, entry)
-  local i, k, e = line:match'^(%s+)([*+-])%s*([^\n]+)'
+  local i, k, e = line:match'^(%s+)(!?[*+-])%s*([^\n]+)'
   if not i then return end
   return i, k, e:match'^%./' and e:sub(3) or e
 end
@@ -656,6 +656,71 @@ function M.path(ed, ev, evsend)
   elseif ev.go then nav.goPath(ed, ev.go == 'create') end
   ed:handleStandard(ev)
 end
+
+function M.commitOpts(ln) --> force, add, del
+  local f, a, d = ln:find'^%s*!', ln:find'^%s*!?[+]', ln:find'^%s*!?[-]'
+  if a and d then return end
+  return f, a, d
+end
+
+--- Recursive systemCommit impl.
+local function _systemCommit(e, b, l, ln, path)
+  local f,a,d = M.commitOpts(ln)
+  local lOut = l
+  if a then -- TODO: add
+    if pth.isDir(path) then
+      if f then ix.mkDirs(path) else ix.mkDir(path) end
+    else
+      if f then ix.mkDirs( (pth.last(path)) ) end
+      pth.write(path, '')
+    end
+    local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
+    return l + 1
+  elseif d then
+    -- before we try to delete the entry, we commit any children
+    local lnNxt = b:get(l+1)
+    local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
+    if indNext and #indNext > #ind then
+      lOut = _systemCommit(e, b, l+1, lnNxt, pathNxt)
+    end
+
+    local isDir = ix.isDir(path)
+    if not f and isDir and #ix.ls(path) > 0 then
+      -- skip: cannot delete non-empty dir
+      return (l == lOut) and (l+1) or lOut
+    end
+    if isDir then
+      if f then ix.rmRecursive(path) else ix.rmdir(path) end
+    else
+      -- FIXME: check buffer status
+      ix.rm(path)
+    end
+    
+    -- 1. delete the file if it is a file, delete dir only if empty or force.
+    -- 2. remove all entry lines, including self.
+    return l
+  end
+end
+
+--- Commit the current system changes: $[+
+--- * [$+] in front of files/dirs creates them (non-recursively).
+--- * [$-] in front of files deletes them, in front of buffers closes them.
+--- * [$!] in front of [$-/+] "forces" the operation: recursively creates/deletes dirs,
+---    forces a buffer to close even if open.
+--- ]
+function M.systemCommit(ed, ev)
+  local e = ed:edit(); local b = e.buf
+  e:changeStart()
+  local l = 1
+  while l < #b do
+    local ln = b:get(l)
+    local focus = nav.getFocus(ln); if not focus then goto next end
+    l = _systemCommit(e, b, l, ln, focus)
+    ::next:: l = l + 1
+    ::cont::
+  end
+end
+
 
 --- Do something with the edit view, in this order: [+
 --- * save=true: save the current edit view.

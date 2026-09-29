@@ -32,6 +32,7 @@ end
 
 local function newEditor(mode)
   local ed = Editor{
+    evsend=true,
     mode=mode, modes={}, actions=fakeActions, ext={},
     buffers={}, namedBuffers={},
   }
@@ -137,4 +138,3 @@ T'runBinding'; do
 
   cleanup(d)
 end
-
