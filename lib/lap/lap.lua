@@ -72,11 +72,12 @@ function M._async.schedule(fn, ...)
   return cor
 end
 
-function M.scheduleTraced(fn, ...)
-  local cor = M.schedule(function()
+function M.scheduleTraced(name, fn, _noMore)
+  assert(not _noMore, 'do not pass additional args')
+  local cor = ctx.schedule(function()
     log.info('scheduling', fn)
-    local ok, err, b,c = ds.try(fn, ...)
-    log.info('coroutine %s done with status: %q', fn, ok and 'ok' or err)
+    local ok, err, b,c = ds.try(fn)
+    log.info('scheduled %s done with status: %q', fn, ok and 'ok' or err)
     if not ok then error(err) end
     return ok, err, b,c
   end)

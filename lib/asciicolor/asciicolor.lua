@@ -89,7 +89,7 @@ M.dark = {
   symbol        = 'A', -- = + . { } etc
   builtin       = 'p', -- builtin fns/mods/names: io sys self etc
   comment       = 'f', -- content of comment:  /*content*/
-  stringbox     = 'd', -- start/end of string: '' "" [[]] etc
+  stringbox     = 'l', -- start/end of string: '' "" [[]] etc
   string        = 'g', -- content of string inside quotes
   key           = 'T', -- key in map/struct/etc
   char          = 'g', -- single character: 'c'
