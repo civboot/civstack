@@ -43,10 +43,11 @@ Session.BUILTIN_ACTIONS = {
 }
 
 getmetatable(Session).__call = function(T, s)
-  local ed = s.ed or Editor{}; s.ed = ed
-  ed:init()
   s.events = lap.Recv(); s.evsend  = s.events:sender()
   s.keys   = lap.Recv(); s.keysend = s.keys:sender()
+  local ed = s.ed or Editor{evsend=s.evsend}
+  s.ed = ed
+  ed:init()
   ed:focus(ed:buffer())
   -- Add the again listener
   ed.listeners.again = function(ev)

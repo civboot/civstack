@@ -54,6 +54,7 @@ local Editor = mty'Editor' {
   'search [str]: search pattern for searchBuf, etc',
   'listeners {fn(ev)}: list of functions to call for each successful event',
   'yank [ds.Deq]: a deque of removed text. See yankMax.',
+  'evsend [lap.Sender]',
 
   'error [callable]: error handler (ds.log.logfmt sig)',
   'warn  [callable]: warn handler',
@@ -83,6 +84,7 @@ local Editor = mty'Editor' {
 }
 
 getmetatable(Editor).__call = function(T, self)
+  assert(self.evsend, 'Editor.evsend required')
   self = ds.merge({
     s=EdSettings{},
     mode='command', modes={},
@@ -188,7 +190,7 @@ end
 
 function Editor:_buffer(id, path)
   log.info('creating buffer %s %q', id, path)
-  local dat = self.newDat(path) -- do first to allow yield
+  local dat = assertf(self.newDat(path), 'failed to load %q', path)
   local b = Buffer{id=id, dat=dat, tmp=not path and {} or nil}
   self.buffers[id] = b
   self.bufferId[b] = id
@@ -287,6 +289,8 @@ function Editor:focusFirst(c)
   c = c or self.view
   while c and not et.isPane(c) do c = c[1] end
   if not c then -- there are no panes
+    self.evsend(require'ele.bindings'.navBuf)
+    return self:focus'b#nav'
   end
   assert(et.isPane(c))
   self.pane = c
@@ -352,8 +356,11 @@ function Editor:loadState(st) --> self
     end
   end
   for _, b in ipairs(st.buffers) do
-    local buf = self:_buffer(b.id, b.path)
-    buf.name = b.name
+    local ok, buf = ds.try(function()
+      return self:_buffer(b.id, b.path)
+    end)
+    if ok then buf.name = b.name
+    else self.error('failed to load buffer %s at %q', b.id, b.path) end
   end
   if st.view then
     self.view.container = nil; self.view:close(self)

@@ -25,7 +25,7 @@ local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
 ix.mkDir(O)
 
 local function newEditor(lines)
-  local ed = Editor{}
+  local ed = Editor{evsend=true}
   B.install(ed)
   local e = ed:focus()
   e.buf:insert(lines, 1)
