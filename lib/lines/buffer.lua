@@ -250,6 +250,7 @@ function Buffer:insert(s, l,c)
   return ch
 end
 
+--- remove span (l,c, l2,c2) or (l,l2)
 function Buffer:remove(...)
   info('remove span %q', {...})
   local s, l,c = lines.sub(self.dat, ...)
