@@ -148,9 +148,16 @@ end
 
 --- Assert that the path exists.
 function M.exists(path)
+  path = pth.canonical(path)
   if not require'civix'.exists(path) then error(
     'does not exist: '..path
   )end
+end
+
+--- Assert that the path does not exist.
+function M.notExists(path)
+  path = pth.canonical(path)
+  if require'civix'.exists(path) then error('exists: '..path)end
 end
 
 --- Assert the contents at the two paths are equal.
@@ -169,7 +176,12 @@ M.pathEq = M.fileEq
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
+--- * bool: (true)=assert existance, (false)=assert non-existance.
 function M.path(path, expect)
+  if type(expect) == 'boolean' then
+    if expect then M.exists(path) else M.notExists(path) end
+    return
+  end
   M.exists(path)
   if ctx.fileType(expect) then
     expect:seek'set'

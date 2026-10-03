@@ -19,6 +19,7 @@ local Editor = require'ele.Editor'
 local info = mty.from'ds.log  info'
 local State, BufState, PaneState = mty.from'ele.types\
       State, BufState, PaneState'
+local s = ds.simplestr
 
 local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
@@ -321,4 +322,76 @@ T'state'; do
 
   info('cleaning up d1'); cleanup(d1)
   info('cleaning up d2'); cleanup(d2)
+end
+
+
+T'commit'; do
+  ctx:push{}; pth.cd(O)
+
+  local ed = newEditor(s[[
+  +./a_txt
+  +./a/
+    + b_txt
+    + stay
+  +./a2/
+  notCreated/
+  +ignoredDoesNotStartWithDot
+  ]])
+  local e = ed:edit(); local b = e.buf
+  M.systemCommit(ed)
+  
+  T.eq(s[[
+  ./a_txt
+  ./a/
+    * b_txt
+    * stay
+  ./a2/
+  notCreated/
+  +ignoredDoesNotStartWithDot
+  ]], fmt(b.dat))
+
+  T.path('./', {
+    a_txt = '',
+    a = {
+      b_txt = '',
+      stay  = '',
+    },
+    a2 = {},
+    notCreated = false,
+  })
+
+  e:remove(1,100)
+  -- remove b2, b_txt. Force add b/c/c_txt
+  e:insert(s[[
+  -./a2/
+  ./a/
+    * stay
+    - b_txt
+    + b2_txt
+    * b/
+      !+ c_txt
+  ]])
+  M.systemCommit(ed)
+  T.eq(s[[
+
+  ./a/
+    * stay
+    * b2_txt
+    * b/
+      * c_txt
+  ]], fmt(b.dat))
+
+  T.path('./', {
+    a2 = false,
+    a_txt = '', -- unchanged
+    a = {
+      b_txt = false, -- removed
+      stay  = '', -- unchanged
+      -- new
+      b2_txt = '',
+      b = { c_txt = '' },
+    },
+  })
+
+  ctx:pop()
 end

@@ -17,6 +17,7 @@ G.DATA_PATH = G.DATA_PATH or os.getenv'DATA_PATH'
 
 --- read file at path or throw error
 function M.read(path) --!> string
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
@@ -27,6 +28,7 @@ end
 
 --- write string to file at path or throw error
 function M.write(path, text) --!> nil
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'w'); if not f then error(sfmt(
     "open %q mode=w: %s", path, err
   ))end
@@ -35,6 +37,7 @@ end
 
 --- append text to path, adds a newline if text doesn't end in one.
 function M.append(path, text)
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'a'); if not f then error(sfmt(
     "open %q mode=a: %s", path, err
   ))end
@@ -106,7 +109,7 @@ function M.ext(path) --> string
   return path:match'.*%.([^/]+)$'
 end
 
---- Ensure the path is absolute, using the wd (default=cwd()) if necessary
+--- Ensure the path is absolute, using the wd (default=ctx.CWD) if necessary
 ---
 --- This preserves the type of the input: str -> str; table -> table
 function M.abs(path, wd) --> /absolute/path
@@ -227,12 +230,21 @@ end
 ---   but other libraries or APIs may not conform to this.
 function M.isDir(path) return path:sub(-1) == '/' end
 local isDir = M.isDir
+
+--- Force path to be a dir/ by adding '/' if it's missing.
 function M.toDir(path) --> path/
   return (path:sub(-1) ~= '/') and (path..'/') or path
 end
 
+--- Force path to be a file by removing '/' if it exists.
 function M.toNonDir(path) --> path (without ending /)
   return (path:sub(-1) == '/') and path:sub(1,-2) or path
+end
+
+--- If path/ is already a dir return it, else return its parent.
+function M.asDir(path) --> path/
+  if M.isDir(path) then return path end
+  return ( M.last(path) )
 end
 
 --- return the relative path needed to get from [$from] to [$to].

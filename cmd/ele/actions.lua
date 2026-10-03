@@ -444,7 +444,7 @@ M.DO_NAV = {
 }
 
 function nav.getFocus(line)
-  return line:match'^%!?[-]?[+]?([.~]?/[^\n]*)'
+  return line:match'^!?[-]?[+]?([.~]?/[^\n]*)'
 end
 function nav.getBuffer(line)
   return line:match'^(b#%S+)'
@@ -519,7 +519,8 @@ function nav.getPath(b, l,c) --> string
   return ln:sub(si,ei)
 end
 
---- find the last line of a focus or entry.
+--- Find the last line of a focus or entry.
+--- l+1 will be the line of the sibling.
 function nav.findEnd(b, l) --> linenum, maxChildInd
   local ln = b:get(l)
   local ind; if getFocus(ln) then ind = 0
@@ -663,43 +664,67 @@ function M.commitOpts(ln) --> force, add, del
   return f, a, d
 end
 
+local _systemCommit
+local function _systemCommitChildren(e, b, l, ln, path)
+  local dir, ind = pth.asDir(path), getEntry(ln) or ''
+  l = l + 1
+  while true do
+    local lnNxt = b:get(l)
+    local indNxt, _, pathNxt = getEntry(lnNxt)
+    if not indNxt or #ind >= #indNxt then break end
+    l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
+  end
+  return l
+end
+
 --- Recursive systemCommit impl.
-local function _systemCommit(e, b, l, ln, path)
+--[[local]] function _systemCommit(e, b, l, ln, path)
+  ::start::
   local f,a,d = M.commitOpts(ln)
   local lOut = l
-  if a then -- TODO: add
+  if a then
     if pth.isDir(path) then
+      log.info('creating dir: %q', path)
       if f then ix.mkDirs(path) else ix.mkDir(path) end
     else
+      log.info('creating file: %q', path)
       if f then ix.mkDirs( (pth.last(path)) ) end
       pth.write(path, '')
     end
-    local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
-    return l + 1
-  elseif d then
-    -- before we try to delete the entry, we commit any children
-    local lnNxt = b:get(l+1)
-    local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
-    if indNext and #indNext > #ind then
-      lOut = _systemCommit(e, b, l+1, lnNxt, pathNxt)
+    if not ln:find'^%s' then -- focus, remove any prefixes
+      local c1,c2 = ln:find'!?[+]?'; e:remove(l,c1, l,c2)
+    else
+      ln = ln:gsub('(%s+)!?[*]?[+]?(.*)', '%1*%2\n')
+      e:insert(ln, l,1)
+      e:remove(l+1,l+1); 
     end
+    return _systemCommitChildren(e, b, l, ln, path)
+  elseif d then
+    -- Before we try to delete the entry, we commit any children.
+    lOut = _systemCommitChildren(e, b, l, ln, path)
 
     local isDir = ix.isDir(path)
     if not f and isDir and #ix.ls(path) > 0 then
+      log.info('skipping rm of non-empty dir: %q', path)
       -- skip: cannot delete non-empty dir
       return (l == lOut) and (l+1) or lOut
     end
     if isDir then
-      if f then ix.rmRecursive(path) else ix.rmdir(path) end
-    else
-      -- FIXME: check buffer status
-      ix.rm(path)
+      log.info('rm dir: %q', path)
+      if f then ix.rmRecursive(path) else assert(ix.rmdir(path)) end
+      e:remove(l, ( nav.findEnd(b, l) )) -- remove self and all children
+      return l
+    else -- file
+      log.info('rm file: %q', pth.canonical(path))
+      e:getEditor():removeBuffer(path, f) -- will not delete if open as buffer
+      assert(ix.rm(path))
     end
-    
-    -- 1. delete the file if it is a file, delete dir only if empty or force.
-    -- 2. remove all entry lines, including self.
+    e:remove(l,l) -- remove self
     return l
+  else
+    lOut = _systemCommitChildren(e, b, l, ln, path)
   end
+  return (l==lOut) and (l + 1) or lOut
 end
 
 --- Commit the current system changes: $[+
@@ -708,15 +733,14 @@ end
 --- * [$!] in front of [$-/+] "forces" the operation: recursively creates/deletes dirs,
 ---    forces a buffer to close even if open.
 --- ]
-function M.systemCommit(ed, ev)
+function M.systemCommit(ed, _ev)
   local e = ed:edit(); local b = e.buf
   e:changeStart()
   local l = 1
   while l < #b do
-    local ln = b:get(l)
-    local focus = nav.getFocus(ln); if not focus then goto next end
+    local ln = b:get(l); local focus = getFocus(ln)
+    if not focus then l = l + 1; goto cont end
     l = _systemCommit(e, b, l, ln, focus)
-    ::next:: l = l + 1
     ::cont::
   end
 end
