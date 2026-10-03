@@ -666,6 +666,7 @@ end
 --- Recursive systemCommit impl.
 local function _systemCommit(e, b, l, ln, path)
   local f,a,d = M.commitOpts(ln)
+  local lOut = l
   if a then -- TODO: add
     if pth.isDir(path) then
       if f then ix.mkDirs(path) else ix.mkDir(path) end
@@ -676,11 +677,25 @@ local function _systemCommit(e, b, l, ln, path)
     local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
     return l + 1
   elseif d then
-    -- before we delete the entry, we delete any children.
-    
-    if not f and ix.isDir(path) and #ix.ls(path) > 0 then
-      return l + 1 -- skip: cannot delete non-empty dir.
+    -- before we try to delete the entry, we commit any children
+    local lnNxt = b:get(l+1)
+    local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
+    if indNext and #indNext > #ind then
+      lOut = _systemCommit(e, b, l+1, lnNxt, pathNxt)
     end
+
+    local isDir = ix.isDir(path)
+    if not f and isDir and #ix.ls(path) > 0 then
+      -- skip: cannot delete non-empty dir
+      return (l == lOut) and (l+1) or lOut
+    end
+    if isDir then
+      if f then ix.rmRecursive(path) else ix.rmdir(path) end
+    else
+      -- FIXME: check buffer status
+      ix.rm(path)
+    end
+    
     -- 1. delete the file if it is a file, delete dir only if empty or force.
     -- 2. remove all entry lines, including self.
     return l

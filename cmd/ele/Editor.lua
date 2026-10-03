@@ -1,6 +1,5 @@
 -- defines ele.Editor
 local mty    = require'metaty'
-local fmt    = require'fmt'
 local ds     = require'ds'
 local pth    = require'ds.path'
 local log    = require'ds.log'
@@ -13,9 +12,9 @@ local et     = require'ele.types'
 local ff     = require'ff'
 local push, pop, concat = table.insert, table.remove, table.concat
 
-local info = mty.from'ds.log  info'
+local info    = mty.from'ds.log  info'
+local assertf = mty.from'fmt     assertf'
 local min, max = math.min, math.max
-local assertf = fmt.assertf
 local sfmt = string.format
 
 local EdSettings = mty'EdSettings' {
@@ -204,6 +203,21 @@ function Editor:namedBuffer(name, path)
   b.name = name
   self.namedBuffers[name] = b
   return b
+end
+
+--- Remove buffer from cache and close if it is part of any windows.
+--- Does not delete the underlying file.
+--- Will throw if the buffer has unsync'd changes and force=false.
+function Editor:removeBuffer(idOrPath, force)
+  local b = self:getBuffer(idOrPath); if not b then return end
+  local id = self.bufferId[b]
+  assert(not self.namedBuffers[id], 'removing named buffers not allowed')
+
+  if force or (b.v == b.lastDumpV) then
+    self.buffers[id], self.bufferId[b] = nil, nil
+  else
+    errorf('%s buffer has changes, use force=true to close', idOrPath)
+  end
 end
 
 

@@ -41,6 +41,7 @@ end
 M.Buffer = mty'Buffer' {
   'id  [int]', 'name [str?]',
   'v [int]: continuously incrementing version on each change', v = 0,
+  'lastDumpV [int]: v when last flushed to disk',      lastDumpV = 0,
   'dat [lines.File]: i.e. Gap, EdFile',
   'fg [lines.File]: foreground asciicolor',
   'bg [lines.File]: background asciicolor',
@@ -268,9 +269,15 @@ function Buffer:__lt(r)
        < (   r:path() or    r.name or    tostring(r.id))
 end
 
+function Buffer:dump()
+  self.lastDumpV = self.v
+  return self.dat:dump(self.path())
+end
+
 function Change:__tostring()
   return sfmt('Ch{%s %s.%s %s}', self.k, self[1],self[2],
       ('len='..#self.s) or sfmt('%s.%s', self[3],self[4]))
 end
+
 
 return M
