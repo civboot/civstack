@@ -19,6 +19,7 @@ local Editor = require'ele.Editor'
 local info = mty.from'ds.log  info'
 local State, BufState, PaneState = mty.from'ele.types\
       State, BufState, PaneState'
+local s = ds.simplestr
 
 local nav = M.nav
 local O = './.out/ele/'; if ix.exists(O) then ix.rmRecursive(O) end
@@ -321,4 +322,25 @@ T'state'; do
 
   info('cleaning up d1'); cleanup(d1)
   info('cleaning up d2'); cleanup(d2)
+end
+
+
+T'commit'; do
+  ctx:push{CWD=O}
+  
+  local ed = newEditor(s[[
+  +./foo.txt
+  +./bar/
+    + baz.txt
+  notCreated/
+  ]])
+  M.systemCommit(ed)
+  T.path(O, {
+    ['foo.txt'] = '',
+    bar = {
+      ['baz.txt'] = '',
+    }
+  })
+  T.exists(O..'foo.txt')
+
 end

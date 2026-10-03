@@ -707,7 +707,7 @@ end
 --- * [$!] in front of [$-/+] "forces" the operation: recursively creates/deletes dirs,
 ---    forces a buffer to close even if open.
 --- ]
-function M.systemCommit(ed, ev)
+function M.systemCommit(ed, _ev)
   local e = ed:edit(); local b = e.buf
   e:changeStart()
   local l = 1
