@@ -677,11 +677,12 @@ local function _systemCommit(e, b, l, ln, path)
     local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
     return l + 1
   elseif d then
-    -- before we try to delete the entry, we commit any children
-    local lnNxt = b:get(l+1)
-    local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
-    if indNext and #indNext > #ind then
-      lOut = _systemCommit(e, b, l+1, lnNxt, pathNxt)
+    -- Before we try to delete the entry, we commit any children.
+    while true do
+      local lnNxt = b:get(lOut+1)
+      local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
+      if not indNext or #ind >= #indNext then break end
+      lOut = _systemCommit(e, b, lOut+1, lnNxt, pathNxt)
     end
 
     local isDir = ix.isDir(path)
@@ -691,14 +692,12 @@ local function _systemCommit(e, b, l, ln, path)
     end
     if isDir then
       if f then ix.rmRecursive(path) else ix.rmdir(path) end
-    else
-      -- FIXME: check buffer status
+    else -- file
+      e:getEditor():removeBuffer(path, f) -- will not delete if open as buffer
       ix.rm(path)
     end
-    
-    -- 1. delete the file if it is a file, delete dir only if empty or force.
-    -- 2. remove all entry lines, including self.
-    return l
+    e:remove(l,l) -- remove self
+    return lOut
   end
 end
 
@@ -713,10 +712,9 @@ function M.systemCommit(ed, ev)
   e:changeStart()
   local l = 1
   while l < #b do
-    local ln = b:get(l)
-    local focus = nav.getFocus(ln); if not focus then goto next end
+    local ln = b:get(l); local focus = nav.getFocus(ln)
+    if not focus then l = l + 1; goto cont end
     l = _systemCommit(e, b, l, ln, focus)
-    ::next:: l = l + 1
     ::cont::
   end
 end

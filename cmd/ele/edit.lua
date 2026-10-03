@@ -45,7 +45,7 @@ getmetatable(M.Edit).__call = function(T, t)
   return self
 end
 
-M.Edit.getEditor = et.getEditor
+M.Edit.getEditor = et.getEditor --> Editor
 
 function M.Edit:close(ed)
   et.BasePane.close(self, ed)
