@@ -334,6 +334,7 @@ T'commit'; do
     + baz.txt
   notCreated/
   ]])
+  local e = ed.pane; local b = e.buf
   M.systemCommit(ed)
   T.path('./', {
     ['foo.txt'] = '',
@@ -341,6 +342,11 @@ T'commit'; do
       ['baz.txt'] = '',
     }
   })
+  T.eq(s[[
+  ./foo.txt
+  ./bar/
+    * baz.txt
+  ]], fmt(b.dat))
 
   ctx:pop()
 end
