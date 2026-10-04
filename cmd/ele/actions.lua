@@ -444,7 +444,7 @@ M.DO_NAV = {
 }
 
 function nav.getFocus(line)
-  return line:match'^%!?[-]?[+]?([.~]?/[^\n]*)'
+  return line:match'^!?[-]?[+]?([.~]?/[^\n]*)'
 end
 function nav.getBuffer(line)
   return line:match'^(b#%S+)'
@@ -665,6 +665,7 @@ end
 
 local _systemCommit
 local function _systemCommitChildren(e, b, l, ln, path)
+  dbg('sc children', l, ln)
   local dir, ind = pth.asDir(path), nav.getEntry(ln) or ''
   l = l + 1
   while true do
@@ -673,6 +674,7 @@ local function _systemCommitChildren(e, b, l, ln, path)
     if not indNxt or #ind >= #indNxt then break end
     l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
   end
+  dbg('sc children return', l)
   return l
 end
 
@@ -680,6 +682,7 @@ end
 --[[local]] function _systemCommit(e, b, l, ln, path)
   ::start::
   local f,a,d = M.commitOpts(ln)
+  dbg('_systemCommit', l, ln, f, a, d) 
   local lOut = l
   if a then
     dbg('add', path)
@@ -718,8 +721,8 @@ end
       ix.rm(path)
     end
     e:remove(l,l) -- remove self
-    return lOut
   end
+  return (l==lOut) and (l + 1) or lOut
 end
 
 --- Commit the current system changes: $[+
@@ -734,9 +737,11 @@ function M.systemCommit(ed, _ev)
   local l = 1
   while l < #b do
     local ln = b:get(l); local focus = nav.getFocus(ln)
+    dbg('systemCommit loop', l, ln, focus and true)
     if not focus then l = l + 1; goto cont end
     l = _systemCommit(e, b, l, ln, focus)
     ::cont::
+    dbg('sc loop end', l)
   end
 end
 

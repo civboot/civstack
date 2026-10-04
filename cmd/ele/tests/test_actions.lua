@@ -333,10 +333,11 @@ T'commit'; do
   +./a/
     + b_txt
     + stay
-  +a2/
+  +./a2/
   notCreated/
+  +ignoredDoesNotStartWithDot
   ]])
-  local e = ed.pane; local b = e.buf
+  local e = ed:edit(); local b = e.buf
   M.systemCommit(ed)
   
   T.eq(s[[
@@ -344,10 +345,11 @@ T'commit'; do
   ./a/
     * b_txt
     * stay
-  a2/
+  ./a2/
   notCreated/
+  +ignoredDoesNotStartWithDot
   ]], fmt(b.dat))
-  
+
   T.path('./', {
     a_txt = '',
     a = {
@@ -357,18 +359,32 @@ T'commit'; do
     a2 = {},
     notCreated = false,
   })
-  
+
   e:remove(1,100)
   -- remove b2, b_txt. Force add b/c/c_txt
   e:insert(s[[
   -a2/
-  s/
+  ./a/
     * stay
     - b_txt
     + b2_txt
     * b/
       !+ c_txt
   ]])
+  M.systemCommit(ed)
+  T.path('./', {
+    a2 = false,
+    a_txt = '', -- unchanged
+    a = {
+      b_txt = false, -- removed
+      stay  = '', -- unchanged
+      -- new
+      b2_txt = '',
+      b = { c_txt = '' },
+    },
+  })
 
   ctx:pop()
 end
+
+ds.yeet'ok'

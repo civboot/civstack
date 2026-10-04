@@ -148,7 +148,7 @@ end
 
 --- Assert that the path exists.
 function M.exists(path)
-  path = pth.abs(path)
+  path = pth.canonical(path)
   if not require'civix'.exists(path) then error(
     'does not exist: '..path
   )end
@@ -156,7 +156,7 @@ end
 
 --- Assert that the path does not exist.
 function M.notExists(path)
-  path = pth.abs(path)
+  path = pth.canonical(path)
   if require'civix'.exists(path) then error('exists: '..path)end
 end
 
