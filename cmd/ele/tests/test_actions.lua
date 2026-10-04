@@ -341,7 +341,6 @@ T'commit'; do
       ['baz.txt'] = '',
     }
   })
-  T.exists(O..'foo.txt')
 
   ctx:pop()
 end

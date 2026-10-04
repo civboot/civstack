@@ -230,12 +230,21 @@ end
 ---   but other libraries or APIs may not conform to this.
 function M.isDir(path) return path:sub(-1) == '/' end
 local isDir = M.isDir
+
+--- Force path to be a dir/ by adding '/' if it's missing.
 function M.toDir(path) --> path/
   return (path:sub(-1) ~= '/') and (path..'/') or path
 end
 
+--- Force path to be a file by removing '/' if it exists.
 function M.toNonDir(path) --> path (without ending /)
   return (path:sub(-1) == '/') and path:sub(1,-2) or path
+end
+
+--- If path/ is already a dir return it, else return its parent.
+function M.asDir(path) --> path/
+  if M.isDir(path) then return path end
+  return ( M.last(path) )
 end
 
 --- return the relative path needed to get from [$from] to [$to].

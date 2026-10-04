@@ -663,11 +663,27 @@ function M.commitOpts(ln) --> force, add, del
   return f, a, d
 end
 
+local _systemCommit
+local function _systemCommitChildren(e, b, l, ln, path)
+  local dir, ind = pth.asDir(path), nav.getEntry(ln) or ''
+  l = l + 1
+  while true do
+    local lnNxt = b:get(l)
+    local indNxt, _, pathNxt = nav.getEntry(lnNxt)
+    dbg('* entry child %q %q %q', ind, indNxt, pathNxt)
+    if not indNxt or #ind >= #indNxt then break end
+    l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
+  end
+  return l
+end
+
 --- Recursive systemCommit impl.
-local function _systemCommit(e, b, l, ln, path)
+--[[local]] function _systemCommit(e, b, l, ln, path)
+  ::start::
+  dbg('_systemCommit:', ln)
   local f,a,d = M.commitOpts(ln)
   local lOut = l
-  if a then -- TODO: add
+  if a then
     if pth.isDir(path) then
       log.info('creating dir: %q', path)
       if f then ix.mkDirs(path) else ix.mkDir(path) end
@@ -677,15 +693,11 @@ local function _systemCommit(e, b, l, ln, path)
       pth.write(path, '')
     end
     local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
-    return l + 1
+    return _systemCommitChildren(e, b, l, ln, path)
   elseif d then
+    dbg('sc delete:', ln)
     -- Before we try to delete the entry, we commit any children.
-    while true do
-      local lnNxt = b:get(lOut+1)
-      local ind, indNxt, _, pathNxt = nav.getEntry(ln), nav.getEntry(lnNext)
-      if not indNext or #ind >= #indNext then break end
-      lOut = _systemCommit(e, b, lOut+1, lnNxt, pathNxt)
-    end
+    lOut = _systemCommitChildren(e, b, l, ln, path)
 
     local isDir = ix.isDir(path)
     if not f and isDir and #ix.ls(path) > 0 then
