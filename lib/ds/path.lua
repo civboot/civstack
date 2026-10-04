@@ -17,6 +17,7 @@ G.DATA_PATH = G.DATA_PATH or os.getenv'DATA_PATH'
 
 --- read file at path or throw error
 function M.read(path) --!> string
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'r'); if not f then error(sfmt(
     "open %q mode=r: %s", path, err
   ))end
@@ -27,6 +28,7 @@ end
 
 --- write string to file at path or throw error
 function M.write(path, text) --!> nil
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'w'); if not f then error(sfmt(
     "open %q mode=w: %s", path, err
   ))end
@@ -35,6 +37,7 @@ end
 
 --- append text to path, adds a newline if text doesn't end in one.
 function M.append(path, text)
+  path = M.abs(path)
   local f, err, out = ctx.open(path, 'a'); if not f then error(sfmt(
     "open %q mode=a: %s", path, err
   ))end
@@ -106,7 +109,7 @@ function M.ext(path) --> string
   return path:match'.*%.([^/]+)$'
 end
 
---- Ensure the path is absolute, using the wd (default=cwd()) if necessary
+--- Ensure the path is absolute, using the wd (default=ctx.CWD) if necessary
 ---
 --- This preserves the type of the input: str -> str; table -> table
 function M.abs(path, wd) --> /absolute/path

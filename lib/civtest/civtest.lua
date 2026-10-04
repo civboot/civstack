@@ -148,6 +148,7 @@ end
 
 --- Assert that the path exists.
 function M.exists(path)
+  path = pth.abs(path)
   if not require'civix'.exists(path) then error(
     'does not exist: '..path
   )end
@@ -170,6 +171,7 @@ M.pathEq = M.fileEq
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
 function M.path(path, expect)
+  dbg('civtest path', path)
   M.exists(path)
   if ctx.fileType(expect) then
     expect:seek'set'

@@ -326,8 +326,8 @@ end
 
 
 T'commit'; do
-  ctx:push{CWD=O}
-  
+  ctx:push{}; pth.cd(O)
+
   local ed = newEditor(s[[
   +./foo.txt
   +./bar/
@@ -335,7 +335,7 @@ T'commit'; do
   notCreated/
   ]])
   M.systemCommit(ed)
-  T.path(O, {
+  T.path('./', {
     ['foo.txt'] = '',
     bar = {
       ['baz.txt'] = '',
@@ -343,4 +343,5 @@ T'commit'; do
   })
   T.exists(O..'foo.txt')
 
+  ctx:pop()
 end

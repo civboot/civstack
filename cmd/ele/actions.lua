@@ -669,8 +669,10 @@ local function _systemCommit(e, b, l, ln, path)
   local lOut = l
   if a then -- TODO: add
     if pth.isDir(path) then
+      log.info('creating dir: %q', path)
       if f then ix.mkDirs(path) else ix.mkDir(path) end
     else
+      log.info('creating file: %q', path)
       if f then ix.mkDirs( (pth.last(path)) ) end
       pth.write(path, '')
     end
@@ -687,12 +689,15 @@ local function _systemCommit(e, b, l, ln, path)
 
     local isDir = ix.isDir(path)
     if not f and isDir and #ix.ls(path) > 0 then
+      log.info('skipping rm of non-empty dir: %q', path)
       -- skip: cannot delete non-empty dir
       return (l == lOut) and (l+1) or lOut
     end
     if isDir then
+      log.info('rm dir: %q', path)
       if f then ix.rmRecursive(path) else ix.rmdir(path) end
     else -- file
+      log.info('rm file: %q', path)
       e:getEditor():removeBuffer(path, f) -- will not delete if open as buffer
       ix.rm(path)
     end

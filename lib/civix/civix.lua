@@ -10,11 +10,12 @@ local ds   = require'ds'
 local log  = require'ds.log'
 local Iter = require'ds.Iter'
 local lap  = require'lap'
+local pth  = require'ds.path'
 
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
 local Rand            = mty.from'ds.rand  Rand'
-local pth = require'ds.path'
+local abs             = mty.from'ds.path  abs'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
 local push, pop = table.insert, table.remove
@@ -87,6 +88,7 @@ M.OS = ds.trim(G.OS or os.getenv'OS'
   or assert(B.sh'uname')):lower()
 
 function B.mkdir(dir)
+  dir = abs(dir)
   if B.exists(dir) then return false, M.EEXIST, dir..' exists' end
   local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
@@ -94,6 +96,7 @@ function B.mkdir(dir)
 end
 
 function B.rmdir(dir)
+  dir = abs(dir)
   local out_, _, sh_ = B.sh{'rmdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'rmdir failed', sh_:rc()
@@ -103,6 +106,7 @@ local DIR_CMD = 'find %s -maxdepth 1 '
   ..'\\( -type d -printf "%%p/\\n" ,'   -- print dir/
   ..   ' ! -type d -printf "%%p\\n" \\)'
 function B.dir(dir) --> iter[entry]
+  dir = abs(dir)
   if not pth.isDir(dir) then error('must be a dir/: '..dir) end
   local out, _, s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
   if s:rc() ~= 0 then return ds.noop end -- empty iter
@@ -114,11 +118,13 @@ function B.dir(dir) --> iter[entry]
 end
 
 function B.exists(path) --> bool
+  path = abs(path)
   local _out, _, s = B.sh{'test', '-e', path, rc=true}
   return s:rc() == 0
 end
 
 function B.pathtype(path)
+  path = abs(path)
   if not B.exists(path) then return nil, path..' does not exist' end
   local _out, _, s = B.sh{'test', '-d', path, rc=true}
   return (s:rc() == 0) and M.DIR or M.FILE
@@ -141,27 +147,37 @@ fd   = require'fd'
 fdType = fd.type
 fmodeName = fd.FMODE.name
 
+local l_mkdir, l_dir, l_rmdir, l_exists = mty.from(lib, 
+       'mkdir    dir    rmdir    exists')
+
 M.EEXIST = lib.EEXIST
 --- make a new directory, the parent must exist.
-M.mkdir = lib.mkdir --(dir)
+function M.mkdir(dir) --> ok, errno
+   return l_mkdir(abs(dir))
+end
 
 --- Stat object with mode() and modified() functions
 M.Stat = lib.Stat
 
 --- list entires in directory.
 function M.dir(dir) --> iter[entry]
-  return lib.dir(pth.canonical(dir))
+  return l_dir(abs(dir))
 end
 
 --- remove empty directory
-M.rmdir = lib.rmdir -- (path) --> ok, errmsg, errno
+function M.rmdir(path) --> ok, errmsg, errno
+  return l_rmdir(abs(path))
+end
 
 --- return whether path exists.
-M.exists = lib.exists -- (path) --> bool
+function M.exists(path) --> bool
+  return l_exists(abs(path))
+end
 
 --- return path type (i.e. M.FILE, M.DIR, etc).
 --- if path DNE then return (nil, errmsg).
 function M.pathtype(path) --> str?, err
+  path = abs(path)
   local stat, err = lib.stat(path)
   if not stat then return nil, err end
   return fmodeName(lib.S_IFMT & stat:mode())
@@ -219,7 +235,7 @@ end
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
 function M.ls(dir) --> list[str]
-  dir = pth.abs(dir)
+  dir = abs(dir)
   if not M.isDir(dir) then return dir end
   local d, f = {}, {} -- dirs, files
   for e, ftype in M.dir(dir) do
