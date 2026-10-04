@@ -329,26 +329,46 @@ T'commit'; do
   ctx:push{}; pth.cd(O)
 
   local ed = newEditor(s[[
-  +./foo.txt
-  +./bar/
-    + baz.txt
+  +./a_txt
+  +./a/
+    + b_txt
+    + stay
+  +a2/
   notCreated/
   ]])
   local e = ed.pane; local b = e.buf
   M.systemCommit(ed)
-  T.path('./', {
-    ['foo.txt'] = '',
-    bar = {
-      ['baz.txt'] = '',
-    },
-    notCreated = false,
-  })
+  
   T.eq(s[[
-  ./foo.txt
-  ./bar/
-    * baz.txt
+  ./a_txt
+  ./a/
+    * b_txt
+    * stay
+  a2/
   notCreated/
   ]], fmt(b.dat))
+  
+  T.path('./', {
+    a_txt = '',
+    a = {
+      b_txt = '',
+      stay  = '',
+    },
+    a2 = {},
+    notCreated = false,
+  })
+  
+  e:remove(1,100)
+  -- remove b2, b_txt. Force add b/c/c_txt
+  e:insert(s[[
+  -a2/
+  s/
+    * stay
+    - b_txt
+    + b2_txt
+    * b/
+      !+ c_txt
+  ]])
 
   ctx:pop()
 end

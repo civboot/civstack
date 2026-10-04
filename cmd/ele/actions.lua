@@ -670,7 +670,6 @@ local function _systemCommitChildren(e, b, l, ln, path)
   while true do
     local lnNxt = b:get(l)
     local indNxt, _, pathNxt = nav.getEntry(lnNxt)
-    dbg('* entry child %q %q %q', ind, indNxt, pathNxt)
     if not indNxt or #ind >= #indNxt then break end
     l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
   end
@@ -680,10 +679,10 @@ end
 --- Recursive systemCommit impl.
 --[[local]] function _systemCommit(e, b, l, ln, path)
   ::start::
-  dbg('_systemCommit:', ln)
   local f,a,d = M.commitOpts(ln)
   local lOut = l
   if a then
+    dbg('add', path)
     if pth.isDir(path) then
       log.info('creating dir: %q', path)
       if f then ix.mkDirs(path) else ix.mkDir(path) end
@@ -695,10 +694,9 @@ end
     if not ln:find'^%s' then -- focus, remove any prefixes
       local c1,c2 = ln:find'!?[+]?'; e:remove(l,c1, l,c2)
     else
-      e:remove(l,l)
       e:insert(ln:gsub('(%s+)!?[+]?(.*)', '%1*%2\n'), l,1)
+      e:remove(l+1,l+1); 
     end
-    
     return _systemCommitChildren(e, b, l, ln, path)
   elseif d then
     dbg('sc delete:', ln)

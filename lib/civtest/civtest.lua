@@ -178,7 +178,6 @@ M.pathEq = M.fileEq
 --- * table: recursively assert the subtree contents exist.
 --- * bool: (true)=assert existance, (false)=assert non-existance.
 function M.path(path, expect)
-  dbg('civtest path', path)
   if type(expect) == 'boolean' then
     if expect then M.exists(path) else M.notExists(path) end
     return
