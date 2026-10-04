@@ -692,7 +692,13 @@ end
       if f then ix.mkDirs( (pth.last(path)) ) end
       pth.write(path, '')
     end
-    local c1,c2 = ln:find'!?[-]?[+]?'; e:remove(l,c1, l,c2)
+    if not ln:find'^%s' then -- focus, remove any prefixes
+      local c1,c2 = ln:find'!?[+]?'; e:remove(l,c1, l,c2)
+    else
+      e:remove(l,l)
+      e:insert(ln:gsub('(%s+)!?[+]?(.*)', '%1*%2\n'), l,1)
+    end
+    
     return _systemCommitChildren(e, b, l, ln, path)
   elseif d then
     dbg('sc delete:', ln)

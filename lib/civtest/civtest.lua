@@ -154,6 +154,12 @@ function M.exists(path)
   )end
 end
 
+--- Assert that the path does not exist.
+function M.notExists(path)
+  path = pth.abs(path)
+  if require'civix'.exists(path) then error('exists: '..path)end
+end
+
 --- Assert the contents at the two paths are equal.
 function M.fileEq(a, b)
   local at, bt = pth.read(a), pth.read(b)
@@ -170,8 +176,13 @@ M.pathEq = M.fileEq
 --- Assert that path matches expect. Expect can be of type:
 --- * string: asserts the file contents match.
 --- * table: recursively assert the subtree contents exist.
+--- * bool: (true)=assert existance, (false)=assert non-existance.
 function M.path(path, expect)
   dbg('civtest path', path)
+  if type(expect) == 'boolean' then
+    if expect then M.exists(path) else M.notExists(path) end
+    return
+  end
   M.exists(path)
   if ctx.fileType(expect) then
     expect:seek'set'

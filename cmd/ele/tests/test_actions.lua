@@ -340,12 +340,14 @@ T'commit'; do
     ['foo.txt'] = '',
     bar = {
       ['baz.txt'] = '',
-    }
+    },
+    notCreated = false,
   })
   T.eq(s[[
   ./foo.txt
   ./bar/
     * baz.txt
+  notCreated/
   ]], fmt(b.dat))
 
   ctx:pop()
