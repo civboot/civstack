@@ -519,7 +519,8 @@ function nav.getPath(b, l,c) --> string
   return ln:sub(si,ei)
 end
 
---- find the last line of a focus or entry.
+--- Find the last line of a focus or entry.
+--- l+1 will be the line of the sibling.
 function nav.findEnd(b, l) --> linenum, maxChildInd
   local ln = b:get(l)
   local ind; if getFocus(ln) then ind = 0
@@ -666,11 +667,11 @@ end
 local _systemCommit
 local function _systemCommitChildren(e, b, l, ln, path)
   dbg('sc children', l, ln)
-  local dir, ind = pth.asDir(path), nav.getEntry(ln) or ''
+  local dir, ind = pth.asDir(path), getEntry(ln) or ''
   l = l + 1
   while true do
     local lnNxt = b:get(l)
-    local indNxt, _, pathNxt = nav.getEntry(lnNxt)
+    local indNxt, _, pathNxt = getEntry(lnNxt)
     if not indNxt or #ind >= #indNxt then break end
     l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
   end
@@ -715,12 +716,15 @@ end
     if isDir then
       log.info('rm dir: %q', path)
       if f then ix.rmRecursive(path) else ix.rmdir(path) end
+      e:remove(l, ( nav.findEnd(b, l) )) -- remove self and all children
+      return l
     else -- file
       log.info('rm file: %q', path)
       e:getEditor():removeBuffer(path, f) -- will not delete if open as buffer
       ix.rm(path)
     end
     e:remove(l,l) -- remove self
+    return l
   end
   return (l==lOut) and (l + 1) or lOut
 end
@@ -736,7 +740,7 @@ function M.systemCommit(ed, _ev)
   e:changeStart()
   local l = 1
   while l < #b do
-    local ln = b:get(l); local focus = nav.getFocus(ln)
+    local ln = b:get(l); local focus = getFocus(ln)
     dbg('systemCommit loop', l, ln, focus and true)
     if not focus then l = l + 1; goto cont end
     l = _systemCommit(e, b, l, ln, focus)

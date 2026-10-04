@@ -363,7 +363,7 @@ T'commit'; do
   e:remove(1,100)
   -- remove b2, b_txt. Force add b/c/c_txt
   e:insert(s[[
-  -a2/
+  -./a2/
   ./a/
     * stay
     - b_txt
@@ -372,6 +372,14 @@ T'commit'; do
       !+ c_txt
   ]])
   M.systemCommit(ed)
+  T.eq(s[[
+  ./a/
+    * stay
+    + b2_txt
+    * b/
+      * c_txt
+  ]], fmt(b.dat))
+
   T.path('./', {
     a2 = false,
     a_txt = '', -- unchanged
