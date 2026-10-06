@@ -425,6 +425,11 @@ M.save   = {action='edit', save=true, mode='command'}
 M.undo   = {action='edit', undo=true}
 M.redo   = {action='edit', redo=true}
 M.tmpBuf = {action='edit', focus='b#tmp'}
+
+--- Commit all [$! + -] file and dir operations in the nav
+--- mode. Insert [$+] before an entry to add it, [$-] to
+--- delete, [$!] forces either.
+--- [$-] will also delete a buffer (but not the file).
 M.systemCommit = {action='systemCommit'}
 
 --- CWD: current working directory
