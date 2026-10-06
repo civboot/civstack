@@ -373,9 +373,10 @@ T'commit'; do
   ]])
   M.systemCommit(ed)
   T.eq(s[[
+
   ./a/
     * stay
-    + b2_txt
+    * b2_txt
     * b/
       * c_txt
   ]], fmt(b.dat))
@@ -394,5 +395,3 @@ T'commit'; do
 
   ctx:pop()
 end
-
-ds.yeet'ok'

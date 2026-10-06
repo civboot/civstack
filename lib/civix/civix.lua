@@ -187,7 +187,9 @@ end -- END else NOLIB
 mkdir = M.mkdir
 
 --- remove file.
-M.rm = os.remove -- (path) --> nil
+function M.rm(path) --> ok, error
+  return os.remove(abs(path))
+end
 
 ds.update(M, {
   -- file types
@@ -525,6 +527,7 @@ local RM_FNS = {
   dirDone = function(p) assert(M.rmdir(p)) end,
 }
 --- Recursively (force) remove the directory and all children.
+--- Throw an error if any fail.
 function M.rmRecursive(path)
   if not M.exists(path) then return end
   M.walk({path}, RM_FNS, nil)

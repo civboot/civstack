@@ -666,7 +666,6 @@ end
 
 local _systemCommit
 local function _systemCommitChildren(e, b, l, ln, path)
-  dbg('sc children', l, ln)
   local dir, ind = pth.asDir(path), getEntry(ln) or ''
   l = l + 1
   while true do
@@ -675,7 +674,6 @@ local function _systemCommitChildren(e, b, l, ln, path)
     if not indNxt or #ind >= #indNxt then break end
     l = _systemCommit(e, b, l, lnNxt, pth.concat{dir, pathNxt})
   end
-  dbg('sc children return', l)
   return l
 end
 
@@ -683,10 +681,8 @@ end
 --[[local]] function _systemCommit(e, b, l, ln, path)
   ::start::
   local f,a,d = M.commitOpts(ln)
-  dbg('_systemCommit', l, ln, f, a, d) 
   local lOut = l
   if a then
-    dbg('add', path)
     if pth.isDir(path) then
       log.info('creating dir: %q', path)
       if f then ix.mkDirs(path) else ix.mkDir(path) end
@@ -698,12 +694,12 @@ end
     if not ln:find'^%s' then -- focus, remove any prefixes
       local c1,c2 = ln:find'!?[+]?'; e:remove(l,c1, l,c2)
     else
-      e:insert(ln:gsub('(%s+)!?[+]?(.*)', '%1*%2\n'), l,1)
+      ln = ln:gsub('(%s+)!?[*]?[+]?(.*)', '%1*%2\n')
+      e:insert(ln, l,1)
       e:remove(l+1,l+1); 
     end
     return _systemCommitChildren(e, b, l, ln, path)
   elseif d then
-    dbg('sc delete:', ln)
     -- Before we try to delete the entry, we commit any children.
     lOut = _systemCommitChildren(e, b, l, ln, path)
 
@@ -715,16 +711,18 @@ end
     end
     if isDir then
       log.info('rm dir: %q', path)
-      if f then ix.rmRecursive(path) else ix.rmdir(path) end
+      if f then ix.rmRecursive(path) else assert(ix.rmdir(path)) end
       e:remove(l, ( nav.findEnd(b, l) )) -- remove self and all children
       return l
     else -- file
-      log.info('rm file: %q', path)
+      log.info('rm file: %q', pth.canonical(path))
       e:getEditor():removeBuffer(path, f) -- will not delete if open as buffer
-      ix.rm(path)
+      assert(ix.rm(path))
     end
     e:remove(l,l) -- remove self
     return l
+  else
+    lOut = _systemCommitChildren(e, b, l, ln, path)
   end
   return (l==lOut) and (l + 1) or lOut
 end
@@ -741,11 +739,9 @@ function M.systemCommit(ed, _ev)
   local l = 1
   while l < #b do
     local ln = b:get(l); local focus = getFocus(ln)
-    dbg('systemCommit loop', l, ln, focus and true)
     if not focus then l = l + 1; goto cont end
     l = _systemCommit(e, b, l, ln, focus)
     ::cont::
-    dbg('sc loop end', l)
   end
 end
 
