@@ -205,28 +205,6 @@ function Editor:namedBuffer(name, path)
   return b
 end
 
--- FIXME: move next to :remove
---- Remove buffer from cache and close if it is part of any windows.
---- Does not delete the underlying file.
---- Will throw if the buffer has unsync'd changes and force=false.
-function Editor:removeBuffer(idOrPath, force)
-  local b = self:getBuffer(idOrPath); if not b then return end
-  local id = self.bufferId[b]
-  assert(not self.namedBuffers[id], 'removing named buffers not allowed')
-
-  if force or (b.v == b.lastDumpV) then
-    self.buffers[id], self.bufferId[b] = nil, nil
-  else
-    errorf('%s buffer has changes, use force=true to close', idOrPath)
-  end
-
-  local toRemove = {} -- windows to close
-  self:mapPanes(self.view, function(pane)
-    if rawget(pane, 'buf') == b then push(toRemove, pane) end
-  end)
-  for _, p in ipairs(toRemove) do self:remove(p) end
-end
-
 --- Call [$fn(pane)] for every [$ele.types.isPane] under view.
 function Editor:mapPanes(view, fn)
   if et.isPane(view) then return fn(view) end
@@ -308,6 +286,27 @@ function Editor:remove(v) --> v
   if self.pane == v then self.pane = nil end
   v.container = nil
   return v
+end
+
+--- Remove buffer from cache and close if it is part of any windows.
+--- Does not delete the underlying file.
+--- Will throw if the buffer has unsync'd changes and force=false.
+function Editor:removeBuffer(idOrPath, force)
+  local b = self:getBuffer(idOrPath); if not b then return end
+  local id = self.bufferId[b]
+  assert(not self.namedBuffers[id], 'removing named buffers not allowed')
+
+  if force or (b.v == b.lastDumpV) then
+    self.buffers[id], self.bufferId[b] = nil, nil
+  else
+    errorf('%s buffer has changes, use force=true to close', idOrPath)
+  end
+
+  local toRemove = {} -- windows to close
+  self:mapPanes(self.view, function(pane)
+    if rawget(pane, 'buf') == b then push(toRemove, pane) end
+  end)
+  for _, p in ipairs(toRemove) do self:remove(p) end
 end
 
 --- Focus the first edit view in container c (default self.view)

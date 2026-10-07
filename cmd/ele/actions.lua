@@ -739,13 +739,11 @@ function M.systemCommit(ed, _ev)
   local l = 1
   while l <= #b do
     local ln = b:get(l); local focus = getFocus(ln)
-    dbg('systemCommit loop', ln, focus and true)
     if focus then
       l = _systemCommit(e, b, l, ln, focus)
       goto cont
     end
     focus = nav.getBuffer(ln)
-    dbg('+ buffer? ', focus)
     if focus then
       local f,_,d = M.commitOpts(ln)
       if d then
