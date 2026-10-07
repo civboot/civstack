@@ -1,9 +1,11 @@
-local G = G or _G
+local mty = require'metaty'
+
 --------------------------------
 -- Unix Version Control Functions
 -- These shell out to unix for functionality instead of using civboot owned
 -- algorithms.
-local M = G.mod and mod'pvc.unix' or {}
+local M = mty.mod'pvc.unix'
+local G = mty.G
 
 local ix = require'civix'
 local pth = require'ds.path'
@@ -24,7 +26,7 @@ local EMPTY_DIFF = [[
 local function diffCheckPath(p, pl) --> p, pl
   if not p then return NULL, NULL end
   local st = ix.stat(p); if not st then
-    error(p..' is in .pvcpaths but does not exist')
+    error(p..' does not exist')
   end
   if st:size() == 0 then error(
     p..' has a size of 0, which patch cannot handle'

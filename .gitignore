@@ -3,6 +3,7 @@
 .pvc/
 .out/
 .elestate
+p/
 
 # TODO: remove this
 lua/

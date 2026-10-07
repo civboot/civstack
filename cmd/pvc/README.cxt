@@ -4,6 +4,15 @@
   to track (aka use [<#git>git and pvc together]).
 ]
 
+Changes: [+
+* remove pvcpaths. Use a running index instead. The index will be
+  *id:optional_hash/path/to/file_or_dir sorted by path.
+  where "*" has [$x if the file is executable, [$-] if the file is
+  deleted and [$+] if the file is added (it will nave no id if added)
+* index changes go in patch files below a special @@META
+* set modified time of files to the id they were modified in.
+]
+
 [{:h2 name=about}About]
 [*pvc] is a version control system similar to git or mercurial, but is ultra
 simple: branches are simply a [$base] followed by a set of unix patches with

@@ -12,6 +12,7 @@ local Iter = require'ds.Iter'
 local lap  = require'lap'
 local pth  = require'ds.path'
 
+local max             = mty.from'math     max'
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
 local Rand            = mty.from'ds.rand  Rand'
@@ -222,17 +223,20 @@ function M.stat(v) --> Stat?, errmsg?
   return lib.stat(fd.fileno(v))
 end
 
---- return whether two Stat's have equal modification times
-function M.statModifiedEq(fs1, fs2) --> boolean
-  local s1, ns1 = fs1:modified()
-  local s2, ns2 = fs2:modified()
+--- return whether two Stats have equal max(changed, modified) time.
+function M.statTimeEq(fs1, fs2)
+  local s1, ns1 = fs1:time()
+  local s2, ns2 = fs2:time()
   return (s1 == s2) and (ns1 == ns2)
 end
 
---- return whether two path|File|Stat have equal modification times
-function M.modifiedEq(a, b)
-  return M.statModifiedEq(M.stat(a), M.stat(b))
+--- return whether two path|File|Stat have equal max(changed, modified) time.
+function M.ftimeEq(a, b)
+  return M.statTimeEq(M.stat(a), M.stat(b))
 end
+
+function M.mtime(v) return M.stat(v):mtime() end
+
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
@@ -305,15 +309,32 @@ end
 --- 
 --- You can create your own octal with [$tonumber(s, 8)].
 ---
---- Combine with stat like: [{$$ lang=lua}
---- -- add executable bits to [$f].
---- ix.chmod(f, ix.stat(f):mode() | tonumber('111', 8))
---- ]$
+--- Use modmod, ormod or andmod for common mod operations.
 function M.chmod(f, p)
   if type(p) == 'string' then p = tonumber(p, 8) end
   local close; if type(f) == 'string' then f = ctx.open(f); close = true end
   fd.fchmod(fd.fileno(f), p)
   if close then f:close() end
+end
+
+--- Apply [$ix.chmod(f, fn(ix.stat(f):mode(), octal(p)))]
+function M.modmod(f, p, fn)
+  if type(p) == 'string' then p = tonumber(p, 8) end
+  local close; if type(f) == 'string' then f = ctx.open(f); close = true end
+  fd.fchmod(fd.fileno(f), fn(ix.stat(fd):mode(), p))
+  if close then f:close() end
+end
+
+function M.ormod(f, p)  
+  return M.modmod(f, p, function(m, p) return m | p end)
+end
+function M.andmod(f, p)
+  return M.modmod(f, p, function(m, p) return m & p end)
+end
+
+--- change executable bit.
+function M.chx(f, x)
+  if x then M.ormod(f,  '111') else M.andmod(f, '666') end
 end
 
 -------------------------------------

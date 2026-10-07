@@ -344,6 +344,11 @@ function M.pretty(v) return concat(Fmt:pretty{}(v)) end --> string
 --- Set to __fmt to format a type like a table.
 function M.table(tbl, fmter) return fmter:rawtable(tbl) end
 
+--- Notify to [$ctx.fmtlog] with a newline using normal format syntax.
+function M.notify(...)
+    ctx.fmtlog:styled('notify', M.format(...), '\n')
+end
+
 --- directly call fmt for better [$tostring]
 getmt(M).__call = function(_, v) return concat(Fmt{}(v)) end
 return M

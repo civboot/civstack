@@ -121,7 +121,7 @@ M.Target = freeze.freezy(pod(mty'Target' {
   'link {str: str}: link outputs from -> to',
   'tag [table]: arbitrary attributes like test, testonly, etc.',
   'run [str]: executable script which performs the operation kind.',
-  'mtime [ds.time.Epoch]: modified time of target and deps',
+  'mtime [ds.time.Epoch]: max(created, modified) time of target and deps',
   'id     [int]: id of this target. Populated for Worker.',
   'depIds {int}: list of dependency target ids. Populated for Worker.',
 }))
@@ -406,8 +406,8 @@ function M.Civ:tgtMod(tgt) --> ds.time.Epoch
   if tgt.mtime then return tgt.mtime end
   local mtime = Epoch(-1, 0)
   for _, src in pairs(tgt.src or EMPTY) do
-    local ftime = Epoch(ix.stat(tgt.dir..src):modified())
-    mtime = ds.max(mtime, ftime)
+    local st = Epoch(ix.stat(tgt.dir..src):time())
+    mtime = ds.max(mtime, st)
   end
   for _, dep in pairs(tgt.dep or EMPTY) do
     mtime = ds.max(mtime, self:target(dep).mtime)

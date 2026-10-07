@@ -1,0 +1,4 @@
+%.git/
+%.civ/
+%.out/
+%.gitignore

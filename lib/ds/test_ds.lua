@@ -166,6 +166,15 @@ T'number'; do
 
   T.eq(4, ds.max(1, 4))
   T.eq(3, ds.max(3, 2))
+
+  T.eq(1, ds.closest(-1, 1,5))
+  T.eq(1, ds.closest(0, 1,5))
+  T.eq(1, ds.closest(1, 1,5))
+  T.eq(1, ds.closest(2, 1,5))
+  T.eq(1, ds.closest(3, 1,5))
+  T.eq(5, ds.closest(4, 1,5))
+  T.eq(5, ds.closest(5, 1,5))
+  T.eq(5, ds.closest(6, 1,5))
 end
 
 T'str'; do

@@ -225,8 +225,9 @@ end
 ---   if shim.isMain(mycmd) then mycmd:main(G.arg) end
 --- ]$
 function M._main(Cmd, args)
+  M.runSetup(args or {})
+  dbg('_main Cmd=%q args=%q', Cmd, args)
   local self, err = Cmd:new(M.parse(args))
-  M.runSetup(self or {})
   assert(self, err)
   self()
 end

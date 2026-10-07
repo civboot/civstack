@@ -185,6 +185,31 @@ static int l_stat_modified(LS *L) {
   return 2;
 }
 
+// stat -> (sec, nsec)
+static int l_stat_changed(LS *L) {
+  STAT* st = *tolstat(L);
+  lua_pushinteger(L, st->st_ctim.tv_sec);
+  lua_pushinteger(L, st->st_ctim.tv_nsec);
+  return 2;
+}
+
+// max of changed and modified.
+// stat -> (sec, ns)
+static int l_stat_time(LS *L) {
+  STAT* st = *tolstat(L);
+  struct timespec t;
+  if(st->st_ctim.tv_sec != st->st_mtim.tv_sec) {
+    if(st->st_ctim.tv_sec > st->st_mtim.tv_sec)   t = st->st_ctim;
+    else                                          t = st->st_mtim;
+  } else {
+    if(st->st_ctim.tv_nsec > st->st_mtim.tv_nsec) t = st->st_ctim;
+    else                                          t = st->st_mtim;
+  }
+  lua_pushinteger(L, t.tv_sec);
+  lua_pushinteger(L, t.tv_nsec);
+  return 2;
+}
+
 // stat -> (size)
 static int l_stat_size(LS *L) {
   STAT* st = *tolstat(L);
@@ -354,6 +379,8 @@ int luaopen_civix_lib(LS *L) {
     lua_createtable(L, 0, 3); // __index table
       L_setmethod(L, "mode",     l_stat_mode);
       L_setmethod(L, "modified", l_stat_modified);
+      L_setmethod(L, "changed",  l_stat_changed);
+      L_setmethod(L, "time",     l_stat_time);
       L_setmethod(L, "size",     l_stat_size);
     lua_setfield(L, -2, "__index");
   lua_setfield(L, -2, "Stat");

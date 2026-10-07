@@ -45,7 +45,7 @@ FF.new = function(T, self) --> ff callable
   shim.popRaw(self, self.root)
   parseColons(self)
   if not self.hidden then table.insert(self.path, 1, '-/%.') end
-  
+
   self = mty.construct(T, self)
   if self.pathsub then
     self.content = false

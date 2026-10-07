@@ -16,6 +16,7 @@ local sfmt, sfind, srep  = mty.from(string, 'format,find,rep')
 local ulen, uoff         = mty.from(utf8,   'len,offset')
 local mathty, min, max   = mty.from(math,   'type,min,max')
 local floor, tointeger   = mty.from(math,   'floor, tointeger')
+local abs                = mty.from(math,   'abs')
 local Fmt, assertf       = mty.from'fmt      Fmt, assertf'
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
@@ -256,6 +257,11 @@ end
 --- Return the two passed-in values in sorted order.
 function M.sort2(a, b) --> (small, large)
   if a <= b then return a, b end; return b, a
+end
+
+--- Return the numerical value closest to v, preferring the a.
+function M.closest(v, a, b) --> a or b
+  return (abs(v - a) <= abs(v - b)) and a or b
 end
 
 ---------------------
@@ -1090,6 +1096,9 @@ end
 --- ]
 --- If you want a value perfectly equal then check equality
 --- on the resulting index.
+---
+--- By default (using cmt=lte) this will return the index just below
+--- [$v], e.g. [$bs({1, 2, 5}, 4) --> 2]
 function M.binarySearch(t, v, cmp, si--[[1]], ei--[[#t]]) --> index
   return _bs(t, v, cmp or lte, si or 1, ei or #t)
 end
