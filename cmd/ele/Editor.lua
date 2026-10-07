@@ -12,8 +12,8 @@ local et     = require'ele.types'
 local ff     = require'ff'
 local push, pop, concat = table.insert, table.remove, table.concat
 
-local info    = mty.from'ds.log  info'
-local assertf = mty.from'fmt     assertf'
+local info            = mty.from'ds.log  info'
+local assertf, errorf = mty.from'fmt     assertf, errorf'
 local min, max = math.min, math.max
 local sfmt = string.format
 
@@ -205,6 +205,7 @@ function Editor:namedBuffer(name, path)
   return b
 end
 
+-- FIXME: move next to :remove
 --- Remove buffer from cache and close if it is part of any windows.
 --- Does not delete the underlying file.
 --- Will throw if the buffer has unsync'd changes and force=false.
@@ -218,8 +219,19 @@ function Editor:removeBuffer(idOrPath, force)
   else
     errorf('%s buffer has changes, use force=true to close', idOrPath)
   end
+
+  local toRemove = {} -- windows to close
+  self:mapPanes(self.view, function(pane)
+    if rawget(pane, 'buf') == b then push(toRemove, pane) end
+  end)
+  for _, p in ipairs(toRemove) do self:remove(p) end
 end
 
+--- Call [$fn(pane)] for every [$ele.types.isPane] under view.
+function Editor:mapPanes(view, fn)
+  if et.isPane(view) then return fn(view) end
+  for _, v in ipairs(view) do self:mapPanes(v, fn) end
+end
 
 -- open path and focus. If already open then use existing buffer.
 function Editor:open(path) --> edit

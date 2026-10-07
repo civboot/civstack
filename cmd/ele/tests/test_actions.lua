@@ -393,5 +393,13 @@ T'commit'; do
     },
   })
 
+  e:remove(1,100)
+  e:insert(('!-b#%s'):format(b.id), 1,1)
+
+  T.eq(ed, e.container)
+  M.systemCommit(ed)
+  T.eq('', fmt(b.dat))
+  T.eq(nil, e.container)
+
   ctx:pop()
 end

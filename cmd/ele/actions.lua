@@ -446,8 +446,8 @@ M.DO_NAV = {
 function nav.getFocus(line)
   return line:match'^!?[-]?[+]?([.~]?/[^\n]*)'
 end
-function nav.getBuffer(line)
-  return line:match'^(b#%S+)'
+function nav.getBuffer(line) --> 'b#name'
+  return line:match'^!?[-]?(b#%S+)'
 end
 function nav.getEntry(line) --> (indent, kind, entry)
   local i, k, e = line:match'^(%s+)(!?[*+-])%s*([^\n]+)'
@@ -497,9 +497,9 @@ end
 --- If not an entry, try to find the path from the column.
 function nav.getPath(b, l,c) --> string
   local ln = b:get(l); local path, ind
-  local focus   = getFocus(ln);  if focus then return focus  end
-  local buf = nav.getBuffer(ln); if buf   then return buf    end
-  local i, _, e = getEntry(ln);  if not i then goto nonentry end
+  local focus   = getFocus(ln);      if focus then return focus  end
+  local buf     = nav.getBuffer(ln); if buf   then return buf    end
+  local i, _, e = getEntry(ln);      if not i then goto nonentry end
   path, ind = {e}, #i
 
   -- Scan up, adding entries with less indent to path.
@@ -737,10 +737,24 @@ function M.systemCommit(ed, _ev)
   local e = ed:edit(); local b = e.buf
   e:changeStart()
   local l = 1
-  while l < #b do
+  while l <= #b do
     local ln = b:get(l); local focus = getFocus(ln)
-    if not focus then l = l + 1; goto cont end
-    l = _systemCommit(e, b, l, ln, focus)
+    dbg('systemCommit loop', ln, focus and true)
+    if focus then
+      l = _systemCommit(e, b, l, ln, focus)
+      goto cont
+    end
+    focus = nav.getBuffer(ln)
+    dbg('+ buffer? ', focus)
+    if focus then
+      local f,_,d = M.commitOpts(ln)
+      if d then
+        ed:removeBuffer(focus, f)
+        e:remove(l,l)
+        goto cont
+      end
+    end
+    l = l + 1
     ::cont::
   end
 end
