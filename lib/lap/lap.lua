@@ -175,7 +175,6 @@ M.Send = mty'Send'{'_recv[Recv]'}
 getmetatable(M.Send).__call = function(T, recv)
   return mty.construct(T, { _recv=assert(recv, 'missing Recv') })
 end
-M.Send.__mode = 'kv'
 --- Close this sender. Will also awaken the receiver coroutine.
 M.Send.close = function(send)
   local r = send._recv; if r then
@@ -425,7 +424,7 @@ function M.Lap:execute(cor, note) --> errstr?
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   if status(cor) == 'dead' then
-    log.warn('coroutine %q (fn=%q) is dead but someone tried resume it. Traceback:\n  %s',
+    log.warn('coroutine %q (fn=%q) is dead and cannot be resumed. Traceback:\n  %s',
              cor, LAP_CORS[cor],
              table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
     return
@@ -450,7 +449,7 @@ function M.Lap:__call()
       local err = self:execute(cor, note)
       if err then
         errors = errors or {}
-        err = fmt(LAP_CORS[cor] or '(?fn?)')..err
+        Error.msg = (Error.msg or '')..fmt(LAP_CORS[cor] or '(?fn?)')
         push(errors, Error:from(err, cor))
       end
     end
