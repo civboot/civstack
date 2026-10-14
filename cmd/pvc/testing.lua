@@ -2,6 +2,7 @@ local mty   = require'metaty'
 
 local T   = require'civtest'
 local pth = require'ds.path'
+local ix   = require'civix'
 local pvc  = require'pvc'
 local repo = require'pvc.repo'
 local snap = require'pvc.snap'
@@ -35,12 +36,14 @@ end
 function pT.Harness:test(cfg)
   local name, rev, brs, fn = table.unpack(cfg)
   T(name)
-  local r = repo.Repo{w=self.out..name)
+  local r = repo.Repo{w=self.out..name}
   ix.rmRecursive(r.w)
   r:pvc{'init'}
+  ix.rmRecursive(r.r..'@main/'); ix.rm(r.w..'.pvcignore')
   for br, dir in pairs(brs) do
     r:pvc{'pull', br, self.branches..dir}
   end
+  r:pvc{'at', rev}
   fn(r)
 end
 

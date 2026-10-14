@@ -1,17 +1,6 @@
 [$pvc <cmd>]: patch version control command line utility.
-["NOTICE: pvc now works but will have bugs and the API is subject to change.
-  Use at your own risk and always back up work that you are using pvc
-  to track (aka use [<#git>git and pvc together]).
-]
 
-Changes: [+
-* remove pvcpaths. Use a running index instead. The index will be
-  *id:optional_hash/path/to/file_or_dir sorted by path.
-  where "*" has [$x if the file is executable, [$-] if the file is
-  deleted and [$+] if the file is added (it will nave no id if added)
-* index changes go in patch files below a special @@META
-* set modified time of files to the id they were modified in.
-]
+["NOTICE: currently re-writing, not functional.]
 
 [{:h2 name=about}About]
 [*pvc] is a version control system similar to git or mercurial, but is ultra
@@ -20,44 +9,20 @@ incrementing id. The only fundamental disadvantage (or advantage) of using pvc
 instead of git is that pvc supports only fast-forward merges, which are the
 cleanest and simplest to understand.
 
+
 [{h2 name=basic}Basic Operation]
-The [$pvc] command works very similar to git:[+
-* [<#init>initialize your repo] with [@pvc.init].
-* Whenever you have modified files you add them to
-  [$.pvcpaths] (so they are tracked) and commit them
-  to the current branch with [@pvc.commit].
-* When doing experimental changes, you create a branch
-  with [@pvc.branch].
-* When you are ready to merge changes from your dev branch
-  onto your main branch:[+
-  * [@pvc.squash] the changes to a single commit (or a few
-    commits).
-  * [@pvc.rebase] so your branch's base is the same as main.
-  * [@pvc.grow] to merge the changes in.
-  ]
-]
-["In the future civstack will offer tutorials for using
-  all the development tools.
-]
-[{h2 name=init}Initiaize your pvc repo]
-["You may also want to see [<#git>] to use git for backups]
-
-With [$civ install .#] you will have pvc installed.
-
-To track an existing directory:[+
-* [$cd path/to/your/project] to navigate to your project
-
-* [$pvc init] to initialize pvc
-
-* [$pvc diff --paths] shows what paths pvc wants to track. Add any path
-  prefixes you don't want tracked to [$.pvcignore].
-
-* [$pvc diff --paths >> .pvcpaths] will update non-ignored paths.
-  Alternative, edit the file manually to add the paths you want
-  tracked.
-
-* [$pvc commit -- initial pvc commit] will commit your changes to
-  [$.pvc/main/commit/.../1.p].
+The [$pvc] command works very similar to git. Use [$pvc --help] to get
+a full list of available commands. Below are the major ones: [+
+* [*init]: initialize your repo. Be sure to edit [$.pvcignore] with
+  line-separated lua patterns to ignore.
+* [*commit "description"]: commit the current state, creating a
+  patch file in the current branch.
+* [*status]: get the current status of your local working tree.
+* [*at branch@id]: checkout a revision.
+* [*branch "name"]: create a new branch.
+* [*squash] for local cleanup, [*rebase] for including changes
+  from your base branch, [*graft] for merging changes into
+  another branch.
 ]
 
 [{:h3}pvcignore]
@@ -77,162 +42,40 @@ directories. A common pvc ignore file might look like:
 %./path/to/some_binary
 ]$
 
-[{h3 name=git}Use with git]
-pvc is still in early development, so there is no hosting service which
-ergonomically supports backing-up development. The following is how pvc
-(and civstack) itself is developed and seems to work well.
+[{:arch h2}Architecture]
+As the name implies, pvc is patch-based version control.
 
-Basically, we are going to have two git repositories. I will use
-civstack as the example:[+
-* [<https://github.com/civboot/civstack>]: your "main" one that hosts your released
-  versions and documentation. This should NOT contain any [$.pvc/] files (but
-  should contain i.e.  [$.pvcpaths]).
+A branch is a [$@branch/] dir inside the local [$.pvc/] with a base and a series
+of numbered patch files in [$rev/], e.g 01.p, 02.p, etc. A branch also has
+a [$tip] file with the current tip id.
 
-* [<https://github.com/vitiral/civstack.pvc/commits/main/>]: is literally the git
-  repository for your [$.pvc/] directory. While developing we can push
-  commits/branches/whatever here.
+Commits are performed by diffing from the previous snapshot, creating the patch
+file.
+
+Snapshots are created by applying patch files in either forward/reverse to an
+existing snapshot, with the "zero" snapshot being an empty directory.
+
+Any other modification to a branch (e.g squash, rebase, etc) use a simple state
+machine: [+
+* a special [$.branch/] directory is created for the branch and any that depend
+  on it.
+* an [$@.branch/ops] (operations) file is created inside each with the exact 
+  operations that need to be performed (in reverse order) to end up at the
+  intended state.
+* [$pvc fix] automatically attempts to fix all [$@.branches/] from their root to
+  their tip, starting at the base (or whichever is specified).
 ]
 
-[*First], put [$.pvc/] in your main repo's [$.gitignore]
-[$$
-echo .pvc >> .gitignore
-]$
+For an example of the above, to rebase (change the base), the .branch's base
+will have the new base id and the ops file will be a series of cherry picks from
+the original branch's id 1 to it's tip. Splits cherry pick specific files,
+dropped commits are simply skipped cherry picks, inserting a commit is cherry
+picking between two commits, etc. Any merge conflicts stop the process, which
+the user needs to fix and commit and then run [$pvc fix] again.
 
-[*Second], follow the [<#init>] section above. This should include adding
-all your files to pvc and making your first pvc commit.
-
-[*Third], [$cd .pvc/] and create your git repository [,inside the .pvc/
-directory]. This will literally track your patch files themselves. Use the
-following as your [$.pvc/.gitignore]. You may also want to add a [$README.md]
-directing folks to your main git repo.
-[$$
-# .pvc/.gitignore
-**/*.snap/
-backup/
-]$
-
-Finally, add the following to your [$.bashrc]
-[{$$ lang=sh}
-# Note: you must also have pvc aliased
-function pvcp() {
-  desc="$(pvc at): $(pvc desc --full)"
-  (cd .pvc/ &&
-    git add ./ &&
-    git commit -am "$desc" &&
-    git push origin main)
-}
-]$
-
-Now you can hack using [$pvc commit] etc and push to your [$repo.pvc] by
-simply calling [$pvcp]. Your git commit log will be your current [$at]
-location followed by the commit message. When you want to push your
-documentation or releases to git, simply do so -- your main commit log
-won't be polluted by commiting pvc files.
-
-[{h1 name=arch}Architecture]
-This architecture is given both so users can debug or fix any errors as well as
-to make it easier to create other implementations of pvc (i.e. in bash).
-
-
-pvc is composed of the following components: [+
-* [*repo]: the pvc repo (repository) is stored in the [$.pvc/] directory inside of
-  a [*project]. It contains directories (which are the branches) and the plaintext file
-  [$at] which defines the "current commit" as a [*commit reference] (i.e. [$branch#123]).
-  Additionally it contains: [+
-  * [$backup/] directory, which contain [$name-<epochsec>/] directories for backups. In
-    general, pvc should not delete things but should instead move things to a backup
-    directory, reporting these operations to the user (and possibly a log file as well).
-  ]
-
-* [*pvcpaths] is the project-local [$.pvcpaths] file which contains a
-  newline-separated list of project-relative paths.  This is used by pvc to
-  determine which paths are tracked. It's contents are tracked as a normal file
-  (it is included in the patch diff).
-
-* [*branch]: a branch is a directory inside the repo (i.e. [$.pvc/main/]). It
-  contains the [$commit/] directory (described in [*commit]) and the plain-text files:
-  [+
-  * [*base]: contains [$branch#123]. This file is not present if the branch is
-    the trunk.
-  * [*tip]: contains an ascii decimal number, representing the last commit id.
-  ]
-
-* [*branch (action)]: to "create a branch" means to create a new directory
-  inside [$.pvc/] and initialize it with the proper [$base] and [$tip] files.
-  The base branch must already exist.
-
-* [*commit (noun)]: refers to a single patch file (i.e. [$.pvc/branch/commit/.../123.p]). [+
-  * The length of [$commit/.../] is stored in [$commit/depth] which is an ascii
-    decimal number, always divisible by 2. Each sub-directory has exactly two
-    digits. For instance, a depth of 4 would store [$12.p] in
-    [$commit/00/00/12.p] and store [$123456.p] in [$12/34/123456.p].
-
-  * [*description]: the top of the patch file (before the first unidiff)
-    contains a plain-text description of the commit.
-
-  * [*diffs]: the rest of the patch file contains a series of file differences
-    from the previous patch version in the [@unidiff] (aka [$diff -u]) format.
-
-  * [*commit] is often shorthand for the [$commit reference] (i.e.
-    [$branch#123]), which refers uniquely to a specific branch and patch file
-    or snapshot directory.
-  ]
-
-* [*commit (action)]: "making a commit" means to take the difference of the
-   current directory and store it as a patch file in the branch's [$commit/]
-   directory.
-
-* [*snapshot]: a snapshot is the local directory state at a specific commit. It
-  is a directory which uses the extension [$.snap/] inside of the [$commit/]
-  directory, i.e. [$commit/00/123.snap/].
-
-* [*checkout (action)]: to "checkout a commit" means to make the local project
-  directory the same as the commit. This is performed by finding the closest
-  [*snapshot] and applying commit patches (either forwards or backwards) in
-  order to make the snapshot reflect the commit's state.
-
-* [*rebase (action)]: to "rebase a branch" means to increase the id of it's
-  [*base]. This is accomplished by making a copy of the new id's snapshot and
-  repeatedly applying the unix [$merge] command (or equivalent) on each change,
-  using the copied snapshot as [$to] and incrementing the [$base] along the
-  change patches. Each new [$patch] file should be stored, incrementing from
-  the base. [+
-
-  * the software should detect if conflicts are unresolveable and exit, telling the
-    user how to fix them. The software should be able to resume the rebase once
-    the conflicts are resolved.
-
-  * For example, the reference implementation creates a new branch called
-    [$branch__rebase] to perform this action. When calling rebase, it first
-    checks for this branch and attempts to resume from it. On failure,
-    it tells the user where the failing files that need to be fixed are
-    located.
-
-  * when the rebase is complete, the old branch should be moved to [$.pvc/backup]
-    then replaced with the rebased version.
-  ]
-
-* [*merge]: merges a branch onto another one. The branch must already be
-  rebased to the tip (also called a "fast forward merge"), so this is literally
-  just copying the patch files and incrementing the [*tip].
-
-* [*squash]: combines multiple commits into one, moving larger commits down.
-  The descriptions should be concatenated, and can be edited separately by the
-  user.
-
-* [*export]: simply copies a [*branch] without it's snapshot directories to a
-  separate directory, which can be sent to a maintainer to be merged.
-]
-
-[{h2}Other Operations]
-Other operations, such as showing commit messages or ammending a commit, are
-not defined explicitly, but you can see the reference implementation for
-details. Typically their implementation is either straightforward or can be
-performed by variations of the above operations.
-
-Also, operations which mutate the meaning of a commit (such as squash or
-rebase) should check to make sure that no branches depend on the branch being
-mutated.
+The entire [$.pvc] directory is tracked by a hidden [$@.META] branch as a single
+series of patches, allowing the user to (soft) reset to a previous repo state at
+any time.
 
 [{! :href=https://en.wikipedia.org/wiki/Diff#Unified_format}unidiff]
 [{! :href=https://en.wikipedia.org/wiki/Tar_(computing)}tarball]

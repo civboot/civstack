@@ -32,6 +32,7 @@ local pu    = require'pvc.unix'
 local snap  = require'pvc.snap'
 local repo  = require'pvc.repo'
 
+local str                  = tostring
 local srep, sfmt, sconcat  = mty.from(string, 'rep, format, concat')
 local push, concat         = mty.from(table,  'insert, concat')
 local construct            = mty.from'metaty   construct'
@@ -89,6 +90,15 @@ function pvc.diff:__call() --> diff.Diff
   return diff
 end
 
+--- Usage: [$pvc apply path/to/patch.p...]
+--- Apply a series of patches
+pvc.apply = mty.extend(Base, 'apply', {
+  'exclude {path}: paths to exclude',
+})
+function pvc.apply:__call()
+  local exclude = ds.Set(self.exclude or {snap.PVCINDEX})
+end
+
 --- Usage: [$pvc commit 'message' -- specific/paths to/commit][{br}]
 --- Commit local changes to the current branch, creating
 --- a new id.
@@ -122,22 +132,7 @@ function pvc.at:__call()
   local w, r, f = self.work_tree, self.__repo, self.force
   local rev = f and (self[1] or r:at()) or self[1]
   if not rev then ctx.stdout:write(r:at(), '\n'); return end
-  local s1, s2 = r:localsnap(), r:snapshot(rev)
-  local i1, i2 = s1:index(), s2:index()
-  local copy, block = {}, {}
-  for _, p2 in ipairs(i2) do
-    local p1 = i1[i1[p2.p]]
-    if not p1 then push(copy, p2); goto cont end
-    local path1 = s1.root..p1.p
-    if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
-       or ix.pathEq(path1, s2.root..p2.p)
-    then goto cont end -- already equal, skip
-    if f then push(copy, p2) else push(block, p2) end
-    ::cont::
-  end
-  if #block > 0 then errorf('paths are modified:\n%s', concat(block)) end
-  for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, w..p.p) end
-  notify('now at %s', rev)
+  r:setAt(rev, f)
 end
 
 --- Usage: [$pvc upload branchName path/to/dir]
@@ -174,17 +169,21 @@ function pvc.pull:__call()
   notify('pulled %s from %s', br, d)
 end
 
---- Usage: [$$pvc tip [branch=current]]$[{br}]
+--- Usage: [$$pvc tip [branch]]$[{br}]
 --- Get the tip id of branch.
 pvc.tip = mty.extend(Base, 'tip', {})
+function pvc.tip:__call()
+  local r = self.__repo
+  ctx.stdout:write(str(r:tip(self[1] or r:splitRev'at')), '\n')
+end
 
---- Usage: [$$pvc branch name [from=current]]$[{br}]
+--- Usage: [$$pvc branch name [from]]$[{br}]
 --- Start new branch [$name] branching off of [$from].
----
---- If [$from] is a [$path/to/dir] then it will graft
---- those changes into the local repo as the named [$branch].
---- (often used by maintainers to accept patches).
 pvc.branch = mty.extend(Base, 'branch', {})
+function pvc.branch:__call()
+  local r = self.__repo
+  r:newBranch(self[1], self[2] or 'at')
+end
 
 --- Usage: [$$pvc show [branch#id] --before=10]$[{br}]
 --- Show the commits before/after [$branch#id].[{br}]

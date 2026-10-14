@@ -116,7 +116,7 @@ function Repo:index()
 end
 
 --- Get rev (br@id) the repo is currently at.
-function Repo:at() return pth.read(self.atPath) end --> rev
+function Repo:at() return ds.trim(pth.read(self.atPath)) end --> rev
 function Repo:_setAt(rev)
   pth.write(self.atPath, rev)
 end
@@ -198,6 +198,7 @@ end
 --- Initialize a new branch.
 --- This handles both initial base=nil, id=0 and from base.
 function Repo:newBranch(name, baseRev) --> ../branch/
+  assert(name, 'must specify new branch name')
   assert(not repo.RESERVED_NAMES[name], 'reserved branch name: %q', name)
   assert(name:find'^[%w._]+$',          'invalid branch name: %q', name)
   local dir = self:bdir(name)
@@ -211,6 +212,8 @@ function Repo:newBranch(name, baseRev) --> ../branch/
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
+  self:_setAt(asRev(name, baseId or 0))
+  notify('created branch %s from %s: %s', name, baseRev, pth.nice(dir))
   return dir
 end
 
@@ -262,8 +265,10 @@ function Repo:snapshot(rev) --> Snap, rev
   if id == 0 then return self:snapshot0(br), rev end
   local brDir= self:bdir(br)
   -- check base
+  dbg'snapshot getting base'
   local brev = self:base(br)
   local bbr,bid = self:splitRev(brev)
+  dbg('base is', brev, bbr, bid)
   -- if the id is part of base then return that instead
   if id <= bid then return self:snapshot(asRev(bbr,id)) end
 
@@ -369,13 +374,25 @@ function Repo:commit(desc, diff) --> rev2
   notify('commited %s in %s', rev2, pfinal)
 end
 
-function Repo:setAt(nbr, nid)
-  local cbr,cid = self:at()
-  local ndir = self:bdir(cbr); nid = nid or self:tip(ndir)
-  trace('at %s@%i -> %s@%i', cbr, cid, nbr, nid)
-
-  local csnap = self:snapshot(cbr,cid)
-  -- FIXME: finish from pvc.atId
+function Repo:setAt(rev, force)
+  local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
+  local i1, i2 = s1:index(), s2:index()
+  local copy, block = {}, {}
+  for _, p2 in ipairs(i2) do
+    local p1 = i1[i1[p2.p]]
+    if not p1 then push(copy, p2); goto cont end
+    local path1 = s1.root..p1.p
+    if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
+       or ix.pathEq(path1, s2.root..p2.p)
+    then goto cont end -- already equal, skip
+    if f then push(copy, p2) else push(block, p2) end
+    ::cont::
+  end
+  if not force and #block > 0
+    then errorf('paths are modified:\n%s', concat(block))
+  end
+  for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
+  notify('now at %s', rev)
 end
 
 return repo

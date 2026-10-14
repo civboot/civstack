@@ -209,10 +209,10 @@ M.DirsEq = mty'DirsEq' {
   'ignore {path: true}: paths/dirs to ignore',
 }
 getmetatable(M.DirsEq).__call = function(T, self)
-  self.d1, self.d2 = pth.toDir(d1), pth.toDir(d2)
+  self.d1, self.d2 = pth.toDir(self.d1), pth.toDir(self.d2)
   self.paths1, self.paths2 = {}, {}
   self.diff = {}
-  self.ignore = ds.Set(self.ignore or {})
+  self.ignore = self.ignore
   return mty.construct(T, self)
 end
 
@@ -221,6 +221,7 @@ function M.DirsEq:__call(dir)
   local l1, l2 = BiMap(ix.ls(self.d1..dir)), BiMap(ix.ls(self.d2..dir))
   for _, e1 in ipairs(l1) do
     local p = dir..e1;    if self.ignore[p] then goto cont end
+    dbg('e1', e1, p, self.ignore, self.ignore[p])
     self.paths1[p] = true
     if not l2[e1] then push(self.diff, p); goto cont end
     self.paths2[p] = true
@@ -235,8 +236,9 @@ end
 
 --- Assert two dirs are recursively equal.
 function M.dirs(expect, result, ignore)
+  dbg('T.dirs', expect, result, ignore)
   local d = M.DirsEq{d1=expect, d2=result, ignore=ignore}
-  d(); if #d.diff == 0 then return end
+  d''; if #d.diff == 0 then return end
   local d1, d2, f = d.d1, d.d2, ctx.fmtlog
   for _, p in ipairs(d.diff) do
     if not d.paths1[p] or not d.paths2[p] then goto cont end

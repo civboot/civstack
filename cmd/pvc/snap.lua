@@ -98,6 +98,7 @@ end
 snap.Path = mty'Path' {
   'c [bool]: created',
   'd [bool]: deleted',
+  'm [bool]: modified',
   'x [bool]: executable',
   'mtime [int]: modification time',
   'id [int]: last id modified in',
@@ -106,7 +107,7 @@ snap.Path = mty'Path' {
 Path = snap.Path
 
 function Path:__tostring() return concat{
-  self.c and '+' or '', self.d and '-' or '', 
+  self.c and '+' or '', self.d and '-' or '',  self.m and '*' or '',
   self.x and 'x' or '', self.mtime or '',
   ':', self.id or '', '/', self.p,
 }end
@@ -121,12 +122,14 @@ function Path:updateId(id) --> Path
 end
 
 local function strNil(s) return (s~='') and true or nil end
+
+--- Create Path from string.
 function Path.from(T, str)
   local attrs, p = pfirst(str)
   local attrs = splitList(attrs, ':')
-  local c, d, x, mtime = attrs[1]:match'([+]?)([-]?)(x?)(%d*)'
+  local m, c, d, x, mtime = attrs[1]:match'([*]?)([+]?)([-]?)(x?)(%d*)'
   return mty.construct(T, {
-    c = strNil(c), d = strNil(d), x = strNil(x),
+    m=strNil(m), c = strNil(c), d = strNil(d), x = strNil(x),
     mtime = int(mtime), id = int(attrs[2]), p = p, 
  })
 end

@@ -2,6 +2,7 @@
 local pvc = require'pvc'
 local repo = require'pvc.repo'
 local snap = require'pvc.snap'
+local pT = require'pvc.testing'
 local T = require'civtest'
 local mty = require'metaty'
 local ds = require'ds'
@@ -17,6 +18,8 @@ local pc = pth.concat
 local s = ds.simplestr
 
 ix.rmRecursive(D)
+
+local H = pT.Harness{branches=TD, out=D}
 
 -----------------------------
 -- REPO
@@ -97,3 +100,17 @@ T'trimPatch'; do
   T.eq(M1_PVCINDEX..M1_PVCIGNORE, tp(p1, {}))
   T.eq(M1_PVCIGNORE,              tp(p1, {PVCINDEX=1}))
 end
+
+local SKIP = {['.pvc/']=1, PVCINDEX=1}
+
+H:test{'main', 'main@2', {main = 'main/'},
+function(r)
+  T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE..'%.gitignore')
+  T.path(r.w..'num.txt',    'zero\nfifty\none hundred')
+  T.dirs(r.w, r:snapPath'main@2', SKIP)
+end}
+
+H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
+function(r)
+  -- r:pvc{'apply', H:patch'upper@3'}
+end}
