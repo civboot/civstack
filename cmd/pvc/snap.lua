@@ -18,12 +18,12 @@ local push, pop, concat    = mty.from'table    insert, remove, concat'
 local sort                 = mty.from'table    sort'
 local int                  = mty.from'math     tointeger'
 local assertf              = mty.from'fmt      assertf'
-local splitList            = mty.from'ds       splitList'
+local get, set, splitList  = mty.from'ds       get, set, splitList'
 local info, trace          = mty.from'ds.log   info, trace'
 local toDir, pconcat, nice = mty.from'ds.path  toDir, concat, nice'
 local pfirst               = mty.from'ds.path  first'
 
-local Path
+local Path, Diff, Snap
 
 snap.PVC      = '.pvc/'
 snap.PVCINDEX = 'PVCINDEX'
@@ -73,67 +73,26 @@ function snap.loadDirAsIndex(dir) --> {Path}
   return paths
 end
 
------------------------------------
--- Diff
--- TODO: move this below Snap
-
---- [$Diff:of(dir1, dir2)] returns what changed between two pvc dirs.
-snap.Diff = mty'Diff' {
-  'dir1 [path]', 'dir2 [path]',
-  'equal   {path}',
-  'changed {path}',
-  'deleted {path}',
-  'created {path}',
-}
-local Diff = snap.Diff
-
---- Return a copy with [$equal={}].
-function Diff:reduced() --> Diff
-  return mty.construct(getmetatable(self), {
-    equal={},             changed=self.changed,
-    deleted=self.deleted, created=self.created,
-  })
-end
-
-function Diff:hasDiff()
-  return (#self.changed > 0) or (#self.deleted > 0) or (#self.created > 0)
-end
-
-function Diff:format(fmt, full)
-  local function s(...) return fmt:styled(...) end
-  if full then
-    for _, line in ds.split(self:patch(), '\n') do
-      local l2 = line:sub(1,2)
-      if l2 == '--' or l2 == '++' or l2 == '@@' then s('notify', line, '\n')
-      elseif line:sub(1,1) == '-' then s('base',   line, '\n')
-      elseif line:sub(1,1) == '+' then s('change', line, '\n')
-      else fmt:write(line, '\n') end
+--- Remove patch prefix (description) and exclude any paths in exclude set.
+function snap.trimPatch(patch, exclude, out) --> {lines}
+  out, exclude = out or {}, exclude or EMPTY
+  local i, patch, path = 0, lines(patch), nil
+  while i < #patch do; i = i + 1
+    local ln = get(patch, i); if ln == '' then goto cont end
+    local s3 = ln:sub(1,3)
+    if s3 == '---' then
+      -- get path, if /dev/null get next line's path.
+      path = ln:match'^%-%-%-%s*(.*)'; if path == '/dev/null' then
+        path = assert(get(patch,i+1):match'^%+%+%+%s*(.*)')
+      end
     end
-  else
-    if not self:hasDiff() then return s('bold', 'No Difference', '\n') end
-    s('bold', 'Diff:', ' ', self.dir1, ' --> ', self.dir2, '\n')
-    for _,path in ipairs(self.deleted) do s('base',   '-'..path, '\n') end
-    for _,path in ipairs(self.created) do s('change', '+'..path, '\n') end
-    for _,path in ipairs(self.changed) do s('notify', '~'..path, '\n') end
-  end
-end
-
-function Diff:patch() --> patchText
-  local d1, d2, patch = self.dir1, self.dir2, {}
-  for _, path in ipairs(self.changed) do
-    push(patch, pu.diff(d1..path.p, path.p, d2..path.p, path.p))
-  end
-  for _, path in ipairs(self.created) do
-    push(patch, pu.diff(nil, nil, d2..path.p, path.p))
-  end
-  for _, path in ipairs(self.deleted) do
-    push(patch, pu.diff(d1..path.p, path.p))
-  end
-  return concat(patch, '\n')
+    if path and not exclude[path] then set(out, #out+1, ln) end
+  ::cont:: end
+  return out
 end
 
 -----------------------------------
--- Snap
+-- Path
 
 --- Object in index files in form [$(+-x)(mtime):(id)/p]
 snap.Path = mty'Path' {
@@ -178,12 +137,15 @@ function Path:noMTime() --> Path
   return p
 end
 
+-----------------------------------
+-- Snap
+
 --- A snapshot with a set of indexed paths.
 snap.Snap = mty'Snap' {
   'root  [path]: path to root dir',
   '_index {Path}: loaded index of paths in order, also keyed path->index',
 }
-local Snap = snap.Snap
+Snap = snap.Snap
 
 getmetatable(Snap).__call = function(T, self)
   self.root  = assert(self.root or pop(self, 1), 'must provide root')
@@ -242,6 +204,64 @@ function Snap:diff(s2) --> Diff
     dir1=r1, dir2=r2,
     equal=equal, changed=changed, deleted=deleted, created=created,
   }
+end
+
+-----------------------------------
+-- Diff
+
+--- [$Diff:of(dir1, dir2)] returns what changed between two pvc dirs.
+snap.Diff = mty'Diff' {
+  'dir1 [path]', 'dir2 [path]',
+  'equal   {path}',
+  'changed {path}',
+  'deleted {path}',
+  'created {path}',
+}
+Diff = snap.Diff
+
+--- Return a copy with [$equal={}].
+function Diff:reduced() --> Diff
+  return mty.construct(getmetatable(self), {
+    equal={},             changed=self.changed,
+    deleted=self.deleted, created=self.created,
+  })
+end
+
+function Diff:hasDiff()
+  return (#self.changed > 0) or (#self.deleted > 0) or (#self.created > 0)
+end
+
+function Diff:format(fmt, full)
+  local function s(...) return fmt:styled(...) end
+  if full then
+    for _, line in ds.split(self:patch(), '\n') do
+      local l2 = line:sub(1,2)
+      if l2 == '--' or l2 == '++' or l2 == '@@' then s('notify', line, '\n')
+      elseif line:sub(1,1) == '-' then s('base',   line, '\n')
+      elseif line:sub(1,1) == '+' then s('change', line, '\n')
+      else fmt:write(line, '\n') end
+    end
+  else
+    if not self:hasDiff() then return s('bold', 'No Difference', '\n') end
+    s('bold', 'Diff:', ' ', self.dir1, ' --> ', self.dir2, '\n')
+    for _,path in ipairs(self.deleted) do s('base',   '-'..path, '\n') end
+    for _,path in ipairs(self.created) do s('change', '+'..path, '\n') end
+    for _,path in ipairs(self.changed) do s('notify', '~'..path, '\n') end
+  end
+end
+
+function Diff:patch() --> patchText
+  local d1, d2, patch = self.dir1, self.dir2, {}
+  for _, path in ipairs(self.changed) do
+    push(patch, pu.diff(d1..path.p, path.p, d2..path.p, path.p))
+  end
+  for _, path in ipairs(self.created) do
+    push(patch, pu.diff(nil, nil, d2..path.p, path.p))
+  end
+  for _, path in ipairs(self.deleted) do
+    push(patch, pu.diff(d1..path.p, path.p))
+  end
+  return concat(patch, '\n')
 end
 
 return snap

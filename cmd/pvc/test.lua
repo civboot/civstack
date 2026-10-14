@@ -10,7 +10,8 @@ local pth = require'ds.path'
 local fd = require'fd'
 local ix = require'civix'
 
-local P     = mty.from'pvc.snap  Path'
+local concat            = mty.from'table   concat'
+local P                 = mty.from'pvc.snap  Path'
 local TD, D = 'cmd/pvc/testdata/', pth.abs'.out/pvc/'
 local pc = pth.concat
 local s = ds.simplestr
@@ -71,4 +72,28 @@ T'Repo init'; do
   +%.civ/
   +%.out/
   ]], pvc.diff{work_tree=D}:patch())
+end
+
+local M1_PVCINDEX = [[
+--- /dev/null
++++ PVCINDEX
+@@ -0,0 +1 @@
+++x:/.pvcignore
+]]
+local M1_PVCIGNORE = [[
+--- /dev/null
++++ .pvcignore
+@@ -0,0 +1,4 @@
++%.git/
++%.civ/
++%.out/
++%.gitignore
+\ No newline at end of file]]
+
+T'trimPatch'; do
+  local p1 = pth.read(TD..'main/rev/01.p')
+  T.eq('first commit\n\n'..M1_PVCINDEX..'\n'..M1_PVCIGNORE..'\n', p1)
+  local function tp(...) return concat(snap.trimPatch(...), '\n') end
+  T.eq(M1_PVCINDEX..M1_PVCIGNORE, tp(p1, {}))
+  T.eq(M1_PVCIGNORE,              tp(p1, {PVCINDEX=1}))
 end

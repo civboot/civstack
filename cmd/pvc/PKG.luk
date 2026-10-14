@@ -15,10 +15,17 @@ P.pvc = lua {
   link = {['lua/pvc.lua'] = 'bin/pvc'},
 }
 
+P.testing = lua {
+  mod = 'pvc',
+  src = { 'testing.lua' }, 
+  dep = { 'civ:cmd/pvc', 'civ:lib' },
+}
+
 P.test = lua.test {
   src = 'test.lua',
   dep = {
     'civ:cmd/pvc',
+    'civ:cmd/pvc#testing',
   },
 }
 

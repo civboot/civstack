@@ -15,8 +15,9 @@ local info = require'ds.log'.info
 
 M.SUBNAME = ''
 
-local get = ds.get
 local getmt = getmetatable
+local get, BiMap          = mty.from'ds       get BiMap'
+local isDir               = mty.from'ds.path  isDir'
 local push, sfmt = table.insert, string.format
 
 local function errordiff(e, r)
@@ -160,7 +161,7 @@ function M.notExists(path)
   if require'civix'.exists(path) then error('exists: '..path)end
 end
 
---- Assert the contents at the two paths are equal.
+--- Assert the contents at the two file paths are equal.
 function M.fileEq(a, b)
   local at, bt = pth.read(a), pth.read(b)
   if at == bt then return end
@@ -196,6 +197,57 @@ function M.path(path, expect)
   end
   if ix.pathtype(path) ~= ix.DIR then error(path..' is not a dir') end
   for k, v in pairs(expect) do M.path(pth.concat{path, k}, v) end
+end
+
+M.DirsEq = mty'DirsEq' {
+  -- expected and result absolute dirs
+  'd1 [dir]', 'd2 [dir]',
+  -- remaining paths are relative to d1 and d2.
+  -- all paths on each side (used for final diff)
+  'paths1 {path}', 'paths2 {path}',
+  'diff {path}: paths that had different type or content',
+  'ignore {path: true}: paths/dirs to ignore',
+}
+getmetatable(M.DirsEq).__call = function(T, self)
+  self.d1, self.d2 = pth.toDir(d1), pth.toDir(d2)
+  self.paths1, self.paths2 = {}, {}
+  self.diff = {}
+  self.ignore = ds.Set(self.ignore or {})
+  return mty.construct(T, self)
+end
+
+function M.DirsEq:__call(dir)
+  if self.ignore[dir] then return end
+  local l1, l2 = BiMap(ix.ls(self.d1..dir)), BiMap(ix.ls(self.d2..dir))
+  for _, e1 in ipairs(l1) do
+    local p = dir..e1;    if self.ignore[p] then goto cont end
+    self.paths1[p] = true
+    if not l2[e1] then push(self.diff, p); goto cont end
+    self.paths2[p] = true
+    if isDir(e1) then self(p)
+    elseif not ix.pathEq(self.d1..p, self.d2..p) then push(self.diff, p) end
+  ::cont::end
+  for _, e2 in ipairs(l2) do -- check for items in only l2
+    local p = dir..e2
+    if not self.ignore[p] and not l1[e2] then push(self.diff, p) end
+  end
+end
+
+--- Assert two dirs are recursively equal.
+function M.dirs(expect, result, ignore)
+  local d = M.DirsEq{d1=expect, d2=result, ignore=ignore}
+  d(); if #d.diff == 0 then return end
+  local d1, d2, f = d.d1, d.d2, ctx.fmtlog
+  for _, p in ipairs(d.diff) do
+    if not d.paths1[p] or not d.paths2[p] then goto cont end
+    local c1, c2 = pth.read(d1..p), pth.read(d2..pa)
+    f:styled('error', 'Content: '..p, '\n')
+    showDiff(f, c1, c2)
+  ::cont::end
+  if not mty.eq(d.paths1, d.paths2) then
+    showDiff(f, d.paths1, d.paths2)
+  end
+  f:styled('error', sfmt('Dir %s\n!= %s', expect, result), '\n')
 end
 
 getmetatable(M).__call = function(_, name)

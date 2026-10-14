@@ -535,7 +535,7 @@ function M.cpRecursive(from, to, except)
   M.mkDirs(to);
   local w = M.Walk{from}
   for fpath, ftype in w do
-    local path = fpath:sub(#from)
+    local path = fpath:sub(#from+1)
     if except and except[path] then w:skip()
     elseif ftype == 'dir' then M.mkDirs(to..path)
     else                       M.cp(fpath, to..path) end

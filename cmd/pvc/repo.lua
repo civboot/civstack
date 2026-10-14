@@ -102,6 +102,14 @@ getmetatable(Repo).__call = function(T, self)
   return construct(T, self)
 end
 
+function Repo:pvc(cmd)
+  local sub = assert(pop(cmd, 1), 'must provide subcommand')
+  sub = assertf(require'pvc'[sub], '%s: invalid pvc subcmd', sub)
+  cmd.work_tree, cmd.pvc_repo = self.w, self.r
+  cmd.__repo = self
+  return mty.construct(sub, cmd)()
+end
+
 function Repo:index()
   if not self._index then self._index = snap.loadIndex(self.r..'index') end
   return self._index
@@ -360,7 +368,6 @@ function Repo:commit(desc, diff) --> rev2
   self:setTip(br, id+1)
   notify('commited %s in %s', rev2, pfinal)
 end
-
 
 function Repo:setAt(nbr, nid)
   local cbr,cid = self:at()
