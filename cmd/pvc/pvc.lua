@@ -96,7 +96,7 @@ pvc.apply = mty.extend(Base, 'apply', {
   'exclude {path}: paths to exclude',
 })
 function pvc.apply:__call()
-  local exclude = ds.Set(self.exclude or {snap.PVCINDEX})
+  local exclude = ds.Set:from(self.exclude or snap.PVCINDEX)
 end
 
 --- Usage: [$pvc commit 'message' -- specific/paths to/commit][{br}]
@@ -115,7 +115,7 @@ function pvc.commit:__call()
   ix.rm(ppatch)
 end
 
---- Usage: [$pvc at [rev] --force][{br}]
+--- Usage: [$$pvc at [rev] --force]$[{br}]
 --- If [$rev] is not given, just returns current branch#id.
 ---
 --- Otherwise, sets the active [$branch@id], causing the local directory to be

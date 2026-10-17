@@ -52,8 +52,8 @@ a [$tip] file with the current tip id.
 Commits are performed by diffing from the previous snapshot, creating the patch
 file.
 
-Snapshots are created by applying patch files in either forward/reverse to an
-existing snapshot, with the "zero" snapshot being an empty directory.
+Snapshots are created by applying patch files in either forward/reverse order to
+an existing snapshot, with the "zero" snapshot being an empty directory.
 
 Any other modification to a branch (e.g squash, rebase, etc) use a simple state
 machine: [+
@@ -63,19 +63,23 @@ machine: [+
   operations that need to be performed (in reverse order) to end up at the
   intended state.
 * [$pvc fix] automatically attempts to fix all [$@.branches/] from their root to
-  their tip, starting at the base (or whichever is specified).
+  their tip, starting at the base (or whichever is specified). Fixing simply
+  means applying the operations in [$ops], poping the final line after it is
+  complete.
 ]
 
 For an example of the above, to rebase (change the base), the .branch's base
-will have the new base id and the ops file will be a series of cherry picks from
-the original branch's id 1 to it's tip. Splits cherry pick specific files,
-dropped commits are simply skipped cherry picks, inserting a commit is cherry
-picking between two commits, etc. Any merge conflicts stop the process, which
-the user needs to fix and commit and then run [$pvc fix] again.
+will have the new re-based id and the ops file will be a series of cherry picks
+from the original branch's id 1 to it's tip. To perform a split, the ops file
+just  cherry cherry pick specific files, dropping a commit simply means
+skipping a cherry picks, inserting a commit is cherry picking between two commits,
+etc. Any merge conflicts stop the process, which the user needs to fix and commit
+and then run [$pvc fix] again. However, the user can fix any problems later and
+work on another branch.
 
-The entire [$.pvc] directory is tracked by a hidden [$@.META] branch as a single
-series of patches, allowing the user to (soft) reset to a previous repo state at
-any time.
+Finally, the entire [$.pvc] directory is tracked by a hidden [$@.META] branch
+as a single series of patches, allowing the user to (soft) reset to a previous
+repo state at any time.
 
 [{! :href=https://en.wikipedia.org/wiki/Diff#Unified_format}unidiff]
 [{! :href=https://en.wikipedia.org/wiki/Tar_(computing)}tarball]

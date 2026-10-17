@@ -18,6 +18,8 @@ local mathty, min, max   = mty.from(math,   'type,min,max')
 local floor, tointeger   = mty.from(math,   'floor, tointeger')
 local abs                = mty.from(math,   'abs')
 local Fmt, assertf       = mty.from'fmt      Fmt, assertf'
+local construct, constructUnchecked = mty.from'metaty \
+      construct, constructUnchecked'
 local xpcall, traceback = xpcall, debug.traceback
 local resume = coroutine.resume
 local getmethod = mty.getmethod
@@ -848,7 +850,7 @@ end
 ---
 --- Adding keys is always allowed but getting non-existant keys is an error.
 M.TypoSafe = mty'TypoSafe'{}
-getmt(M.TypoSafe).__call = mty.constructUnchecked
+getmt(M.TypoSafe).__call = constructUnchecked
 getmt(M.TypoSafe).__index = mty.hardIndex
 M.TypoSafe.__newindex = nil
 
@@ -913,25 +915,25 @@ end
 --- Weak key table, see docs on [$__mode]
 M.WeakK = setmt(
   {__name='WeakK', __mode='k'}, {
-  __name='Ty<WeakK>', __call=mty.constructUnchecked,
+  __name='Ty<WeakK>', __call=constructUnchecked,
 })
 
 --- Weak value table, see docs on [$__mode]
 M.WeakV = setmt(
   {__name='WeakV', __mode='v'}, {
-  __name='Ty<WeakV>', __call=mty.constructUnchecked,
+  __name='Ty<WeakV>', __call=constructUnchecked,
 })
 
 --- Weak key+value table, see docs on [$__mode]
 M.WeakKV = setmt(
   {__name='WeakKV', __mode='kv'}, {
-  __name='Ty<WeakKV>', __call=mty.constructUnchecked,
+  __name='Ty<WeakKV>', __call=constructUnchecked,
 })
 
 --- Table that ignores new indexes. Used to disable caching in tests.
 M.Forget = setmt(
   {__name='Forget', __newindex=M.noop},
-  {__name='Ty<Forget>', __call=mty.constructUnchecked}
+  {__name='Ty<Forget>', __call=constructUnchecked}
 )
 
 --- Table that errors on missing key
@@ -939,7 +941,7 @@ M.Checked = setmt(
   {__name='Checked', __metatable='table',
    __index=function(_, k) error('unknown key: '..k) end,
   },
-  {__name='Ty<Checked>', __call=mty.constructUnchecked}
+  {__name='Ty<Checked>', __call=constructUnchecked}
 )
 
 --- A slice of anything with start and end indexes.
@@ -1029,14 +1031,28 @@ M.empty = M.Imm{}
 
 ---------------------
 -- Set
+
+--- Usage: [$s = Set{a=true, b=true, c=true}][{br}]
+--- Usage: [$s = Set:from{'a', 'b', 'c'}]
 M.Set = mty'Set'{}
+
+--- Construct from pre-constructed Set.
+getmt(M.Set).__call = function(T, self)
+  return constructUnchecked(T, self)
+end
+
+--- Construct from list or string.
+--- A string is split by whitespace.
+function M.Set.from(T, s)
+  local self = {}
+  if type(s) == 'string' then
+       for _, k in mty.split(s) do self[k] = true end
+  else for _, k in ipairs(s)    do self[k] = true end end
+  return T(self)
+end
+
 M.Set.__newindex = nil
 getmt(M.Set).__index = nil
-getmt(M.Set).__call = function(T, t)
-  local s = {}
-  for _, k in ipairs(t) do s[k] = true end
-  return mty.constructUnchecked(T, s)
-end
 
 function M.Set:__fmt(f) --> nil
   f:write('Set', f.tableStart)
@@ -1199,7 +1215,7 @@ M.Deq = mty'Deq'{
   'right [number]',
 }
 getmt(M.Deq).__call = function(T)
-  return mty.construct(T, {right=0, left=1})
+  return construct(T, {right=0, left=1})
 end
 function M.Deq:pushRight(val)
   local r = self.right + 1; self[r] = val; self.right = r

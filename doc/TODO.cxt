@@ -27,6 +27,24 @@ Review Docs: [+
 * vt100
 ]
 
+[{h2}Render bug]
+There is some kind of doc rendering bug, see the following diff
+
+[$$$
+-<p><h4><a id="asciicolor.Styler" href="#asciicolor.Styler" class=anchor>Record Styler</h4></a>
++<p><h4>Record Styler</h4>
+ Create a styler
+
+ <p>Note: pass f (file) to create the default AcWriter with the file.
+ Note: pass mode, stylepath to control loadStyle
+
+ <p><b>Fields:</b><ul>
+-  <li><a id="asciicolor.Styler.acwriter" href="#asciicolor.Styler.acwriter" class=anchor><b>acwriter</b></a></li>
+-  <li><a id="asciicolor.Styler.style" href="#asciicolor.Styler.style" class=anchor><b>style</b></a> <span class=code>=asciicolor.dark</span>
++  <li><b>acwriter</b></li>
++  <li><b>style</b> <span class=code>=asciicolor.dark</span>
+]$$
+
 [*Bug]
 yank EoL > paste -> undo -> move -> paste
 

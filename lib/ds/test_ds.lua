@@ -353,10 +353,12 @@ T'list'; do
 end
 
 T'Set'; do
-  local s = Set{'a', 'b', 'c'}
-  T.eq(Set{'a', 'c', 'b'}, s)
-  T.eq(Set{'a', 'b'}, s:union(Set{'a', 'b', 'z'}))
-  T.eq(Set{'a'}, s:diff(Set{'b', 'c', 'z'}))
+  local s = Set{a=true, b=true, c=true}
+  T.eq(true, s.a); T.eq(true, s.b); T.eq(nil, s.d)
+  T.eq(s, Set:from'a c b')
+  T.eq(s, Set:from{'a', 'c', 'b'})
+  T.eq(Set:from'a b', s:union(Set:from'a b z'))
+  T.eq(Set:from'a',   s:diff(Set:from'b c z'))
 end
 
 T'LL'; do

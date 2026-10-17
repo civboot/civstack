@@ -112,5 +112,5 @@ end}
 
 H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
 function(r)
-  -- r:pvc{'apply', H:patch'upper@3'}
+  r:pvc{'apply', H:patch'upper@3'}
 end}

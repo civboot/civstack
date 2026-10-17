@@ -478,7 +478,7 @@ end
 ---------------------------
 -- Testing Helpers
 
-local SKIP_FOR_STR = ds.Set{'pos', 'raw'}
+local SKIP_FOR_STR = ds.Set:from'pos raw'
 function cxt.parsedStrings(p, node)
   if type(node) ~= 'table' then return node end
   if mty.ty(node) == Token then return p:tokenStr(node) end
@@ -509,7 +509,7 @@ function cxt.assertThrows(dat, err, dbg)
 end
 
 cxt.fmtAttr = fmtAttr
-cxt.htmlFmt  = ds.Set{'b', 'i', 'u'}
+cxt.htmlFmt  = ds.Set:from'b i u'
 
 cxt.Config = mty'Config' {
   'header [string]: typically used for html header',

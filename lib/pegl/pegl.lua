@@ -348,7 +348,7 @@ function M.defaultTokenizer(p)
 end
 M.Config.tokenizer = M.defaultTokenizer
 
-local UNPACK_SPECS = ds.Set{'table', M.Seq, M.Many, M.Or}
+local UNPACK_SPECS = ds.Set:from{'table', M.Seq, M.Many, M.Or}
 local function shouldUnpack(spec, t)
   local r = (
     type(t) == 'table'

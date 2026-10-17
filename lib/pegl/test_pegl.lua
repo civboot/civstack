@@ -2,7 +2,6 @@ local mty = require'metaty'
 local T = require'civtest'
 local ds = require'ds'
 local pegl = require'pegl'
-local Set = ds.Set
 
 local Config, Key,
       Pat, Or, Not, Many, Maybe, Seq,
