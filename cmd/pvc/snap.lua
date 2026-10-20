@@ -74,8 +74,8 @@ function snap.loadDirAsIndex(dir) --> {Path}
 end
 
 --- Remove patch prefix (description) and exclude any paths in exclude set.
-function snap.trimPatch(patch, exclude, out) --> {lines}
-  out, exclude = out or {}, exclude or EMPTY
+function snap.trimPatch(patch, exclude, outf) --> {lines}
+  outf, exclude = outf or ds.bytearray(), exclude or EMPTY
   local i, patch, path = 0, lines(patch), nil
   while i < #patch do; i = i + 1
     local ln = get(patch, i); if ln == '' then goto cont end
@@ -86,9 +86,9 @@ function snap.trimPatch(patch, exclude, out) --> {lines}
         path = assert(get(patch,i+1):match'^%+%+%+%s*(.*)')
       end
     end
-    if path and not exclude[path] then set(out, #out+1, ln) end
+    if path and not exclude[path] then outf:write(ln, '\n') end
   ::cont:: end
-  return out
+  return outf
 end
 
 -----------------------------------

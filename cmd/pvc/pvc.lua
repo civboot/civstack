@@ -90,13 +90,22 @@ function pvc.diff:__call() --> diff.Diff
   return diff
 end
 
---- Usage: [$pvc apply path/to/patch.p...]
+--- Usage: [$pvc patch path/to/patch.p...]
 --- Apply a series of patches
-pvc.apply = mty.extend(Base, 'apply', {
-  'exclude {path}: paths to exclude',
+pvc.patch = mty.extend(Base, 'patch', {
+  'exclude {path}: paths to exclude from patches.',
+    exclude=snap.PVCINDEX,
 })
-function pvc.apply:__call()
-  local exclude = ds.Set:from(self.exclude or snap.PVCINDEX)
+function pvc.patch:__call()
+  local r = self.__repo
+  local ppath = r:tmp'patch'..'patch.p'
+  local exclude = ds.Set:from(self.exclude)
+  for _, path in ipairs(self) do
+    local f = assert(ctx.open(ppath, 'w'))
+    snap.trimPatch(pth.read(path), exclude, f)
+    f:flush(); assert(f:close())
+    pu._patch(r.w, ppath)
+  end
 end
 
 --- Usage: [$pvc commit 'message' -- specific/paths to/commit][{br}]

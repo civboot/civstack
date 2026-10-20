@@ -96,9 +96,9 @@ local M1_PVCIGNORE = [[
 T'trimPatch'; do
   local p1 = pth.read(TD..'main/rev/01.p')
   T.eq('first commit\n\n'..M1_PVCINDEX..'\n'..M1_PVCIGNORE..'\n', p1)
-  local function tp(...) return concat(snap.trimPatch(...), '\n') end
-  T.eq(M1_PVCINDEX..M1_PVCIGNORE, tp(p1, {}))
-  T.eq(M1_PVCIGNORE,              tp(p1, {PVCINDEX=1}))
+  local function tp(...) return tostring(snap.trimPatch(...)) end
+  T.eq(M1_PVCINDEX..M1_PVCIGNORE..'\n', tp(p1, {}))
+  T.eq(M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
 end
 
 local SKIP = {['.pvc/']=1, PVCINDEX=1}
@@ -112,5 +112,6 @@ end}
 
 H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
 function(r)
-  r:pvc{'apply', H:patch'upper@3'}
+  r:pvc{'patch', H:patch'upper@3'}
+  T.path(r.w..'num.txt',    'zero\nfifty\neighty\nninety\none hundred')
 end}
