@@ -112,6 +112,11 @@ end}
 
 H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
 function(r)
-  r:pvc{'patch', H:patch'upper@3'}
-  T.path(r.w..'num.txt',    'zero\nfifty\neighty\nninety\none hundred')
+  local num_txt = 'zero\nfifty\neighty\nninety\none hundred'
+  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', num_txt)
+  T.throws('paths are modified:\nnum.txt', function()
+    r:pvc{'at', 'main@2'}  -- cannot checkout with changes
+  end)
+  T.path(r.w..'num.txt', num_txt)
+  -- T.path(r.w..'num.txt',    'zero\nfifty\none hundred')
 end}

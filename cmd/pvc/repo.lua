@@ -18,6 +18,7 @@ local push, pop, concat    = mty.from(table,  'insert, remove, concat')
 local int                  = mty.from(math,   'tointeger')
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
+local errorf               = mty.from'fmt      errorf'
 local info, trace          = mty.from'ds.log   info, trace'
 local s, pk                = mty.from'ds       simplestr, popk'
 local toDir, pconcat, nice = mty.from'ds.path toDir, concat, nice'
@@ -174,6 +175,14 @@ function Repo:splitRev(rev) --> br, id
   local br,id = r:match'^([%w_.]+)@(%d+)$'
   assertf(br, 'invalid splitRev: %q -> %q', rev, r)
   return br, int(id)
+end
+
+function Repo:splitRange(range) --> rev1, rev2
+  if     not range          then range = 'at::local'
+  elseif not range:find'::' then range = range..'::local' end
+  local rev1, rev2 = range:match'^([^:]+)::(.*)'
+  assertf(rev1, 'invalid range: %q', range)
+  return rev1, rev2
 end
 
 --- Get path to patch
@@ -377,7 +386,7 @@ end
 function Repo:setAt(rev, force)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
-  local copy, block = {}, {}
+  local copy, error = {}, {}
   for _, p2 in ipairs(i2) do
     local p1 = i1[i1[p2.p]]
     if not p1 then push(copy, p2); goto cont end
@@ -385,11 +394,11 @@ function Repo:setAt(rev, force)
     if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
        or ix.pathEq(path1, s2.root..p2.p)
     then goto cont end -- already equal, skip
-    if f then push(copy, p2) else push(block, p2) end
+    push(copy, p2); if not force then push(error, p2.p) end
     ::cont::
   end
-  if not force and #block > 0
-    then errorf('paths are modified:\n%s', concat(block))
+  if #error > 0 then
+    errorf('paths are modified:\n%s', concat(error, '\n'))
   end
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
   notify('now at %s', rev)

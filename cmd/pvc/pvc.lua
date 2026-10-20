@@ -72,6 +72,18 @@ function pvc.init:__call() --> repo.Repo
   return self.__repo
 end
 
+--- Usage: [$pvc status][{br}]
+--- Show the current status of at vs tip.
+pvc.status = mty.extend(Base, 'status', {})
+function pvc.status:__call()
+  local r = self.__repo
+  local diff = r:diff('at', 'local'):reduced()
+  local f = ctx.fmtout
+  f:styled('bold', 'at '); f:styled('string', r:at(), '\n')
+  if diff:hasDiff() then
+    f:styled('bold', 'Changed files:', '\n'); diff:format(f, false)
+  else f:styled('bold', 'No changes in working tree', '\n') end
+end
 
 --- Usage: [$pvc diff rev1::rev2 paths...][{br}]
 --- Show the difference between rev1 and rev2.
@@ -79,13 +91,10 @@ end
 --- the changes from the current commit to the work_tree.
 pvc.diff = mty.extend(Base, 'diff', { })
 function pvc.diff:__call() --> diff.Diff
-  local range = table.remove(self, 1) 
-  if     not range          then range = 'at::local'
-  elseif not range:find'::' then range = range..'::local' end
-  local rev1, rev2 = range:match'^([^:]+)::(.*)'
-  assertf(rev1, 'invalid range: %q', range)
-  trace('diff %q vs %q', rev1, rev2)
-  local diff = self.__repo:diff(rev1, rev2)
+  local r = self.__repo
+  local r1, r2 = r:splitRange(table.remove(self, 1))
+  trace('diff %q vs %q', r1, r2)
+  local diff = r:diff(r1, r2)
   diff:format(ctx.fmtout, true)
   return diff
 end
