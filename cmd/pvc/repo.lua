@@ -26,6 +26,8 @@ local Snap                 = mty.from'pvc.snap Snap'
 
 local EMPTY = {}
 
+local BranchLog
+
 -----------------------
 -- CONSTANTS
 
@@ -55,7 +57,7 @@ end
 
 --- Given an id return 01/23/45 (no extension)
 function repo.rawIdPath(id)
-  id = tostring(id)
+  id = str(id)
   id = ((#id % 2) == 1 and '0' or '')..id
   return id:gsub('(%d%d)', '%1/'):sub(1,-2)
 end
@@ -79,6 +81,47 @@ local function checkDesc(desc)
   end
   return desc
 end
+
+-----------------------------------
+-- BRANCH
+
+repo.Branch = mty'Branch' {
+  'name [string]',  'dir [dir]', '_rev [dir]', '_snap [dir]',
+  '_base [string]', '_tip  [int]',
+}
+local Branch = repo.Branch
+getmetatable(Branch).__call = function(T, self)
+  assert(self.name and self.dir)
+  self.dir = pth.canonical(pth.toDir(assert(self.dir)))
+  self._rev, self._snap = self.dir..'rev/', self.dir..'snap/'
+  return construct(T, self)
+end
+
+function Branch:base() --> rev
+  if self._base ~= nil then return self._base end
+  self._base = pth.read(self.dir..'base')
+  return self._base
+end
+
+function Branch:setBase(rev)
+  pth.write(self.dir..'base', rev)
+  self._base = rev
+end
+
+function Branch:tip() --> int
+  if self._tip ~= nil then return self._tip end
+  self._tip = assert(int(pth.read(self.dir..'tip')))
+  return self._tip
+end
+
+function Branch:setTip(id)
+  assert(id > 0)
+  pth.write(self.dir..'tip', str(id))
+  self._tip = id
+end
+
+function Branch:patch(id) return self._rev..idPath(id)..'.p' end
+function Branch:snap(id)  return self._snap..toDir(str(id))  end
 
 -----------------------------------
 -- REPO
@@ -122,28 +165,12 @@ function Repo:_setAt(rev)
   pth.write(self.atPath, rev)
 end
 
-function Repo:atBranch() --> branch
+function Repo:atBranch() --> name
   return assert(self:at():match'^(%w+)@')
 end
 
---- Get the branch directory.
-function Repo:bdir(br) --> .pvc/br/
-  if br:sub(1,1) == '/' then return br end
-  return pconcat{self.r, '@'..br, '/'}
-end
-
---- Get the base of the branch
-function Repo:base(br) --> rev
-  return pth.read(self:bdir(br)..'base')
-end
-
---- Get the tip of the branch.
-function Repo:tip(br) --> int
-  return int(pth.read(self:bdir(br)..'tip'))
-end
-function Repo:setTip(br, id)
-  assert(id > 0)
-  pth.write(self:bdir(br)..'tip', id)
+function Repo:branch(name) --> Branch
+  return Branch{name=name, dir=concat{self.r, '@', name, '/'}}
 end
 
 --- Converts a rev into (typically) branch@id form. Exceptions include: [+
@@ -159,15 +186,12 @@ function Repo:rev(rev) --> rev
   local nrev = rev:match'^@(%d+)$'
   if nrev                    then return asRev(self:atBranch(), nrev) end
   if rev:find'^/'            then return rev end
-  if rev:find'^[%w_.]+@tip$' or rev:find'^[%w_.]+@?$' then
-    return asRev(rev, self:tip(rev))
-  end
-  if rev:find'^@?tip$' then
-    local br = self:atBranch()
-    return asRev(br, self:tip(br))
-  end
-  assertf(rev:find'^[%w_.]+$', 'invalid rev: %q', rev)
-  return rev, self:tip(rev)
+  -- tip of some branch
+  local br = rev:find'^@?tip$' and self:atBranch()
+          or rev:match'^([%w_.]+)@?$' or rev:match'^([%w_.]+)@tip$' 
+          or rev:find'^[%w_.]+$' and rev
+          or errorf('invalid rev: %q', rev)
+  return br, self:branch(br):tip()
 end
 
 function Repo:splitRev(rev) --> br, id
@@ -195,7 +219,7 @@ end
 function Repo:snapPath(rev) --> /d/br/snap/123/
   rev = self:rev(rev); assert(rev ~= 'local')
   local br,id = self:splitRev(rev)
-  return pconcat{self.r, '@'..br, 'snap', tostring(id), '/'}
+  return pconcat{self.r, '@'..br, 'snap', str(id), '/'}
 end
 
 --- Create snapshot 0
@@ -206,24 +230,24 @@ end
 
 --- Initialize a new branch.
 --- This handles both initial base=nil, id=0 and from base.
-function Repo:newBranch(name, baseRev) --> ../branch/
+function Repo:newBranch(name, baseRev) --> Branch
   assert(name, 'must specify new branch name')
   assert(not repo.RESERVED_NAMES[name], 'reserved branch name: %q', name)
   assert(name:find'^[%w._]+$',          'invalid branch name: %q', name)
-  local dir = self:bdir(name)
-  assertf(not ix.exists(dir), 'branch %s: %s already exists', name, dir)
+  local b = self:branch(name)
+  assertf(not ix.exists(b.dir), 'branch %s: %s already exists', name, b.dir)
   baseRev = self:rev(baseRev)
   local base,baseId
   if baseRev ~= 'local' then base,baseId = self:splitRev(baseRev) end
-  ix.mkTree(dir, {
-    tip  = tostring(baseId or 0),
+  ix.mkTree(b.dir, {
+    tip  = str(baseId or 0),
     base = base and baseRev or '@0',
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
   self:_setAt(asRev(name, baseId or 0))
-  notify('created branch %s from %s: %s', name, baseRev, pth.nice(dir))
-  return dir
+  notify('created branch %s from %s: %s', name, baseRev, pth.nice(b.dir))
+  return b
 end
 
 --- Initialize a new repository with main br name (default='main').
@@ -272,26 +296,23 @@ function Repo:snapshot(rev) --> Snap, rev
   end
   local br,id = self:splitRev(rev)
   if id == 0 then return self:snapshot0(br), rev end
-  local brDir= self:bdir(br)
+  local b = self:branch(br)
   -- check base
   dbg'snapshot getting base'
-  local brev = self:base(br)
-  local bbr,bid = self:splitRev(brev)
-  dbg('base is', brev, bbr, bid)
+  local bbr,bid = self:splitRev(b:base())
   -- if the id is part of base then return that instead
   if id <= bid then return self:snapshot(asRev(bbr,id)) end
 
   trace('creating snapshot for %s', rev)
-  local sdir, fid = brDir..'snap/'
-  do -- find "from id" of the closest snapshot
-    if not ix.exists(sdir) then ix.mkDir(sdir) end
-    local sdirs = ix.ls(sdir)
+  local fid; do -- find "from id" of the closest snapshot
+    if not ix.exists(b._snap) then ix.mkDir(b._snap) end
+    local sdirs = ix.ls(b._snap)
     dbg('sdirs', sdirs)
     if sdirs[1] ~= '0' then table.insert(sdirs, 1, '0') end
     local fi = ds.binarySearch(sdirs, str(id)); assert(fi >= 0, fi)
     fid = ds.closest(id, int(sdirs[fi]) or bid, int(sdirs[fi+1]) or bid)
   end
-  local fsnap = self:snapshot((fid==bid) and brev or asRev(br,fid))
+  local fsnap = self:snapshot((fid==bid) and b:base() or asRev(br,fid))
   local tmp = self:tmp(rev)
   trace('creating snapshot from %s in %s', fsnap, tmp)
   fsnap:copyTo(tmp)
@@ -299,12 +320,11 @@ function Repo:snapshot(rev) --> Snap, rev
   local patch = (fid <= id) and pu._patch or pu._rpatch
   for i=fid,id,(fid<=id) and 1 or -1 do
     if i == 0 then goto cont end
-    local ppath = self:patch(asRev(br,i))
-    trace('patching %s with %s', tmp, ppath)
+    local ppath = b:patch(i); trace('patching %s with %s', tmp, ppath)
     patch(tmp, ppath)
   ::cont:: end
 
-  local tsnap = self:snapPath(rev); assert(not ix.exists(tsnap))
+  local tsnap = b:snap(id); assert(not ix.exists(tsnap))
   ix.mv(tmp, tsnap); info('created snapshot %s', tsnap)
   return Snap{tsnap}
 end
@@ -320,8 +340,8 @@ function Repo:commit(desc, diff) --> rev2
   desc = assert(checkDesc(desc))
   local rev = self:at()
   local br,id = self:splitRev(rev)
-  local dir = self:bdir(br)
-  if id ~= self:tip(dir) then error(s[[
+  local b = self:branch(br)
+  if id ~= b:tip() then error(s[[
     ERROR: working id is not at tip. Solutions:
     * branch from this id.
     * stash -> [$pvc at tip] -> unstash -> commit.
@@ -379,7 +399,7 @@ function Repo:commit(desc, diff) --> rev2
   local pfinal = self:patch(rev2); ix.cp(ppath, pfinal)
   ix.mv(tmp, snap2)
   self:_setAt(rev2)
-  self:setTip(br, id+1)
+  b:setTip(id+1)
   notify('commited %s in %s', rev2, pfinal)
 end
 

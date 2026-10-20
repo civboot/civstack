@@ -149,6 +149,9 @@ end
 
 -- Start a user session
 Session.handleEvents = function(s)
+  -- TODO: this thread can be dropped, seems related to
+  -- yielding and the GC?
+  G.__SESSION_THREAD = coroutine.running()
   assert(ctx.ASYNC, 'must be started in async mode')
   assert(s.ed and s.keys)
   lap.scheduleTraced('ele keyactions', function()

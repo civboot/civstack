@@ -85,6 +85,16 @@ function pvc.status:__call()
   else f:styled('bold', 'No changes in working tree', '\n') end
 end
 
+--- Usage: [$pvc log at][{br}]
+--- Show the current branch structure.
+pvc.log = mty.extend(Base, 'status', {
+  'before [int]: maximum depth to show before.', before=10,
+  'after [int]: maximum depth to show after.', after=10,
+})
+function pvc.log:__call()
+  
+end
+
 --- Usage: [$pvc diff rev1::rev2 paths...][{br}]
 --- Show the difference between rev1 and rev2.
 --- With no args, this shows the difference between at::local, or
@@ -165,7 +175,7 @@ function pvc.upload:__call()
   if ix.exists(d) then
     assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
   end
-  ix.cpRecursive(r:bdir(br), d, {['snap/'] = -1})
+  ix.cpRecursive(r:branch(br).dir, d, {['snap/'] = -1})
   notify('uploaded %s to %s', br, d)
 end
 
@@ -177,13 +187,13 @@ pvc.pull = mty.extend(Base, 'pull', {
 })
 function pvc.pull:__call()
   local br, d, r = self[1], self[2], self.__repo
-  local bdir = r:bdir(br)
+  local b = r:branch(br)
   T.path(d, { tip = true, rev = {} })
-  if ix.exists(bdir) then
-    assertf(self.force, '%s already exists: %s', br, bdir)
-    ix.rmRecursive(bdir)
+  if ix.exists(b.dir) then
+    assertf(self.force, '%s already exists: %s', br, b.dir)
+    ix.rmRecursive(b.dir)
   end
-  ix.cpRecursive(d, bdir, {['snap/'] = -1})
+  ix.cpRecursive(d, b.dir, {['snap/'] = -1})
   notify('pulled %s from %s', br, d)
 end
 
