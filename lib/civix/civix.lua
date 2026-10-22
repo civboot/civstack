@@ -161,7 +161,7 @@ end
 M.Stat = lib.Stat
 
 --- list entires in directory.
-function M.dir(dir) --> iter[entry]
+function M.dir(dir) --> iter[e, ftype]
   return l_dir(abs(dir))
 end
 
@@ -240,7 +240,7 @@ function M.mtime(v) return M.stat(v):mtime() end
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
-function M.ls(dir) --> list[str]
+function M.ls(dir) --> {str}
   dir = abs(dir)
   if not M.isDir(dir) then return dir end
   local d, f = {}, {} -- dirs, files

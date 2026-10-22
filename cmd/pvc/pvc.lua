@@ -38,10 +38,12 @@ local push, concat         = mty.from(table,  'insert, concat')
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
-
 local info, trace          = mty.from'ds.log   info, trace'
 local s, pk                = mty.from'ds       simplestr, popk'
 local toDir, pconcat, nice = mty.from'ds.path  toDir, concat, nice'
+local asRev                = mty.from'pvc.repo asRev'
+
+local EMPTY = {}
 
 local Base = shim.cmd'_base' {
   'work_tree [path]: working directory where code is',
@@ -85,14 +87,49 @@ function pvc.status:__call()
   else f:styled('bold', 'No changes in working tree', '\n') end
 end
 
---- Usage: [$pvc log at][{br}]
---- Show the current branch structure.
+
+--- Implement pvc.log algorithm.
+pvc.Log = mty'Log' { 'f', 'r [repo.Repo]', 'graph', 'rem' }
+
+function pvc.Log:log(ind, br, id)
+  local r, f, ci, chldrn = self.r, self.f, 0, self.graph[br]
+  local b = r:branch(br)
+
+  local brPoints = {} -- id -> {chld}
+  for _, chld in ipairs(chlrn) do
+    local base = chlrn[chld]; brPoints[base] = brPoints[base] or {}
+    push(brPoints[base], chld)
+  end
+
+  for id=id,b:tip() do local id=id
+    if self.rem then
+      if self.rem <= 0 then return end
+      self.rem = self.rem - 1
+    end
+    f:styled('meta',   self.ind..' *', ' ')
+    f:styled('string', asRev(br,id), ' ')
+    f:write('FIXME' or b:desc(id)[1], '\n')
+
+    for _, chld in ipairs(brPoints[id] or EMPTY) do
+      self:log(ind..'* ', chld, 1)
+    end
+
+    id = id + 1
+  end
+end
+
+--- Usage: [$pvc log rev][{br}]
+--- Show the branch structure starting at rev.
 pvc.log = mty.extend(Base, 'status', {
-  'before [int]: maximum depth to show before.', before=10,
-  'after [int]: maximum depth to show after.', after=10,
+  'max [int]: maximum number of lines to output',
 })
 function pvc.log:__call()
-  
+  local r = self.__repo
+  local l = pvc.Log{
+    rem=self.max,
+    f=ctx.fmtout, r=r, graph=r:childGraph(),
+  }
+  l:log('', r:splitRev(self[1] or 'at'))
 end
 
 --- Usage: [$pvc diff rev1::rev2 paths...][{br}]

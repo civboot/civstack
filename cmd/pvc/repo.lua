@@ -48,7 +48,15 @@ repo.RESERVED_NAMES = { ['.']=1, ['local']=1, at=1, tip=1 }
 -----------------------------------
 -- Utilities
 
-local function asRev(br, id) return sfmt('%s@%s', br, id) end
+function repo.asRev(br, id) return sfmt('%s@%s', br, id) end
+local asRev = repo.asRev
+
+local function splitRev(rev) --> br, id
+  if not rev then return rev end
+  local br,id = rev:match'^([%w_.]+)@(%d+)$'
+  assertf(br, 'invalid splitRev: %q', rev)
+  return br, int(id)
+end
 
 --- get a set of the lines in a file
 local function loadLineSet(path) --> set
@@ -97,9 +105,17 @@ getmetatable(Branch).__call = function(T, self)
   return construct(T, self)
 end
 
+--- Usage: [$Branch:fake{name='bar', _base='foo@12', _tip=4}][{br}]
+--- Used for testing.
+function Branch.fake(T, self)
+  self.dir = self.dir or ('/@'..self.name..'/')
+  return T(self)
+end
+
 function Branch:base() --> rev
   if self._base ~= nil then return self._base end
-  self._base = pth.read(self.dir..'base')
+  local bpath = self.dir..'base'
+  self._base = ix.exists(bpath) and pth.read(bpath) or false
   return self._base
 end
 
@@ -132,6 +148,7 @@ repo.Repo = mty'Repo' {
   'r [string]: repo dir, typically .../.pvc/',
   '_index [string]: .pvc/index',
   'atPath [string]: .../.pvc/at',
+  '_branches {name: Branch}',
 }
 local Repo = repo.Repo
 
@@ -143,6 +160,7 @@ getmetatable(Repo).__call = function(T, self)
   self.r = self.r or pconcat{self.w, '.pvc/'}
   self.r = pth.canonical(toDir(self.r))
   self.atPath = self.r..'at'
+  self._branches = self._branches or {}
   return construct(T, self)
 end
 
@@ -170,7 +188,57 @@ function Repo:atBranch() --> name
 end
 
 function Repo:branch(name) --> Branch
-  return Branch{name=name, dir=concat{self.r, '@', name, '/'}}
+  local b = self._branches[name]; if b then return b end
+  b = Branch{name=name, dir=concat{self.r, '@', name, '/'}}
+  self._branches[name] = b
+  return b
+end
+
+function Repo:branches() --> {name: Branch}
+  for e, ftype in ix.dir(self.r) do
+    if ftype == 'dir' and e:sub(1,1)=='@' then
+      self:branch(e:match'^@([._%w]+)') -- load
+    end
+  end
+  return ds.copy(self._branches)
+end
+
+function repo._childGraph(branches)
+  local g = {}
+  for name, b in pairs(branches) do
+    g[name] = g[name] or {}
+    local base, bid = splitRev(b:base())
+    assertf(not base or branches[base], '%s base not found: %s', name, base)
+    g[base] = g[base] or {}
+    g[base][name] = bid; push(g[base], name)
+  end
+  for _, ch in pairs(g) do
+    table.sort(ch, function(a, b) return ch[a] < ch[b] end)
+  end
+  return g
+end
+
+--- Return the graph of [$branch -> {child}], where the [$false] branch
+--- lacks a base (e.g. main).
+---
+--- The [${child}] is both a list and a map of which id the child is
+--- branched from, e.g [{$ lang=lua}{'dev', dev=6,  'fix', fix=10}].
+function Repo:childGraph() --> {name: {child}}
+  return repo._childGraph(self:branches())
+end
+
+function repo._branchDag(branches)
+  local p = {}
+  for name, b in pairs(branches) do
+    p[name] = { splitRev(b:base()) or nil }; push(p, name)
+  end
+  return assert(ds.dagSort(p, p))
+end
+
+--- Return the branches ordered as a directed-acyclic-graph
+--- (a.k.a roots first).
+function Repo:branchNames() --> {name}
+  return repo._branchDag(self:branches())
 end
 
 --- Converts a rev into (typically) branch@id form. Exceptions include: [+
@@ -195,10 +263,7 @@ function Repo:rev(rev) --> rev
 end
 
 function Repo:splitRev(rev) --> br, id
-  local r = self:rev(rev)
-  local br,id = r:match'^([%w_.]+)@(%d+)$'
-  assertf(br, 'invalid splitRev: %q -> %q', rev, r)
-  return br, int(id)
+  return splitRev(self:rev(rev))
 end
 
 function Repo:splitRange(range) --> rev1, rev2

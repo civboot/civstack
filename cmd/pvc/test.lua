@@ -47,6 +47,30 @@ local function R()
   return repo.Repo{'/c'}
 end
 
+T'branches'; do
+  local B = function(t) return repo.Branch:fake(t) end
+  local brs = {
+    main = B{name='main', _base=false,    _tip=12},
+    fix  = B{name='fix',  _base='main@10', _tip=2},
+    dev  = B{name='dev',  _base='main@6', _tip=8},
+    ftr  = B{name='ftr',  _base='dev@7',  _tip=3},
+  }
+
+  T.eq({
+    [false] = {'main'},
+    main = {
+      'dev', dev=6,
+      'fix', fix=10,
+    },
+      fix = {},
+      dev = {'ftr', ftr=7},
+        ftr = {},
+  }, repo._childGraph(brs))
+  -- T.eq({
+  --   'main', 'dev', 'fix', 'ftr',
+  -- }, repo._branchDag(brs))
+end
+
 T'new Repo'; do
   local r = R()
   T.eq('/c/.pvc/',      r.r)
