@@ -196,8 +196,8 @@ pvc.at = mty.extend(Base, 'at', {
 function pvc.at:__call()
   local w, r, f = self.work_tree, self.__repo, self.force
   local rev = f and (self[1] or r:at()) or self[1]
-  if not rev then ctx.stdout:write(r:at(), '\n'); return end
-  r:setAt(rev, f)
+  if not rev then ctx.stdout:write(r:at(), '\n'); return r:at() end
+  r:setAt(rev, f); return rev
 end
 
 --- Usage: [$pvc upload branchName path/to/dir]

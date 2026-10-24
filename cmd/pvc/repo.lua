@@ -49,7 +49,10 @@ repo.RESERVED_NAMES = { ['.']=1, ['local']=1, at=1, tip=1 }
 -- Utilities
 
 function repo.asRev(br, id) return sfmt('%s@%s', br, id) end
-local asRev = repo.asRev
+function repo.revId(rev) 
+  return rev and int(rev:match'^.*@(%d+)$') or 0
+end
+local asRev, revId = repo.asRev, repo.revId
 
 local function splitRev(rev) --> br, id
   if not rev then return rev end
@@ -165,6 +168,7 @@ getmetatable(Repo).__call = function(T, self)
 end
 
 function Repo:pvc(cmd)
+  if type(cmd) == 'string' then cmd = {cmd} end
   local sub = assert(pop(cmd, 1), 'must provide subcommand')
   sub = assertf(require'pvc'[sub], '%s: invalid pvc subcmd', sub)
   cmd.work_tree, cmd.pvc_repo = self.w, self.r
@@ -179,9 +183,7 @@ end
 
 --- Get rev (br@id) the repo is currently at.
 function Repo:at() return ds.trim(pth.read(self.atPath)) end --> rev
-function Repo:_setAt(rev)
-  pth.write(self.atPath, rev)
-end
+function Repo:_setAt(rev) pth.write(self.atPath, rev) end
 
 function Repo:atBranch() --> name
   return assert(self:at():match'^(%w+)@')
@@ -227,20 +229,6 @@ function Repo:childGraph() --> {name: {child}}
   return repo._childGraph(self:branches())
 end
 
-function repo._branchDag(branches)
-  local p = {}
-  for name, b in pairs(branches) do
-    p[name] = { splitRev(b:base()) or nil }; push(p, name)
-  end
-  return assert(ds.dagSort(p, p))
-end
-
---- Return the branches ordered as a directed-acyclic-graph
---- (a.k.a roots first).
-function Repo:branchNames() --> {name}
-  return repo._branchDag(self:branches())
-end
-
 --- Converts a rev into (typically) branch@id form. Exceptions include: [+
 --- * nil/local become 'local', meaning the local snapshot.
 --- * /path/to/dir/ is kept and must be a snapshot path with an index.
@@ -280,16 +268,9 @@ function Repo:patch(rev) --> /d/br/rev/01/23.p
   return pconcat{self.r, '@'..br, 'rev', idPath(id)..'.p'}
 end
 
---- Get snapshot dir and index
-function Repo:snapPath(rev) --> /d/br/snap/123/
-  rev = self:rev(rev); assert(rev ~= 'local')
-  local br,id = self:splitRev(rev)
-  return pconcat{self.r, '@'..br, 'snap', str(id), '/'}
-end
-
 --- Create snapshot 0
 function Repo:snapshot0(br) --> snap.Snap
-  local p = self:snapPath(asRev(br,0)); ix.mkDirs(p)
+  local p = self:branch(br):snap(0); ix.mkDirs(p)
   return Snap{p}
 end
 
@@ -301,17 +282,21 @@ function Repo:newBranch(name, baseRev) --> Branch
   assert(name:find'^[%w._]+$',          'invalid branch name: %q', name)
   local b = self:branch(name)
   assertf(not ix.exists(b.dir), 'branch %s: %s already exists', name, b.dir)
+  dbg('newBranch', name, 'from', baseRev)
   baseRev = self:rev(baseRev)
   local base,baseId
+  dbg('  baseRev ->', baseRev)
   if baseRev ~= 'local' then base,baseId = self:splitRev(baseRev) end
+  baseId = base and baseId or 0
   ix.mkTree(b.dir, {
-    tip  = str(baseId or 0),
-    base = base and baseRev or '@0',
+    tip  = str(baseId),
+    base = base and baseRev or nil,
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
-  self:_setAt(asRev(name, baseId or 0))
+  local rev = asRev(name,baseId); self:_setAt(rev)
   notify('created branch %s from %s: %s', name, baseRev, pth.nice(b.dir))
+  notify('now at %s', rev)
   return b
 end
 
@@ -352,24 +337,20 @@ end
 
 --- Snapshot the br@id by applying patches.
 --- Return the materialized snapshot and the rev.
-function Repo:snapshot(rev) --> Snap, rev
-  rev = self:rev(rev)
-  if rev == 'local' then return self:localsnap(), rev end
-  do 
-    local s = self:snapPath(rev)
-    if ix.exists(s) then return Snap{s}, rev end
+function Repo:snapshot(rev) --> Snap
+  dbg('snapshot', rev)
+  rev = self:rev(rev); if rev == 'local' then return self:localsnap() end
+  local br,id = self:splitRev(rev); local b = self:branch(br)
+  assertf(ix.exists(b.dir), 'branch %s does not exist', br)
+  local bbr,bid=nil,0; if b:base() then bbr,bid = splitRev(b:base()) end
+  if id <= bid then
+    return not bbr and assert(id==0) and self:snapshot0(br)
+        or self:snapshot(asRev(bbr,id))
   end
-  local br,id = self:splitRev(rev)
-  if id == 0 then return self:snapshot0(br), rev end
-  local b = self:branch(br)
+  if ix.exists(b:snap(id)) then return Snap{b:snap(id)}, rev end
   -- check base
-  dbg'snapshot getting base'
-  local bbr,bid = self:splitRev(b:base())
-  -- if the id is part of base then return that instead
-  if id <= bid then return self:snapshot(asRev(bbr,id)) end
-
   trace('creating snapshot for %s', rev)
-  local fid; do -- find "from id" of the closest snapshot
+  local fid; do -- fid="from fid", find from closest snapshot.
     if not ix.exists(b._snap) then ix.mkDir(b._snap) end
     local sdirs = ix.ls(b._snap)
     dbg('sdirs', sdirs)
@@ -377,13 +358,13 @@ function Repo:snapshot(rev) --> Snap, rev
     local fi = ds.binarySearch(sdirs, str(id)); assert(fi >= 0, fi)
     fid = ds.closest(id, int(sdirs[fi]) or bid, int(sdirs[fi+1]) or bid)
   end
-  local fsnap = self:snapshot((fid==bid) and b:base() or asRev(br,fid))
+  local fsnap = self:snapshot(fid==bid and b:base() or asRev(br,fid))
   local tmp = self:tmp(rev)
   trace('creating snapshot from %s in %s', fsnap, tmp)
   fsnap:copyTo(tmp)
 
-  local patch = (fid <= id) and pu._patch or pu._rpatch
-  for i=fid,id,(fid<=id) and 1 or -1 do
+  local patch = fid<=id and pu._patch or pu._rpatch
+  for i=fid,id,fid<=id and 1 or -1 do
     if i == 0 then goto cont end
     local ppath = b:patch(i); trace('patching %s with %s', tmp, ppath)
     patch(tmp, ppath)
@@ -414,7 +395,7 @@ function Repo:commit(desc, diff) --> rev2
   ]])end
   local rev2 = asRev(br, id+1)
   trace('start commit from %s to %s', rev, rev2)
-  local snap2 = self:snapPath(rev2)
+  local snap2 = b:snap(id+1)
   assertf(not ix.exists(snap2), 'snapshot %q already exists', snap2)
   local base =  self:snapshot(rev)
   local bindex = base:index()
@@ -447,9 +428,12 @@ function Repo:commit(desc, diff) --> rev2
   f:flush(); f:close()
 
   -- Apply the patch
-  local idiff = assert(id==0 and pu.diff(nil, nil, ipath, snap.PVCINDEX)
-                or pu.diff(base.root..snap.PVCINDEX, snap.PVCINDEX, 
+  local idiff; if b:base() then
+    idiff = assert(pu.diff(base.root..snap.PVCINDEX, snap.PVCINDEX, 
                            ipath,                    snap.PVCINDEX))
+  else
+    idiff = assert(pu.diff(nil, nil, ipath, snap.PVCINDEX))
+  end
   ix.rm(ipath) -- remove, idiff in pu._patch re-updates
   base:copyTo(tmp)
 
@@ -469,23 +453,31 @@ function Repo:commit(desc, diff) --> rev2
 end
 
 function Repo:setAt(rev, force)
+  dbg('setAt', rev, force)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
   local copy, error = {}, {}
   for _, p2 in ipairs(i2) do
+    dbg('setAt path', p2.p)
     local p1 = i1[i1[p2.p]]
+    dbg('* has p1', p1 and true or false)
     if not p1 then push(copy, p2); goto cont end
     local path1 = s1.root..p1.p
     if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
        or ix.pathEq(path1, s2.root..p2.p)
     then goto cont end -- already equal, skip
+    dbg('* copying', p2.p)
     push(copy, p2); if not force then push(error, p2.p) end
+    dbg('* copy', copy)
     ::cont::
   end
+  dbg('out of loop', copy, error)
   if #error > 0 then
     errorf('paths are modified:\n%s', concat(error, '\n'))
   end
+  dbg('setAt copy', copy)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
+  self:_setAt(rev)
   notify('now at %s', rev)
 end
 

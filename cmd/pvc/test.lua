@@ -79,7 +79,7 @@ end;
 T'Repo.paths'; do
   local r = R()
   T.eq('/c/.pvc/@foo/rev/01.p', r:patch'foo@1')
-  T.eq('/c/.pvc/@foo/snap/1/',  r:snapPath'foo@1')
+  -- T.eq('/c/.pvc/@foo/snap/1/',  r:snapPath'foo@1')
 end
 
 T'Repo init'; do
@@ -88,7 +88,7 @@ T'Repo init'; do
     ['.pvcignore'] = repo.INIT_PVCIGNORE,
     ['.pvc'] = {
       at = 'main@0',
-      ['@main'] = { base = '@0', tip  = '0' }
+      ['@main'] = { base = false, tip  = '0' }
     }
   })
   T.eq(s[[
@@ -100,6 +100,7 @@ T'Repo init'; do
   +%.out/
   ]], pvc.diff{work_tree=D}:patch())
 end
+
 
 local M1_PVCINDEX = [[
 --- /dev/null
@@ -125,22 +126,36 @@ T'trimPatch'; do
   T.eq(M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
 end
 
+
 local SKIP = {['.pvc/']=1, PVCINDEX=1}
+
+local NUM_1 = 'zero\nfifty\none hundred'
 
 H:test{'main', 'main@2', {main = 'main/'},
 function(r)
+  T.eq('main@2', r:at())
+  T.eq('main@2', r:pvc'at')
   T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE..'%.gitignore')
-  T.path(r.w..'num.txt',    'zero\nfifty\none hundred')
-  T.dirs(r.w, r:snapPath'main@2', SKIP)
+  T.path(r.w..'num.txt',    NUM_1)
+  T.dirs(r.w, r:branch'main':snap(2), SKIP)
 end}
 
 H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
 function(r)
-  local num_txt = 'zero\nfifty\neighty\nninety\none hundred'
-  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', num_txt)
+  local upper_txt = 'zero\nfifty\neighty\nninety\none hundred'
+  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', upper_txt )
   T.throws('paths are modified:\nnum.txt', function()
     r:pvc{'at', 'main@2'}  -- cannot checkout with changes
   end)
-  T.path(r.w..'num.txt', num_txt)
-  -- T.path(r.w..'num.txt',    'zero\nfifty\none hundred')
+  T.path(r.w..'num.txt', upper_txt )
+  r:pvc{'branch', 'upper'}; local b = r:branch'upper'
+    T.eq('main@2', b:base())
+    T.eq(r.w..'.pvc/@main/snap/2/', r:snapshot'upper@2'.root)
+    T.eq(r.w..'.pvc/@main/snap/0/', r:snapshot'upper@0'.root)
+
+  r:pvc{'at', 'upper@2', force=true}
+  T.path(r.w..'num.txt',    NUM_1)
+  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', upper_txt )
+  r:pvc{'commit', 'upper: add 80,90'}
+  T.pathEq(H:patch'upper@3', r:branch'upper':patch(3))
 end}
