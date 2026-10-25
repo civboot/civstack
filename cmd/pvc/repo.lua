@@ -142,6 +142,21 @@ end
 function Branch:patch(id) return self._rev..idPath(id)..'.p' end
 function Branch:snap(id)  return self._snap..toDir(str(id))  end
 
+--- Usage: [$b:desc{id, max=10, index=true}]
+function Branch:desc(c) --> {line}
+  local t, f = {}, assert(io.open(self:patch(c[1])))
+  for ln in f:lines'l' do
+    -- keep PVCINDEX diff but stop on any other file diff.
+    if (t[#t] or ''):sub(1,3) == '---' and
+        (not c.index or not ln:find'... PVCINDEX') then
+      pop(t); break
+    end
+    push(t, ln); if c.max and #t >= c.max then break end
+  end
+  f:close()
+  return t
+end
+
 -----------------------------------
 -- REPO
 
@@ -229,6 +244,15 @@ function Repo:childGraph() --> {name: {child}}
   return repo._childGraph(self:branches())
 end
 
+--- Usage: [$desc{rev, max=5, index=true}][{br}]
+--- Usage: [$desc'br@id']
+function Repo:desc(c) --> string
+  if type(c) == 'string' then c = {c} end
+  local br,id = self:splitRev(c[1])
+  c = ds.copy(c); c[1] = id
+  return concat(self:branch(br):desc(c), '\n')
+end
+
 --- Converts a rev into (typically) branch@id form. Exceptions include: [+
 --- * nil/local become 'local', meaning the local snapshot.
 --- * /path/to/dir/ is kept and must be a snapshot path with an index.
@@ -248,6 +272,16 @@ function Repo:rev(rev) --> rev
           or rev:find'^[%w_.]+$' and rev
           or errorf('invalid rev: %q', rev)
   return br, self:branch(br):tip()
+end
+
+--- Get the actual branch name @id (going through bases).
+function Repo:actualBranch(br, id) --> br
+  local b = self:branch(br); while true do
+    local bbr, bid = splitRev(b:base())
+    if not bid or bid<id then break end
+    b = self:branch( (splitRev(b:base())) )
+  end
+  return b.name
 end
 
 function Repo:splitRev(rev) --> br, id
@@ -364,7 +398,8 @@ function Repo:snapshot(rev) --> Snap
   fsnap:copyTo(tmp)
 
   local patch = fid<=id and pu._patch or pu._rpatch
-  for i=fid,id,fid<=id and 1 or -1 do
+  local inc = fid<=id and 1 or -1
+  for i=fid+inc,id,inc and 1 or -1 do
     if i == 0 then goto cont end
     local ppath = b:patch(i); trace('patching %s with %s', tmp, ppath)
     patch(tmp, ppath)
@@ -397,9 +432,9 @@ function Repo:commit(desc, diff) --> rev2
   trace('start commit from %s to %s', rev, rev2)
   local snap2 = b:snap(id+1)
   assertf(not ix.exists(snap2), 'snapshot %q already exists', snap2)
-  local base =  self:snapshot(rev)
+  local base   = self:snapshot(rev)
   local bindex = base:index()
-  local tmp  = self:tmp(rev2)
+  local tmp    = self:tmp(rev2)
 
   local function updatePath(p)
     p = p:cleaned()
@@ -428,12 +463,9 @@ function Repo:commit(desc, diff) --> rev2
   f:flush(); f:close()
 
   -- Apply the patch
-  local idiff; if b:base() then
-    idiff = assert(pu.diff(base.root..snap.PVCINDEX, snap.PVCINDEX, 
-                           ipath,                    snap.PVCINDEX))
-  else
-    idiff = assert(pu.diff(nil, nil, ipath, snap.PVCINDEX))
-  end
+  local idiff = assert(pu.diff(
+    id>0 and base.root..snap.PVCINDEX, id>0 and snap.PVCINDEX,
+    ipath,                             snap.PVCINDEX))
   ix.rm(ipath) -- remove, idiff in pu._patch re-updates
   base:copyTo(tmp)
 
@@ -479,6 +511,48 @@ function Repo:setAt(rev, force)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
   self:_setAt(rev)
   notify('now at %s', rev)
+end
+
+local FAILED_MERGE = [[
+FAILED MERGE
+    to: %s
+  base: %s
+change: %s
+ ERROR: %s]]
+
+--- Cherry pick revision onto current commit, modifying work tree.
+function Repo:cp(rev) --> done, error
+  local from = self:rev'at'
+  local d = self:diff(from, 'local'); if d:hasDiff() then
+    notify'has diff:' d:format(ctx.fmtlog, false)
+    notify'Cannot cherry pick with diff'
+    return nil, 'has diff'
+  end
+  local conflicts = false
+  local br,id = self:splitRev(rev)
+  local fsnap = self:snapshot(asRev(br,id-1))
+  local csnap = self:snapshot(rev)
+  local tsnap = self:localsnap()
+  local fdir, tdir = fsnap.root, tsnap.root
+  fsnap:map2(tsnap, function(fpath, tpath)
+    fpath, tpath = fpath and fpath.p, tpath and tpath.p
+    if (fpath or tpath) == snap.PVCINDEX then return end
+    local from, to = fpath and (fdir..fpath), tpath and (tdir..tpath)
+    local chg = csnap.root..(fpath or tpath)
+    dbg('Repo:cp', to, from, chg)
+    local ok, err = pu.merge(to, from, chg)
+    dbg('Repo:cp result', ok, err)
+    if not ok then
+      conflicts = true
+      ctx.fmtlog:styled('error', sfmt(FAILED_MERGE,
+        to and nice(to), from and nice(from), nice(chg), err), '\n')
+    end
+  end)
+  if conflicts then
+    notify'failed to merge, fix conflicts and re-run'
+    return false, 'conflicts'
+  end
+  return true
 end
 
 return repo

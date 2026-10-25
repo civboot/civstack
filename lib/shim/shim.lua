@@ -135,9 +135,7 @@ end
 --- Duck type: get a file handle.
 --- If [$v or default] is a string then open the file in mode [$default='w+']
 function M.file(v, default, mode--[[w+]]) --> file, error?
-  if BOOLS[v] ~= nil then
-    return default -- TODO: handle false -> /dev/null.
-  end
+  if BOOLS[v] ~= nil then return default end
   v = v or default
   if type(v) == 'string' then return ctx.open(v, mode or 'w+') end
   return v

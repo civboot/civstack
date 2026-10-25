@@ -33,8 +33,9 @@ local snap  = require'pvc.snap'
 local repo  = require'pvc.repo'
 
 local str                  = tostring
-local srep, sfmt, sconcat  = mty.from(string, 'rep, format, concat')
-local push, concat         = mty.from(table,  'insert, concat')
+local max                  = mty.from'math     max'
+local srep, sfmt, sconcat  = mty.from'string   rep, format, concat'
+local push, concat         = mty.from'table    insert, concat'
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
@@ -48,6 +49,7 @@ local EMPTY = {}
 local Base = shim.cmd'_base' {
   'work_tree [path]: working directory where code is',
   'pvc_repo  [path]: path to pvc repo, typically work_tree/.pvc/',
+  'out       [file]: where to output to',
   '__repo [repo.Repo]',
 }
 
@@ -88,11 +90,12 @@ function pvc.status:__call()
 end
 
 
---- Implement pvc.log algorithm.
+--- Implementation of the pvc.log algorithm.
 pvc.Log = mty'Log' { 'f', 'r [repo.Repo]', 'graph', 'rem' }
 
 function pvc.Log:log(ind, br, id)
-  local r, f, ci, chldrn = self.r, self.f, 0, self.graph[br]
+  local r = self.r; br = r:actualBranch(br,id)
+  local f, ci, chlrn = self.f, 0, self.graph[br]
   local b = r:branch(br)
 
   local brPoints = {} -- id -> {chld}
@@ -106,21 +109,25 @@ function pvc.Log:log(ind, br, id)
       if self.rem <= 0 then return end
       self.rem = self.rem - 1
     end
-    f:styled('meta',   self.ind..' *', ' ')
-    f:styled('string', asRev(br,id), ' ')
-    f:write('FIXME' or b:desc(id)[1], '\n')
+    f:styled('meta', ind)
+    local rev = asRev(r:actualBranch(br,id),id)
+    f:styled('string', rev, ' ')
+    if rev == r:at() then f:styled('meta', '[at]', ' ') end
+    f:write(concat(b:desc{id, max=1}, '\n'))
+    f:write'\n'
 
     for _, chld in ipairs(brPoints[id] or EMPTY) do
-      self:log(ind..'* ', chld, 1)
+      self:log(ind..'* ', chld, id+1)
     end
 
     id = id + 1
   end
 end
 
---- Usage: [$pvc log rev][{br}]
+--- Usage: [$pvc log rev=at][{br}]
 --- Show the branch structure starting at rev.
 pvc.log = mty.extend(Base, 'status', {
+  "before[int]: number of id's before rev to output", before=5,
   'max [int]: maximum number of lines to output',
 })
 function pvc.log:__call()
@@ -129,7 +136,8 @@ function pvc.log:__call()
     rem=self.max,
     f=ctx.fmtout, r=r, graph=r:childGraph(),
   }
-  l:log('', r:splitRev(self[1] or 'at'))
+  local br,id = r:splitRev(self[1] or 'at')
+  l:log('', br,max(0, id-self.before))
 end
 
 --- Usage: [$pvc diff rev1::rev2 paths...][{br}]
@@ -249,18 +257,6 @@ function pvc.branch:__call()
   local r = self.__repo
   r:newBranch(self[1], self[2] or 'at')
 end
-
---- Usage: [$$pvc show [branch#id] --before=10]$[{br}]
---- Show the commits before/after [$branch#id].[{br}]
----
---- If [$branch#id] is not given, print all branches.
-pvc.show = mty.extend(Base, 'show', {
-  'before [int]: number of records before id to show',
-    num=10,
-  'after [int]: number of records after id to show',
-    num=5,
- [[paths [bool]: show only paths.]],
-})
 
 --- Usage: [$$pvc desc branch#id=current [$to/new.cxt]]$[{br}]
 --- Get or set the description for a single branch id.[{br}]

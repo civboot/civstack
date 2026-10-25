@@ -209,6 +209,8 @@ function Snap:diff(s2) --> Diff
   }
 end
 
+function Snap:__tostring() return 'snap:'..self.root end
+
 -----------------------------------
 -- Diff
 

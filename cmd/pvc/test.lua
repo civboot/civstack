@@ -129,7 +129,9 @@ end
 
 local SKIP = {['.pvc/']=1, PVCINDEX=1}
 
-local NUM_1 = 'zero\nfifty\none hundred'
+local NUM_1   = 'zero\nfifty\none hundred'
+local NUM_UP  = 'zero\nfifty\neighty\nninety\none hundred'
+local NUM_LOW = 'zero\nten\ntwenty\nfifty\none hundred'
 
 H:test{'main', 'main@2', {main = 'main/'},
 function(r)
@@ -140,22 +142,43 @@ function(r)
   T.dirs(r.w, r:branch'main':snap(2), SKIP)
 end}
 
-H:test{'upper', 'main@2', {main = 'main/', _upper = 'upper/'},
+H:test{'upper', 'main@2', {main = 'main/'},
 function(r)
-  local upper_txt = 'zero\nfifty\neighty\nninety\none hundred'
-  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', upper_txt )
+  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', NUM_UP )
   T.throws('paths are modified:\nnum.txt', function()
     r:pvc{'at', 'main@2'}  -- cannot checkout with changes
   end)
-  T.path(r.w..'num.txt', upper_txt )
+  T.path(r.w..'num.txt', NUM_UP )
   r:pvc{'branch', 'upper'}; local b = r:branch'upper'
     T.eq('main@2', b:base())
     T.eq(r.w..'.pvc/@main/snap/2/', r:snapshot'upper@2'.root)
     T.eq(r.w..'.pvc/@main/snap/0/', r:snapshot'upper@0'.root)
 
-  r:pvc{'at', 'upper@2', force=true}
+  r:pvc{'at', 'upper@2', force=true} -- main@2
   T.path(r.w..'num.txt',    NUM_1)
-  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', upper_txt )
+  r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', NUM_UP )
   r:pvc{'commit', 'upper: add 80,90'}
-  T.pathEq(H:patch'upper@3', r:branch'upper':patch(3))
+  H:branchDirEq('upper', r:branch'upper'.dir)
+end}
+
+H:test{'lower', 'main@2', {main = 'main/'},
+function(r)
+  r:pvc{'branch', 'lower'}
+  pth.write(r.w..'num.txt', NUM_LOW); r:pvc{'commit', 'lower: add 10,20'}
+  H:branchDirEq('lower', r:branch'lower'.dir)
+  T.eq('', tostring(ctx.stdout))
+  r:pvc'log'; T.eq(s[[
+  main@0 zero patch
+  main@1 first commit
+  main@2 num.txt: first commit
+  * lower@3 [at] lower: add 10,20
+  ]], tostring(ctx.stdout))
+end}
+
+H:test{'cherrypick', 'main@2', {main='main/', upper='upper/', lower='lower/'},
+function(r)
+  assert(r:cp'upper@3')
+  T.path(r.w..'num.txt', NUM_UP )
+  r:pvc{'commit', r:desc'upper@3'}
+  T.fileEq(H:patch'upper@3', r:patch'main@3')
 end}

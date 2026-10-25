@@ -1,6 +1,8 @@
 local mty   = require'metaty'
 
 local T   = require'civtest'
+local fmt = require'fmt'
+local ds  = require'ds'
 local pth = require'ds.path'
 local ix   = require'civix'
 local pvc  = require'pvc'
@@ -46,7 +48,10 @@ function pT.Harness:test(cfg)
   end
   dbg('harness at', rev)
   r:pvc{'at', rev}
+  local f = ds.bytearray(); local fm = fmt.Fmt{to=f, style=false}
+  ctx:push{stdout=f, fmtout=fm}
   fn(r)
+  ctx:pop()
 end
 
 --- Get the path to the patch in [$branches/dir/rev/{id}.p].
@@ -56,5 +61,10 @@ function pT.Harness:patch(trev) --> path
 end
 
 function pT.Harness:patchStr(trev) return pth.read(self:patch(trev)) end
+
+local IGNORE_BRANCH_DIR = {['snap/']=true}
+function pT.Harness:branchDirEq(expectBrName, resultBrDir)
+  T.dirs(self.branches..expectBrName, resultBrDir, IGNORE_BRANCH_DIR)
+end
 
 return pT
