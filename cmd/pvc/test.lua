@@ -132,6 +132,7 @@ local SKIP = {['.pvc/']=1, PVCINDEX=1}
 local NUM_1   = 'zero\nfifty\none hundred'
 local NUM_UP  = 'zero\nfifty\neighty\nninety\none hundred'
 local NUM_LOW = 'zero\nten\ntwenty\nfifty\none hundred'
+local NUM_2   = 'zero\nten\ntwenty\nfifty\neighty\nninety\none hundred'
 
 H:test{'main', 'main@2', {main = 'main/'},
 function(r)
@@ -176,9 +177,12 @@ function(r)
 end}
 
 H:test{'cherrypick', 'main@2', {main='main/', upper='upper/', lower='lower/'},
-function(r)
-  assert(r:cp'upper@3')
-  T.path(r.w..'num.txt', NUM_UP )
+function(r) -- direct grafts of upper+lower
+  assert(r:cp'upper@3'); T.path(r.w..'num.txt', NUM_UP )
   r:pvc{'commit', r:desc'upper@3'}
   T.fileEq(H:patch'upper@3', r:patch'main@3')
+
+  assert(r:cp'lower@3'); T.path(r.w..'num.txt', NUM_2)
+  r:pvc{'commit', r:desc'lower@3'}
+  H:branchDirEq('main_merged', r:branch'main'.dir)
 end}
