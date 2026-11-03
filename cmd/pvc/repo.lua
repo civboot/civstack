@@ -521,10 +521,12 @@ change: %s
  ERROR: %s]]
 
 --- Cherry pick revision onto current commit, modifying work tree.
-function Repo:cp(rev) --> done, error
+--- Return the snapshot that was cherry-picked.
+function Repo:cp(rev, paths) --> Snap, error
+  if not paths or ds.isEmpty(paths) then paths = nil end
   local from = self:rev'at'
   local d = self:diff(from, 'local'); if d:hasDiff() then
-    notify'has diff:' d:format(ctx.fmtlog, false)
+    notify'has diff:'; d:format(ctx.fmtlog, false)
     notify'Cannot cherry pick with diff'
     return nil, 'has diff'
   end
@@ -536,12 +538,11 @@ function Repo:cp(rev) --> done, error
   local fdir, tdir = fsnap.root, tsnap.root
   fsnap:map2(tsnap, function(fpath, tpath)
     fpath, tpath = fpath and fpath.p, tpath and tpath.p
-    if (fpath or tpath) == snap.PVCINDEX then return end
+    if paths and not paths[fpath or tpath]
+       or (fpath or tpath):sub(1,3) == 'PVC' then return end
     local from, to = fpath and (fdir..fpath), tpath and (tdir..tpath)
     local chg = csnap.root..(fpath or tpath)
-    dbg('Repo:cp', to, from, chg)
     local ok, err = pu.merge(to, from, chg)
-    dbg('Repo:cp result', ok, err)
     if not ok then
       conflicts = true
       ctx.fmtlog:styled('error', sfmt(FAILED_MERGE,
@@ -550,9 +551,24 @@ function Repo:cp(rev) --> done, error
   end)
   if conflicts then
     notify'failed to merge, fix conflicts and re-run'
-    return false, 'conflicts'
+    return nil, 'conflicts'
   end
-  return true
+  return csnap
+end
+
+--- Squash the top num commits of branch into a single commit.
+function Repo:squash(br, num, desc)
+  local b = self:branch(br)
+  local id = b:tip() - num + 1
+  -- Make sure no children branch from squashed commits
+  for chld, cid in ipairs(self:childGraph()[br]) do
+    if type(chld) ~= 'string' then goto cont end
+    if cid >= id then errorf('%s branches at %s:%s', chld, b.name, cid) end
+  ::cont::end
+  if not desc then
+    desc = {}; for i=id,b:tip() do push(desc, b:desc(i)) end
+  end
+  -- FIXME: do the squash
 end
 
 return repo

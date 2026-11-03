@@ -35,7 +35,7 @@ local repo  = require'pvc.repo'
 local str                  = tostring
 local max                  = mty.from'math     max'
 local srep, sfmt, sconcat  = mty.from'string   rep, format, concat'
-local push, concat         = mty.from'table    insert, concat'
+local push, pop, concat    = mty.from'table    insert, remove, concat'
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
@@ -258,12 +258,34 @@ function pvc.branch:__call()
   r:newBranch(self[1], self[2] or 'at')
 end
 
---- Usage: [$$pvc desc branch#id=current [$to/new.cxt]]$[{br}]
---- Get or set the description for a single branch id.[{br}]
----
---- The new description can be passed via [$to/new.cxt] or
---- after [$--] (like commit).
-pvc.desc = mty.extend(Base, 'desc', {})
+--- Usage: [$pvc cp rev paths...][{br}]
+--- Cherry pick revision into working tree. If [$paths] are passed
+--- then only cherry pick those paths.
+pvc.cp = mty.extend(Base, 'cp', {})
+function pvc.cp:__call()
+  local r = self.__repo; local rev = assert(pop(self), 'must specify rev')
+  assert(r:cp(rev, #self>0 and ds.Set(ds.icopy(self))))
+  notify('cherrypicked %s', rev)
+end
+
+--- Usage: [$pvc cpc rev paths...][{br}]
+--- Cherry pick revision into working tree and commit using it's description
+--- (or provide one via --desc=).
+pvc.cpc = mty.extend(Base, 'cpc', {'desc [str]'})
+function pvc.cpc:__call()
+  local r = self.__repo; local rev = assert(pop(self), 'must specify rev')
+  local desc = self.desc or r:desc{rev}
+  assert(r:cp(rev, #self>0 and ds.Set(ds.icopy(self))))
+  r:commit(desc, r:diff('at', 'local'))
+  notify('cherrypicked and commited %s', rev)
+end
+
+--- Usage: [$$pvc squash int 'some description']$[{br}]
+--- Squash some number of commits at tip.
+--- This can also change the description of the most recent commit.
+pvc.squash = mty.extend(Base, 'squash', {})
+function pvc.squash:__call()
+end
 
 --- Usage: [$$pvc squash [name#id]]$[{br}]
 --- Combine changes and descriptions from [$branch id -> endId] (inclusive)
@@ -295,20 +317,6 @@ pvc.rebase = mty.extend(Base, 'rebase', {
 pvc.grow = mty.extend(Base, 'grow', {
   'branch [string]: the branch to mutate',
 })
-
---- Usage: [$prune branch#id][+
---- * if [$#id]: delete ids [$id -> tip] (inclusive).
---- * else: delete branch
---- ]
-pvc.prune = mty.extend(Base, 'prune', {})
-
---- Usage: [$export branch to/][{br}]
---- Copy all patch files in the branch to [$to/].
---- ["The resulting directory is commonly sent to
----   [$tar -zcvf branch.tar.gz path/] and then [$branch.tar.gz] sent to a
----   maintainer to be merged.
---- ]
-pvc.export = mty.extend(Base, 'export', {})
 
 --- Usage: [$$snap [branch#id=current]]$[{br}]
 --- Get the snapshot directory of branch#id.

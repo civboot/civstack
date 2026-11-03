@@ -272,3 +272,10 @@ test('ctx', function()
   assertErrorPat('foo', function() return ctx.foo end)
   assertEq('CTX_BASE', ctx.__name)
 end)
+
+test('fninfo', function()
+  local function fakeFn() end
+  assertEq('function', mty.fninfo(fakeFn))
+  G.MOD_NAMES[fakeFn] = 'fakeFn'
+  assertEq('fakeFn', mty.fninfo(fakeFn))
+end)

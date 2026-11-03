@@ -249,9 +249,9 @@ function Diff:format(fmt, full)
   else
     if not self:hasDiff() then return s('bold', 'No Difference', '\n') end
     s('bold', 'Diff:', ' ', self.dir1, ' --> ', self.dir2, '\n')
-    for _,path in ipairs(self.deleted) do s('base',   '-'..path, '\n') end
-    for _,path in ipairs(self.created) do s('change', '+'..path, '\n') end
-    for _,path in ipairs(self.changed) do s('notify', '~'..path, '\n') end
+    for _,path in ipairs(self.deleted) do s('base',   '-'..path.p, '\n') end
+    for _,path in ipairs(self.created) do s('change', '+'..path.p, '\n') end
+    for _,path in ipairs(self.changed) do s('notify', '~'..path.p, '\n') end
   end
 end
 

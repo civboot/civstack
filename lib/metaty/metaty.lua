@@ -218,11 +218,12 @@ end
 function M.fninfo(fn) --> name, loc
   local info
   local name = MOD_NAMES[fn]; if not name then
-    info = debug.getinfo(fn)
+    info = debug.getinfo(fn, 'lnS')
     name = info.name
+    print('name', name) 
   end
   local loc = MOD_LOC[fn]; if not loc then
-    info = info or debug.getinfo(fn, 'Sl'); loc = info.source
+    info = info or debug.getinfo(fn, 'lS'); loc = info.source
     if loc:sub(1,1) == '@' then
       loc = loc:sub(2)..':'..info.linedefined
     else loc = nil end

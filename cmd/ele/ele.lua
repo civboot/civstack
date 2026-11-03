@@ -56,12 +56,10 @@ function ele:__call()
     lap.scheduleTraced('ele read stdin', function() while s.ed.run do
       rawKeySend(byte(ctx.read(1)))
     end end)
-    lap.scheduleTraced('ele read display', function()
-      while s.ed.run do
+    lap.scheduleTraced('ele read display', function() while s.ed.run do
         local ok, err = ds.try(s.ed.display.input, s.ed.display, keysend, rawKeyRecv)
         (ok and info or log.error)('display.input exited with: %s', err)
-      end
-    end)
+    end end)
     lap.scheduleTraced('ele draw', function()
       ix.sleep(0.5) -- FIXME: remove. there is a race condition I need to track down.
       s:draw()

@@ -9,6 +9,7 @@ local fmt = require'fmt'
 local ds = require'ds'
 local heap = require'ds.heap'
 
+local setmt = setmetatable
 local sfmt = string.format
 local push, concat = table.insert, table.concat
 local yield, create  = coroutine.yield, coroutine.create
@@ -74,14 +75,18 @@ end
 
 function M.scheduleTraced(name, fn, _noMore)
   assert(not _noMore, 'do not pass additional args')
+  local fninfo = sfmt('%q:%s', name, select(2,mty.fninfo(fn)))
   local cor = ctx.schedule(function()
-    log.info('scheduling', fn)
+    local gc = setmt({}, {__gc=function() if fninfo then 
+      log.info("COR GC %s: garbage collected before finish", fninfo)
+    end end})
+    log.info('COR starting %s', fninfo)
     local ok, err, b,c = ds.try(fn)
-    log.info('scheduled %s done with status: %q', fn, ok and 'ok' or err)
-    if not ok then error(err) end
+    log.info('COR finished %s: %q', fninfo, ok and 'ok' or err)
+    fninfo = nil; if not ok then error(err) end
     return ok, err, b,c
   end)
-  LAP_TRACE[cor] = true
+  LAP_TRACE[cor] = fn
 end
 
 --- Yield a sleep signal for the number of  seconds (float).
@@ -418,15 +423,16 @@ M.Lap.sleep = M.LAP_UPDATE.sleep
 --- file-descriptor completion status.
 M.Lap.poll  = M.LAP_UPDATE.poll
 
+local DEAD_ERROR = 'coroutine %q (fn=%q) is dead and cannot be resumed.'
+                 ..' Traceback:\n  %s'
 --- Executes a single coroutine, used inside [$:run()]
 function M.Lap:execute(cor, note) --> errstr?
   if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
     log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   if status(cor) == 'dead' then
-    log.warn('coroutine %q (fn=%q) is dead and cannot be resumed. Traceback:\n  %s',
-             cor, LAP_CORS[cor],
-             table.concat(ds.tracelist(debug.traceback(cor)), '\n  '))
+    log.warn(DEAD_ERROR, cor, LAP_CORS[cor],
+             concat(ds.tracelist(debug.traceback(cor)), '\n  '))
     return
   end
   ctx.__parent = LAP_CTX[cor] or CTX_ASYNC
