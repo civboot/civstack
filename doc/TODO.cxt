@@ -62,4 +62,7 @@ E 07:40:45 ele/Session.lua:85: failed event {action="paste", index=1}. [ERROR] a
 [*Bug]
 
   [LINE 71.101] I 08:30:12 lua/lap.lua:85: COR finished "ele draw":/home/rett/projects/civstack/.civ/bin/ele:63: [ERROR] attempt to index a nil value (field '?'
-
+  
+I 14:09:15 lua/lap.lua:81: COR GC "ele read display":
+/home/rett/projects/civstack/.civ/bin/ele:59:
+ garbage collected before finish  14:09 [5/81528] (31 results)

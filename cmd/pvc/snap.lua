@@ -28,10 +28,11 @@ local Path, Diff, Snap
 snap.PVC      = '.pvc/'
 snap.PVCINDEX = 'PVCINDEX'
 snap.PVCPATCH = 'PVCPATCH'
+snap.PVCPLAN  = 'PVCPLAN'
 snap.PVCIGNORE = '.pvcignore'
 
-
-local SKIP_ON_LOAD = {[snap.PVCINDEX] = 1, [snap.PVCPATCH] = 1}
+snap.EXCLUDE = {snap.PVCINDEX, snap.PVCPATCH, snap.PVCPLAN}
+snap.EXCLUDE_SET = ds.Set(snap.EXCLUDE)
 
 local X = tonumber('111', 8) -- any executable bit
 
@@ -62,7 +63,7 @@ function snap.loadDirAsIndex(dir) --> {Path}
       if (p == snap.PVC or ds.find(dotP, ignore)) then w:skip() end
       goto cont
     end
-    if p == snap.PVCINDEX or ds.find('./'..p, ignore) then goto cont end
+    if snap.EXCLUDE_SET[p] or ds.find('./'..p, ignore) then goto cont end
     local st = assertf(ix.stat(path), 'cannot stat %q', path)
     i = i + 1
     paths[p] = i; paths[i] = snap.Path{

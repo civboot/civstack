@@ -317,8 +317,8 @@ function M.Edit:drawCursor(ed)
   -- TODO: this is dark-mode only, support light mode.
   fg,bg = (fg=='z') and 'w' or fg, (bg=='z') and 'b' or bg
   -- swap them
-  d.fg:insert(l,c, bg..(d.fg[l][c+1] or ' '))
-  d.bg:insert(l,c, fg..(d.bg[l][c+1] or ' '))
+  d.fg:insert(l,c, bg..((d.fg[l] or E)[c+1] or ' '))
+  d.bg:insert(l,c, fg..((d.bg[l] or E)[c+1] or ' '))
   local tx = d.text
   if not tx[l][c] then tx:insert(l, c, ' ') end
   -- hide the cursor, but set for reference

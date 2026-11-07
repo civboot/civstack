@@ -28,7 +28,7 @@ local byte = mty.from(string, 'byte')
 
 local ELE_STATE = '/tmp/'..ctx.CWD:gsub('/', '_')
                 ..'_elestate.lson'
-
+                
 function ele:__call()
   local savedmode
   info('ele exe', self)
@@ -56,10 +56,13 @@ function ele:__call()
     lap.scheduleTraced('ele read stdin', function() while s.ed.run do
       rawKeySend(byte(ctx.read(1)))
     end end)
-    lap.scheduleTraced('ele read display', function() while s.ed.run do
+    lap.scheduleTraced('ele read display', function()
+      ele.FIXME_DISPLAY = coroutine.running() -- FIXME: keep alive
+      while s.ed.run do
         log.try('display.input failure', s.ed.display.input,
                  s.ed.display, keysend, rawKeyRecv)
-    end end)
+      end
+    end)
     lap.scheduleTraced('ele draw', function()
       ix.sleep(0.5) -- FIXME: remove. there is a race condition I need to track down.
       s:draw()

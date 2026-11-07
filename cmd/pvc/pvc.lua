@@ -42,7 +42,7 @@ local errorf               = mty.from'fmt      errorf'
 local info, trace          = mty.from'ds.log   info, trace'
 local s, pk, int           = mty.from'ds       simplestr, popk, int'
 local toDir, pconcat, nice = mty.from'ds.path  toDir, concat, nice'
-local asRev                = mty.from'pvc.repo asRev'
+local asRev, splitRev      = mty.from'pvc.repo asRev, splitRev'
 
 local EMPTY = {}
 
@@ -89,41 +89,6 @@ function pvc.status:__call()
   else f:styled('bold', 'No changes in working tree', '\n') end
 end
 
-
---- Implementation of the pvc.log algorithm.
-pvc.Log = mty'Log' { 'f', 'r [repo.Repo]', 'graph', 'rem' }
-
-function pvc.Log:log(ind, br, id)
-  local r = self.r; br = r:actualBranch(br,id)
-  local f, ci, chlrn = self.f, 0, self.graph[br]
-  local b = r:branch(br)
-
-  local brPoints = {} -- id -> {chld}
-  for _, chld in ipairs(chlrn) do
-    local base = chlrn[chld]; brPoints[base] = brPoints[base] or {}
-    push(brPoints[base], chld)
-  end
-
-  for id=id,b:tip() do local id=id
-    if self.rem then
-      if self.rem <= 0 then return end
-      self.rem = self.rem - 1
-    end
-    f:styled('meta', ind)
-    local rev = asRev(r:actualBranch(br,id),id)
-    f:styled('string', rev, ' ')
-    if rev == r:at() then f:styled('meta', '[at]', ' ') end
-    f:write(concat(b:desc{id, max=1}, '\n'))
-    f:write'\n'
-
-    for _, chld in ipairs(brPoints[id] or EMPTY) do
-      self:log(ind..'* ', chld, id+1)
-    end
-
-    id = id + 1
-  end
-end
-
 --- Usage: [$pvc log rev=at][{br}]
 --- Show the branch structure starting at rev.
 pvc.log = mty.extend(Base, 'status', {
@@ -132,12 +97,18 @@ pvc.log = mty.extend(Base, 'status', {
 })
 function pvc.log:__call()
   local r = self.__repo
-  local l = pvc.Log{
-    rem=self.max,
-    f=ctx.fmtout, r=r, graph=r:childGraph(),
-  }
-  local br,id = r:splitRev(self[1] or 'at')
-  l:log('', br,max(0, id-self.before))
+  local f, br,id = ctx.fmtout, r:splitRev(self[1] or 'at')
+  local c = {br, max(0, id-self.before), rem=self.max}
+  function c.fn(depth, br,id)
+    local b = r:branch(br)
+    f:styled('meta', srep('* ', depth))
+    local rev = asRev(r:actualBranch(br,id),id)
+    f:styled('string', rev, ' ')
+    if rev == r:at() then f:styled('meta', '[at]', ' ') end
+    f:write(concat(b:desc{id, max=1}, '\n'))
+    f:write'\n'
+  end
+  r:walk(c)
 end
 
 --- Usage: [$pvc diff rev1::rev2 paths...][{br}]
@@ -158,7 +129,7 @@ end
 --- Apply a series of patches
 pvc.patch = mty.extend(Base, 'patch', {
   'exclude {path}: paths to exclude from patches.',
-    exclude=snap.PVCINDEX,
+    exclude=snap.EXCLUDE,
 })
 function pvc.patch:__call()
   local r = self.__repo
@@ -208,6 +179,22 @@ function pvc.at:__call()
   r:setAt(rev, f); return rev
 end
 
+--- Usage: [$$pvc tip [branch]]$[{br}]
+--- Get the tip id of branch.
+pvc.tip = mty.extend(Base, 'tip', {})
+function pvc.tip:__call()
+  local r = self.__repo
+  ctx.stdout:write(str(r:tip(self[1] or r:splitRev'at')), '\n')
+end
+
+--- Usage: [$snap rev][{br}]
+--- Get the snapshot (directory) of rev. You should treat this dir as readonly.
+pvc.snap = mty.extend(Base, 'snap', {})
+function pvc.snap:__call() --> dir/
+  local s = self.__repo:snapshot(self[1] or 'at')
+  ctx.stdout:write(s, '\n'); return s
+end
+
 --- Usage: [$pvc upload branchName path/to/dir]
 --- Backs up the branch to the directory, making a complete copy of the
 --- rev/ and metadata files but not copying snapshots.[{br}]
@@ -242,14 +229,6 @@ function pvc.pull:__call()
   notify('pulled %s from %s', br, d)
 end
 
---- Usage: [$$pvc tip [branch]]$[{br}]
---- Get the tip id of branch.
-pvc.tip = mty.extend(Base, 'tip', {})
-function pvc.tip:__call()
-  local r = self.__repo
-  ctx.stdout:write(str(r:tip(self[1] or r:splitRev'at')), '\n')
-end
-
 --- Usage: [$$pvc branch name [from]]$[{br}]
 --- Start new branch [$name] branching off of [$from].
 pvc.branch = mty.extend(Base, 'branch', {})
@@ -273,8 +252,8 @@ function pvc.cp:__call()
 end
 
 --- Usage: [$$pvc squash int 'some description']$[{br}]
---- Squash some number of commits at tip. Description is optional.
---- This can also change the description of the most recent commit.
+--- Squash some number of commits at tip.
+--- The description will be their concatenated descriptions by default.
 pvc.squash = mty.extend(Base, 'squash', {})
 function pvc.squash:__call()
   local r, num = self.__repo
@@ -283,11 +262,37 @@ function pvc.squash:__call()
   r:squash(r:splitRev'at', num, --[[desc]]self[2])
 end
 
---- Usage: [$$snap [branch#id=current]]$[{br}]
---- Get the snapshot directory of branch#id.
+local function plan(r, revArg) --> table
+  local g = r:childGraph()
+  local br,id,fid = revArg:match'^([%w._])=(%d+)$'
+  if br then -- new base, from-id is all commits in branch
+    id, fid = int(id), select(2, splitRev(r:branch(br):base())) + 1
+  else -- just rewrite history, from-id is just the id.
+    br,id = splitRev(revArg)
+    fid = id
+  end
+end
+
+--- History rewrite usage: [$pvc plan rev][{br}]
+--- Rebase usage:          [$pvc plan br=newBase@id]
 ---
---- The snapshot contains a copy of files at that commit.
-pvc.snap = mty.extend(Base, 'snap', {})
+--- Create a PVCPLAN and, if run=true, execute it.
+--- If rev or br=newBase (e.g rebase) isn't provided resume an existing plan.
+---
+--- A plan is stored in the PVCPLAN file and is simply series of commands which
+--- create new ".branch" branches and cherry pick a series of commits from existing
+--- branches into them. They can also squash commits.
+pvc.plan = mty.extend(Base, 'squash', {
+  'run [bool]: if true then run the plan',
+})
+function pvc.plan:__call()
+  local r = self.__repo; local g = r:childGraph()
+  if self[1] then
+    local p = plan(r, self[1])
+    -- FIXME: write plan
+  end
+  if self.run then r:runPlan() end
+end
 
 if shim.isMain(pvc) then pvc:main(G.arg) end
 return pvc

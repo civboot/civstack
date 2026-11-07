@@ -107,7 +107,7 @@ end
 --- run ds.try, log msg and error on error.
 function M.try(msg, fn, ...) --> ok, a, b, c
   local ok, a, b, c = ds.try(fn, ...); if not ok then
-    M.error('%s: %q', msg, a)
+    M.err('%s: %q', msg, a)
   end
   return ok, a, b, c
 end

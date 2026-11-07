@@ -54,12 +54,13 @@ function repo.revId(rev)
 end
 local asRev, revId = repo.asRev, repo.revId
 
-local function splitRev(rev) --> br, id
+function repo.splitRev(rev) --> br, id
   if not rev then return rev end
   local br,id = rev:match'^([%w_.]+)@(%d+)$'
   assertf(br, 'invalid splitRev: %q', rev)
   return br, int(id)
 end
+local splitRev = repo.splitRev
 
 --- get a set of the lines in a file
 local function loadLineSet(path) --> set
@@ -587,6 +588,57 @@ function Repo:squash(br, num, desc)
   self:commit(desc, self:localsnap():diff(s2))
   self:setAt(rev, true)
   notify('squashed %s of %s into ', num, trev)
+end
+
+--- Repo walker
+repo.Walker = mty'Walker' {
+  'r [Repo]',
+  'g: childGraph',
+  'rem [int]: remaining items',
+ [[fn [(depth, br,id, st?) -> st]: function to call for every id.
+   Any state output will be passed to children.
+ ]],
+}
+
+function repo.Walker:__call(depth, br, id, st)
+  local r = self.r; br = r:actualBranch(br,id)
+  local ci, chlrn = 0, self.g[br]
+  local b = r:branch(br)
+
+  local brPoints = {} -- id -> {chld}
+  for _, chld in ipairs(chlrn) do
+    local base = chlrn[chld]; brPoints[base] = brPoints[base] or {}
+    push(brPoints[base], chld)
+  end
+
+  for id=id,b:tip() do local id=id
+    if self.rem then
+      if self.rem <= 0 then return end
+      self.rem = self.rem - 1
+    end
+    local subSt = self.fn(depth, br,id)
+    for _, chld in ipairs(brPoints[id] or EMPTY) do
+      self(depth+1, chld, id+1, subSt)
+    end
+    id = id + 1
+  end
+end
+
+--- Usage: [$r:walk{br,id, st, rem=10, fn=function(depth, br,id)...end}]
+function Repo:walk(c)
+  c = ds.copy(c)
+  c.r, c.g = self, self:childGraph()
+  repo.Walker(c)(0, c[1], c[2], c[3])
+end
+
+--- Create a plan.
+function Repo:plan(rev)
+  local bbr,bid, fbr,fid
+  local p = {smft('branch .%s %s', br, asRev(br,id))}
+  local at = {'at', asRev('.'..br, id)}
+  self:walk{br,id
+  self:recurse(at, br, fromId)
+  return self
 end
 
 return repo

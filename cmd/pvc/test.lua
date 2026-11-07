@@ -198,4 +198,5 @@ H:test{'squash', 'main@4', {main='main_merged'},
 function(r)
   r:pvc{'squash', 2}
   T.path(r.w..'num.txt', NUM_2)
+  H:branchDirEq('main_squashed', r:branch'main'.dir)
 end}
