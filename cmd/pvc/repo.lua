@@ -13,9 +13,9 @@ local snap  = require'pvc.snap'
 local pu    = require'pvc.unix'
 
 local str                  = G.tostring
-local srep, sfmt, sconcat  = mty.from(string, 'rep, format, concat')
-local push, pop, concat    = mty.from(table,  'insert, remove, concat')
-local int                  = mty.from(math,   'tointeger')
+local int, max             = mty.from'math     tointeger, max'
+local srep, sfmt, sconcat  = mty.from'string   rep, format, concat'
+local push, pop, concat    = mty.from'table    insert, remove, concat'
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
@@ -488,6 +488,9 @@ function Repo:setAt(rev, force)
   dbg('setAt', rev, force)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
+  local sa, ia; if not force then
+    sa = self:snapshot'at'; ia = sa:index()
+  end
   local copy, error = {}, {}
   for _, p2 in ipairs(i2) do
     dbg('setAt path', p2.p)
@@ -499,7 +502,10 @@ function Repo:setAt(rev, force)
        or ix.pathEq(path1, s2.root..p2.p)
     then goto cont end -- already equal, skip
     dbg('* copying', p2.p)
-    push(copy, p2); if not force then push(error, p2.p) end
+    push(copy, p2);
+    if not force and ia[p2.p] and not ix.pathEq(sa.root..p2.p, path1) then
+      push(error, p2.p)
+    end
     dbg('* copy', copy)
     ::cont::
   end
@@ -558,17 +564,29 @@ end
 
 --- Squash the top num commits of branch into a single commit.
 function Repo:squash(br, num, desc)
-  local b = self:branch(br)
-  local id = b:tip() - num + 1
+  local b = self:branch(br);        local tip = b:tip()
+  local id = max(0, tip - num + 1); local rev = asRev(br,id)
+  dbg('squash', id, tip)
   -- Make sure no children branch from squashed commits
   for chld, cid in ipairs(self:childGraph()[br]) do
     if type(chld) ~= 'string' then goto cont end
     if cid >= id then errorf('%s branches at %s:%s', chld, b.name, cid) end
   ::cont::end
   if not desc then
-    desc = {}; for i=id,b:tip() do push(desc, b:desc(i)) end
+    desc = {}; for i=id,tip do ds.extend(desc, b:desc{i}) end
+    desc = concat(desc, '\n')
   end
-  -- FIXME: do the squash
+  self:setAt(asRev(br,id-1))
+  local trev = asRev(br,tip); local tmp = self:tmp(trev); ix.rmdir(tmp)
+  local s2 = self:snapshot(trev)
+  ix.mv(s2.root, tmp); s2 = Snap{tmp}
+
+  -- remove patches and snapshots, then commit squashed
+  for i=id,tip do ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i)) end
+  b:setTip(id-1); self:_setAt(asRev(br,id-1))
+  self:commit(desc, self:localsnap():diff(s2))
+  self:setAt(rev, true)
+  notify('squashed %s of %s into ', num, trev)
 end
 
 return repo

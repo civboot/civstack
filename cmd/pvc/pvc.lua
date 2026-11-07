@@ -40,7 +40,7 @@ local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
 local info, trace          = mty.from'ds.log   info, trace'
-local s, pk                = mty.from'ds       simplestr, popk'
+local s, pk, int           = mty.from'ds       simplestr, popk, int'
 local toDir, pconcat, nice = mty.from'ds.path  toDir, concat, nice'
 local asRev                = mty.from'pvc.repo asRev'
 
@@ -273,42 +273,15 @@ function pvc.cp:__call()
 end
 
 --- Usage: [$$pvc squash int 'some description']$[{br}]
---- Squash some number of commits at tip.
+--- Squash some number of commits at tip. Description is optional.
 --- This can also change the description of the most recent commit.
 pvc.squash = mty.extend(Base, 'squash', {})
 function pvc.squash:__call()
+  local r, num = self.__repo
+  local num = assert(int(self[1]), 'must specify number to squash')
+  if num <= 0 then return notify'squash num <= 0, skipping' end
+  r:squash(r:splitRev'at', num, --[[desc]]self[2])
 end
-
---- Usage: [$$pvc squash [name#id]]$[{br}]
---- Combine changes and descriptions from [$branch id -> endId] (inclusive)
---- into a single commit. You can then edit the description using
---- [$pvc desc branch#id].[{br}]
----
---- This enables making lots of small commits and then
---- "squashing" them into a single commit once they are
---- in a good state.
-pvc.squash = mty.extend(Base, 'squash', {
-  'branch [string]: the branch to squash',
-    branch='current',
-})
-
---- Usage: [$$rebase [branch=current] --id=10]$[{br}]
---- Change the base of [$branch] to [$id].[{br}]
----
---- Rebase is a fundamental operation. It allows you to make or accept changes
---- on your "main" branch while you work on development branches which are
---- behind the main. See [<#basic>] for more details.
-pvc.rebase = mty.extend(Base, 'rebase', {
-  'id [int]: the id of base to change to',
-})
-
---- Usage: [$$grow --branch=current [from]]$[{br}]
---- Copy changes in [$from] onto [$branch].
---- ["In other version control systems this is called a
----   "fast forward merge"]
-pvc.grow = mty.extend(Base, 'grow', {
-  'branch [string]: the branch to mutate',
-})
 
 --- Usage: [$$snap [branch#id=current]]$[{br}]
 --- Get the snapshot directory of branch#id.
