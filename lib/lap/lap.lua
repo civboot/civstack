@@ -81,9 +81,10 @@ function M.scheduleTraced(name, fn, _noMore)
       log.info("COR GC %s: garbage collected before finish", fninfo)
     end end})
     log.info('COR starting %s', fninfo)
-    local ok, err, b,c = ds.try(fn)
+    local ok, err, b,c = ds.try(fn);
     log.info('COR finished %s: %q', fninfo, ok and 'ok' or err)
-    fninfo = nil; if not ok then error(err) end
+    fninfo = nil;
+    if not ok then error(err) end
     return ok, err, b,c
   end)
   LAP_TRACE[cor] = fn

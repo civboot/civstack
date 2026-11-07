@@ -242,6 +242,9 @@ T'table'; do
   setp(t, dp'a.a.a', nil); T.eq(nil, t.a.a.a)
   setp(t, dp'a.b',   4);   T.eq(4, t.a.b)
 
+  t = {}; for i in M.range(10,12) do push(t, i) end
+  T.eq({10,11,12}, t)
+
   t = {}; for i, v in M.inext, {4, 5, 8}, 0 do t[i] = v end
   T.eq({4, 5, 8}, t)
   t = {}; for i, v in M.iprev, {4, 5, 8}, 4 do t[i] = v end

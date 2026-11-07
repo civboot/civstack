@@ -172,9 +172,11 @@ Session.draw = function(s)
    while s.ed.run do
      if s.ed.redraw then
        s.ed.redraw = false
-       s.ed.display:resize()
-       s.ed:draw()
-       s.ed.display:draw()
+       log.try('(CRITICAL) ele draw failed', function()
+         s.ed.display:resize()
+         s.ed:draw()
+         s.ed.display:draw()
+       end)
      end
      lap.sleep(FRAME)
    end
@@ -199,9 +201,8 @@ function Session:highlight()
   end
   while self.ed.run do
     lap.sleep(1)
-    local ok, err = ds.try(highlight)
+    local ok, err = log.try('highlight', highlight)
     if hlRan then self.ed.redraw = true end
-    if not ok then log.warn('highlight error:\n%q', err) end
   end
 end
 

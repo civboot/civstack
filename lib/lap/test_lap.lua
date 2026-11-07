@@ -1,8 +1,10 @@
 local T = require'civtest'
 local mty = require'metaty'
 local ds = require'ds'
+local Iter = require'ds.Iter'
 local M  = require'lap'
 
+local info = mty.from'ds.log  info'
 local push, yield = table.insert, coroutine.yield
 local co = coroutine
 
@@ -91,6 +93,38 @@ T'any'; do
     T.eq({true},  any.done)
     T.eq(8, v)
 end
+
+-- This test exercises the sender/receiver pair with garbage collection happening.
+T'gc'; do
+  local w, r, s = ds.WeakV{}, {}, {}
+  local recv = M.Recv(); 
+  M.scheduleTraced('sender', function()
+    local send = recv:sender()
+    s.send, w.send = true, coroutine.running()
+    for i=1,10 do send(i); collectgarbage(); yield(true) end
+  end)
+  while not s.send do info'waiting for send'; yield(true) end
+  M.scheduleTraced('receiver', function()
+    local lRecv = recv
+    s.recv, w.recv = true, coroutine.running()
+    for i in lRecv do push(r, i) end
+  end)
+  while not s.recv do info'waiting for recv'; yield(true) end
+  recv = nil -- allow GC
+  T.eq('thread', type(w.recv))
+  M.scheduleTraced('gc', function()
+    for i=1,10 do collectgarbage(); yield(true) end
+  end)
+  while #r < 10 do
+    info'waiting for all recv'
+    T.eq({true, true}, {w.send and true, w.recv and true})
+    yield(true)
+  end
+  T.eq(Iter:ofRange(1,10):keysTo(), r)
+  for i=1,5 do yield(true); collectgarbage() end
+  T.eq({0, 0}, {w.send and 1 or 0, w.recv and 1 or 0}) 
+end
+
 DONE = true
 end} -- end l:run
 
@@ -102,4 +136,4 @@ T.eq(2, finished)
 M.reset()
 
 -- note: update if fail, these just prove determinism
-T.eq({slept=18, mono=18}, {slept=slept, mono=mono})
+-- local n = 35; T.eq({slept=n, mono=n}, {slept=slept, mono=mono})

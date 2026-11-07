@@ -36,7 +36,7 @@ T'tokens'; do
   hl:_highlight(tz, fg,bg)
   T.eq(s[[
   ffffffffffff
-  RRRRR z A N ffffffffffff]]
+  RRRRR z A S ffffffffffff]]
   , tostring(fg))
 
   hl:assertTokens({N's', {kind='singleStr', "'str'"}}, [[s'str']])

@@ -25,6 +25,7 @@ local push, sort = table.insert, table.sort
 local concat = table.concat
 local construct = mty.construct
 local rawislice, inext = ds.rawislice, ds.inext
+local rawrange = ds.rawrange
 
 local function swapKV(k, v) return v, k end
 
@@ -46,6 +47,11 @@ Iter.of = function(T, t) return T{pairs(t)} end
 
 --- create iterable of [$ipairs(t)]
 Iter.ofList = function(T, t) return T{ipairs(t)} end
+
+--- create iterable of [$ds.range(si,ei)]
+Iter.ofRange = function(T, si, ei)
+  return T{rawrange, assert(ei, 'must specify ei'), si-1}
+end
 
 --- create an iterable that returns [$table.unpack] on each
 --- value in [$ipairs(t)].

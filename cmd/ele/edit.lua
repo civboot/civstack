@@ -19,6 +19,7 @@ local min, max     = math.min, math.max
 local span, box = mty.from(lines, 'span, box')
 local assertf      = mty.from'fmt  assertf'
 local info         = mty.from'ds.log  info'
+local E = {}
 
 --- Ele Edit View for viewing and editing text files in a pane.
 M.Edit = mty.extend(et.BasePane, 'Edit', {
@@ -311,7 +312,7 @@ function M.Edit:drawCursor(ed)
   local l,c = 0,math.min(self.c, self:colEnd())
   l,c = self.tl + (self.l - self.vl), self.tc + (c - self.vc)
   -- get the current fg/bg color. We are going to swap them
-  local fg,bg = d.fg[l][c] or '', d.bg[l][c] or ''
+  local fg,bg = (d.fg[l] or E)[c] or '', (d.bg[l] or E)[c] or ''
   fg,bg = assert(ac.CODES[fg]), assert(ac.CODES[bg])
   -- TODO: this is dark-mode only, support light mode.
   fg,bg = (fg=='z') and 'w' or fg, (bg=='z') and 'b' or bg

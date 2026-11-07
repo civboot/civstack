@@ -497,6 +497,18 @@ function M.keys(t) --> list
   return keys
 end
 
+
+M.rawrange = function(state, i)
+  if i >= state then return end
+  return i + 1
+end
+
+--- Usage: [$for i in range(1,10) do ... end][{br}]
+--- Get a range iterator from [$$[si,ei]]$.
+M.range = function(si, ei)
+  return M.rawrange, assert(ei, 'must specify ei'), si-1
+end
+
 --- next(t, key) but with indexes
 M.inext = ipairs{} --(t, i) --> (i+1, v)
 local inext = M.inext

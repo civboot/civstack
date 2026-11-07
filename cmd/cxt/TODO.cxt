@@ -67,14 +67,3 @@ threw in the [$<b>foo</b>] to show that you can still add formatting in code
 blocks. I will utilize this for syntax highlighting.
 
 
-[{h2}Ele draw]
- I 08:30:12 lua/lap.lua:85: COR finished "ele draw":/home/rett/projects/civstack/.civ/bin/ele:63: [ERROR] attempt to index a nil value (field '?')
-  traceback:
-    [  314] .civ/lua/ele/edit.lua
-    [  314] .civ/lua/ele/edit.lua in method 'drawCursor'
-    [  224] .civ/lua/ele/Editor.lua in method 'draw'
-    [  176] .civ/lua/ele/Session.lua in method 'draw'
-    [   65] .civ/bin/ele in function </home/rett/projects/civstack/.civ/bin/ele:63>
-    [C]: in upvalue 'xpcall'
-    [ 1405] .civ/lua/ds.lua in field 'try'
-    [   84] .civ/lua/lap.lua in function </home/rett/projects/civstack/.civ/lua/lap.lua:79>
