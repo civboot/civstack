@@ -188,7 +188,8 @@ function(r) -- direct grafts of upper+lower
 end}
 
 H:test{'cherrypick_commit', 'main@2', {main='main/', upper='upper/', lower='lower/'},
-function(r) -- direct grafts of upper+lower using cpc
-  r:pvc{'cpc', 'upper@3'}; r:pvc{'cpc', 'lower@3'}
+function(r) -- direct grafts of upper+lower using --commit
+  r:pvc{'cp', 'upper@3', commit=true}
+  r:pvc{'cp', 'lower@3', commit=true}
   H:branchDirEq('main_merged', r:branch'main'.dir)
 end}

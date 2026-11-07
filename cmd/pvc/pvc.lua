@@ -261,23 +261,15 @@ end
 --- Usage: [$pvc cp rev paths...][{br}]
 --- Cherry pick revision into working tree. If [$paths] are passed
 --- then only cherry pick those paths.
-pvc.cp = mty.extend(Base, 'cp', {})
+pvc.cp = mty.extend(Base, 'cp', {
+  "commit [string|true]: if true use rev's description, else use string as desc",
+})
 function pvc.cp:__call()
   local r = self.__repo; local rev = assert(pop(self), 'must specify rev')
+  local desc = self.commit==true and r:desc{rev} or self.commit
   assert(r:cp(rev, #self>0 and ds.Set(ds.icopy(self))))
-  notify('cherrypicked %s', rev)
-end
-
---- Usage: [$pvc cpc rev paths...][{br}]
---- Cherry pick revision into working tree and commit using it's description
---- (or provide one via --desc=).
-pvc.cpc = mty.extend(Base, 'cpc', {'desc [str]'})
-function pvc.cpc:__call()
-  local r = self.__repo; local rev = assert(pop(self), 'must specify rev')
-  local desc = self.desc or r:desc{rev}
-  assert(r:cp(rev, #self>0 and ds.Set(ds.icopy(self))))
-  r:commit(desc, r:diff('at', 'local'))
-  notify('cherrypicked and commited %s', rev)
+  if desc then r:commit(desc, r:diff('at', 'local')) end
+  notify('cherrypicked%s %s', desc and ' and committed' or '', rev)
 end
 
 --- Usage: [$$pvc squash int 'some description']$[{br}]
