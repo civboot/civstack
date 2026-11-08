@@ -391,6 +391,7 @@ function M.simplestr(s)
   end
   return concat(out, '\n')
 end
+G.s = M.simplestr
 
 --- Convert integer to binary representation (0's and 1's) [+
 --- * width will be the number of bits.

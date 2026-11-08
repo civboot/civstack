@@ -44,6 +44,7 @@ M.ENV = {
   extend=ds.extend, update=ds.update, merge=ds.merge,
   concat=table.concat,
   tostring=tostring, tointeger=math.tointeger,
+  s=ds.simplestr,
   tonumber=tonumber,
   pairs=pairs,   ipairs=ipairs,
   isEmpty = ds.isEmpty,

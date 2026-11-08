@@ -200,3 +200,53 @@ function(r)
   T.path(r.w..'num.txt', NUM_2)
   H:branchDirEq('main_squashed', r:branch'main'.dir)
 end}
+
+local MAIN_PLAN = [[{
+"branch .main main@0",
+{"at", ".main@0", {
+  "cp main@1 --commit",
+  "cp main@2 --commit",
+  "cp main@3 --commit",
+  "cp main@4 --commit",
+}
+} --end]]..'\n'
+
+H:test{'plan_main', 'main@1', {main = 'main_merged/'},
+function(r)
+  -- FIXME: run the plan, should result in identical main.
+  r:pvc{'plan', 'main@1', run=false}; T.path(r.w..'PVCPLAN', MAIN_PLAN)
+end}
+
+local BRANCHES_PLAN = [[{
+"branch .main main@0",
+{"at", ".main@0", {
+  "cp main@1 --commit",
+  "cp main@2 --commit",
+  "branch .lower main@2",
+  {"at", ".lower@2", {
+    "cp lower@3 --commit",
+  }
+  "branch .upper main@2",
+  {"at", ".upper@2", {
+    "cp upper@3 --commit",
+  }
+}
+} --end]]..'\n'
+H:test{'plan_branches', 'main@1', {main='main/', upper='upper/', lower='lower/'},
+function(r)
+  -- FIXME: run the plan, should result in identical main.
+  r:pvc{'plan', 'main@1', run=false}; T.path(r.w..'PVCPLAN', BRANCHES_PLAN)
+end}
+
+local REBASE_PLAN=[[{
+"branch .lower main@3",
+{"at", ".lower@2", {
+  "cp lower@3 --commit",
+}
+} --end]]..'\n'
+H:test{'plan_rebase', 'main@2', {main='main/', upper='upper/', lower='lower/'},
+function(r)
+  r:pvc{'cp', 'upper@3', commit=true}
+  -- FIXME: run the plan, will result in new lower_rebased.
+  r:pvc{'plan', 'lower=main@3', run=false}; T.path(r.w..'PVCPLAN', REBASE_PLAN)
+end}

@@ -262,36 +262,67 @@ function pvc.squash:__call()
   r:squash(r:splitRev'at', num, --[[desc]]self[2])
 end
 
-local function plan(r, revArg) --> table
-  local g = r:childGraph()
-  local br,id,fid = revArg:match'^([%w._])=(%d+)$'
-  if br then -- new base, from-id is all commits in branch
-    id, fid = int(id), select(2, splitRev(r:branch(br):base())) + 1
-  else -- just rewrite history, from-id is just the id.
-    br,id = splitRev(revArg)
-    fid = id
-  end
-end
 
---- History rewrite usage: [$pvc plan rev][{br}]
+--- histedit usage:        [$pvc plan branch@id]
 --- Rebase usage:          [$pvc plan br=newBase@id]
 ---
---- Create a PVCPLAN and, if run=true, execute it.
+--- Create a PVCPLAN and, if run=true (the default), execute it.
 --- If rev or br=newBase (e.g rebase) isn't provided resume an existing plan.
 ---
---- A plan is stored in the PVCPLAN file and is simply series of commands which
---- create new ".branch" branches and cherry pick a series of commits from existing
---- branches into them. They can also squash commits.
+--- A plan is stored in the PVCPLAN file and is simply a series of commands
+--- which create new ".branch" branches and cherry pick a series of commits
+--- from existing branches into them. They can also squash commits.
+---
+--- When the plan is done the [$.branch] branches are cleaned up by
+--- updating or swapping their non-dot counterparts.
 pvc.plan = mty.extend(Base, 'squash', {
-  'run [bool]: if true then run the plan',
+  'run [bool]: set to false to not run the plan', run=true,
+  'skip [int]: number of items to skip in a plan. [$run] must be true.',
+ [[finish [bool]: if [$true] ONLY finish the plan (swap .branches).
+   If false, never finish the plan even after successful run.
+ ]],
 })
 function pvc.plan:__call()
   local r = self.__repo; local g = r:childGraph()
-  if self[1] then
-    local p = plan(r, self[1])
-    -- FIXME: write plan
+  if self.finish then return r:finishPlan() end
+  self.skip = shim.int(self.skip)
+  local arg = self[1]; if not self[1] then return self:runPlan() end
+  local arg = assert(self[1], 'FIXME: just run')
+  local id,br,base = nil, arg:match'^([%w._]+)=(.+)$'
+  if br then -- rebase
+    repo.checkBranch(br)
+    id = select(2, splitRev(r:branch(br):base())) + 1
+  else -- histedit
+    br,id = r:splitRev(arg)
+    base = asRev(r:actualBranch(br,id-1),id-1)
   end
-  if self.run then r:runPlan() end
+  local p = {
+    sfmt('branch .%s %s', br, base),
+    {'at', asRev('.'..br,id-1)},
+  }
+  r:walk{br,id, p[#p],
+    fn=function(depth, br,id, p)
+      push(p, sfmt('cp %s --commit', asRev(br,id)))
+    end,
+    childFn = function(_, par, br,id, p)
+      push(p, sfmt('branch .%s %s', br, asRev(par,id)))
+      push(p, {'at', asRev('.'..br,id)})
+      return p[#p]
+    end,
+  }
+  local pth = r:tmp'plan'..snap.PVCPLAN; local f = ctx.open(pth, 'w')
+  f:write'{\n'
+  repo.dumpPlan(f, '', p)
+  f:write'} --end\n'; f:flush(); f:close()
+  ix.mv(pth, r.w..snap.PVCPLAN)
+  self:runPlan()
+end
+
+function pvc.plan:runPlan()
+  if not self.run then return end
+  local r = self.__repo
+  r:runPlan(nil, self.skip)
+  r:finishPlan()
 end
 
 if shim.isMain(pvc) then pvc:main(G.arg) end

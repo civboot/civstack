@@ -3,6 +3,8 @@ local mty   = require'metaty'
 --- pvc submodule containing most logic for managing the pvc repository.
 local repo = mty.mod'pvc.repo'
 
+local shim  = require'shim'
+local fmt   = require'fmt'
 local ds    = require'ds'
 local pth   = require'ds.path'
 local ix    = require'civix'
@@ -19,9 +21,10 @@ local push, pop, concat    = mty.from'table    insert, remove, concat'
 local construct            = mty.from'metaty   construct'
 local notify, assertf      = mty.from'fmt      notify, assertf'
 local errorf               = mty.from'fmt      errorf'
-local info, trace          = mty.from'ds.log   info, trace'
 local s, pk                = mty.from'ds       simplestr, popk'
-local toDir, pconcat, nice = mty.from'ds.path toDir, concat, nice'
+local info, trace          = mty.from'ds.log   info, trace'
+local toDir, pconcat, nice = mty.from'ds.path  toDir, concat, nice'
+local dload                = mty.from'ds.load  loadfile'
 local Snap                 = mty.from'pvc.snap Snap'
 
 local EMPTY = {}
@@ -47,6 +50,10 @@ repo.RESERVED_NAMES = { ['.']=1, ['local']=1, at=1, tip=1 }
 
 -----------------------------------
 -- Utilities
+
+function repo.checkBranch(br)
+  assertf(br:match'^[%w_][.%w_]*$', 'invalid branch name: %q', br)
+end
 
 function repo.asRev(br, id) return sfmt('%s@%s', br, id) end
 function repo.revId(rev) 
@@ -92,6 +99,21 @@ local function checkDesc(desc)
     end
   end
   return desc
+end
+
+function repo.dumpPlan(f, ind, plan, si)
+  for i=si or 1,#plan do local v = plan[i]
+    if type(v) == 'string' then f:write(ind, fmt(v), ',\n')
+    elseif v[1] == 'at' then
+      f:write(ind, '{"at", ', fmt(v[2]), ', ')
+      if v.done then f:write'done=true, ' end
+      f:write('{\n')
+      repo.dumpPlan(f, ind..'  ', v, 3)
+      f:write(ind, '}\n')
+    else
+      f:write(ind, fmt(v), ',\n')
+    end
+  end
 end
 
 -----------------------------------
@@ -598,6 +620,8 @@ repo.Walker = mty'Walker' {
  [[fn [(depth, br,id, st?) -> st]: function to call for every id.
    Any state output will be passed to children.
  ]],
+ [[childFn [(depth, chld,id, st) -> st]: function when creating children
+ ]]
 }
 
 function repo.Walker:__call(depth, br, id, st)
@@ -610,15 +634,18 @@ function repo.Walker:__call(depth, br, id, st)
     local base = chlrn[chld]; brPoints[base] = brPoints[base] or {}
     push(brPoints[base], chld)
   end
+  for _, chrn in pairs(brPoints) do ds.sort(chrn) end
 
+  local cfn = self.childFn
   for id=id,b:tip() do local id=id
     if self.rem then
       if self.rem <= 0 then return end
       self.rem = self.rem - 1
     end
-    local subSt = self.fn(depth, br,id)
+    self.fn(depth, br,id, st)
     for _, chld in ipairs(brPoints[id] or EMPTY) do
-      self(depth+1, chld, id+1, subSt)
+      local chSt = st; if cfn then chSt = cfn(depth+1, br, chld, id, st) end
+      self(depth+1, chld, id+1, chSt)
     end
     id = id + 1
   end
@@ -631,14 +658,48 @@ function Repo:walk(c)
   repo.Walker(c)(0, c[1], c[2], c[3])
 end
 
---- Create a plan.
-function Repo:plan(rev)
-  local bbr,bid, fbr,fid
-  local p = {smft('branch .%s %s', br, asRev(br,id))}
-  local at = {'at', asRev('.'..br, id)}
-  self:walk{br,id
-  self:recurse(at, br, fromId)
-  return self
+--- Run a plan which by default is PVCPLAN.
+--- [$skip] can be an integer of the number of commands to skip, then exit.
+function Repo:runPlan(plan, skip)
+  plan = plan or dload(self.w..snap.PVCPLAN)
+  local done
+  for i, v in ipairs(plan) do
+    local c = type(v)=='string' and shim.parseStr(v) or v
+    if c.done then goto cont end
+    if c[1] == 'at' then
+      for ci=3,#c do self:at(c[2]); skip = self:runPlan(c[ci], skip) end
+    elseif skip then                skip = skip - 1
+    else                            self:pvc(c) end
+    if type(v) == 'string' then plan[i] = v..' --done'
+    else                        v.done = true end
+    if skip and skip <= 0 then break end
+  ::cont::end
+  return skip
+end
+
+--- Comes after runPlan.
+function Repo:finishPlan()
+  local dots = {}
+  for dbr, db in self:branches() do
+    if not dbr:find'^%.' then goto cont end
+    push(dots, dbr)
+    local b = self:branch(dbr:sub(2)) -- "real" branch
+    local bbr,bid = splitRev(db:base())
+    if bbr == b.name then -- move commits.
+      for i=bid+1,b:tip() do
+        ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i))
+      end
+      for i=bid+1,db:tip() do ix.mv(db:patch(i), b:patch(i)) end
+      b:setTip(db:tip())
+      ix.rmRecursive(db.dir)
+    else -- swap branches
+      ix.rmRecursive(b.dir)
+      ix.mv(db.dir, b.dir)
+    end
+    self._branches[dbr], self._branches[b.name] = nil, nil
+  ::cont::end 
+  ix.rm(r.w..snap.PVCPLAN)
+  notify('finished branches %s', concat(dots, ', '))
 end
 
 return repo
