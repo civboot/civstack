@@ -244,6 +244,13 @@ end
 
 --- [$Any(fns)]: handle resuming and restarting multiple fns.
 ---
+--- TODO: Using this incorrectly seems to _sometimes_ cause thread death.
+--- I need more tests to isolate the exact cause but when I tried it in
+--- vt100 for ESC waiting on another key or sleep(50ms) it would cause
+--- "attempt to resume dead coroutine" errors once per 1-10min of editor
+--- use. I believe it was because I needed to re-anchor the Recv.cor after
+--- Any:yield() but it's not 100% clear.
+---
 --- Call [$any:ignore()] to stop the child threads from resuming
 --- the current thread. This does NOT stop the child threads.
 ---

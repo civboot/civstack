@@ -41,8 +41,6 @@ M.ctrl = ctrl
 local DEFAULT = {[''] = true, [' '] = true, z=true}
 local RESET, BOLD, UL, INV = 0, 1, 4, 7
 
-local function sleep50ms() lap.sleep(0.050) end
-
 --- VT100 Terminal Emulator [+
 --- * Write the text to display
 --- * Write the foreground/background colors to fg/bg
@@ -368,9 +366,8 @@ function M.Term:input(send, recv) --> infinite loop (run in coroutine)
   end
   -- First character was esc
   while b == ESC do -- get next char, guard against multi-escapes
-    local any = lap.Any{waiter, sleep50ms}
-    any:yield(); any:ignore()
-    -- send ESC if it takes >50ms to get next char.
+    -- Wait 20ms for any other char, else assume it is a human ESC key.
+    if #recv == 0 then lap.sleep(0.020) end
     if #recv == 0 then send'esc'; goto continue end
     b = recv(); if b == ESC  then send'esc' end -- send chain of escapes
   end
