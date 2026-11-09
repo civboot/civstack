@@ -21,6 +21,10 @@ ix.rmRecursive(D)
 
 local H = pT.Harness{branches=TD, out=D}
 
+T'snap'; do
+  T.eq(true, snap.EXCLUDE_SET.PVCPLAN)
+end
+
 -----------------------------
 -- REPO
 
@@ -66,9 +70,6 @@ T'branches'; do
       dev = {'ftr', ftr=7},
         ftr = {},
   }, repo._childGraph(brs))
-  -- T.eq({
-  --   'main', 'dev', 'fix', 'ftr',
-  -- }, repo._branchDag(brs))
 end
 
 T'new Repo'; do
@@ -79,11 +80,11 @@ end;
 T'Repo.paths'; do
   local r = R()
   T.eq('/c/.pvc/@foo/rev/01.p', r:patch'foo@1')
-  -- T.eq('/c/.pvc/@foo/snap/1/',  r:snapPath'foo@1')
+  T.eq('/c/.pvc/@foo/snap/1/',  r:branch'foo':snap(1))
 end
 
 T'Repo init'; do
-  pvc.init {work_tree=D}
+  local r = pvc.init {work_tree=D}
   T.path(D, {
     ['.pvcignore'] = repo.INIT_PVCIGNORE,
     ['.pvc'] = {
@@ -99,8 +100,9 @@ T'Repo init'; do
   +%.civ/
   +%.out/
   ]], pvc.diff{work_tree=D}:patch())
+  r:setAt('main', true)
+  T.eq('main@0', r:at())
 end
-
 
 local M1_PVCINDEX = [[
 --- /dev/null
@@ -126,7 +128,6 @@ T'trimPatch'; do
   T.eq(M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
 end
 
-
 local SKIP = {['.pvc/']=1, PVCINDEX=1}
 
 local NUM_1   = 'zero\nfifty\none hundred'
@@ -141,6 +142,10 @@ function(r)
   T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE..'%.gitignore')
   T.path(r.w..'num.txt',    NUM_1)
   T.dirs(r.w, r:branch'main':snap(2), SKIP)
+
+  r:pvc'at main@0'; T.eq('main@0', r:pvc'at')
+  T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
+  T.dirs(r.w, r:branch'main':snap(0), SKIP)
 end}
 
 H:test{'upper', 'main@2', {main = 'main/'},
@@ -159,7 +164,7 @@ function(r)
   T.path(r.w..'num.txt',    NUM_1)
   r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', NUM_UP )
   r:pvc{'commit', 'upper: add 80,90'}
-  H:branchDirEq('upper', r:branch'upper'.dir)
+  H:branchDirEq('upper', r:branch'upper'.dir) 
 end}
 
 H:test{'lower', 'main@2', {main = 'main/'},
@@ -201,36 +206,48 @@ function(r)
   H:branchDirEq('main_squashed', r:branch'main'.dir)
 end}
 
-local MAIN_PLAN = [[{
+
+local MAIN_PLAN = [[return {
 "branch .main main@0",
-{"at", ".main@0", {
+{"at", ".main",
   "cp main@1 --commit",
   "cp main@2 --commit",
   "cp main@3 --commit",
   "cp main@4 --commit",
-}
+},
 } --end]]..'\n'
 
 H:test{'plan_main', 'main@1', {main = 'main_merged/'},
 function(r)
-  -- FIXME: run the plan, should result in identical main.
   r:pvc{'plan', 'main@1', run=false}; T.path(r.w..'PVCPLAN', MAIN_PLAN)
+  r:pvc{'plan', run=true, finish=false}
+  local db = r:branch'.main'
+  H:branchDirEq('main_merged', db.dir, {
+    base=true, ["rev/00.p"]=true,
+  })
+  T.eq({'.main', 'main'}, ds.orderedKeys(r:branches()))
+  r:pvc{'plan', run=false, finish=true}
+  H:branchDirEq('main_merged', r:branch'main'.dir)
+  T.eq({'main'}, ds.orderedKeys(r:branches()))
+  T.eq(nil, r._branches['.main'])
 end}
 
-local BRANCHES_PLAN = [[{
+ds.yeet'ok' -- FIXME: um... something is very wrong with output.
+
+local BRANCHES_PLAN = [[return {
 "branch .main main@0",
-{"at", ".main@0", {
+{"at", ".main",
   "cp main@1 --commit",
   "cp main@2 --commit",
   "branch .lower main@2",
-  {"at", ".lower@2", {
+  {"at", ".lower",
     "cp lower@3 --commit",
-  }
+  },
   "branch .upper main@2",
-  {"at", ".upper@2", {
+  {"at", ".upper",
     "cp upper@3 --commit",
-  }
-}
+  },
+},
 } --end]]..'\n'
 H:test{'plan_branches', 'main@1', {main='main/', upper='upper/', lower='lower/'},
 function(r)
@@ -238,11 +255,11 @@ function(r)
   r:pvc{'plan', 'main@1', run=false}; T.path(r.w..'PVCPLAN', BRANCHES_PLAN)
 end}
 
-local REBASE_PLAN=[[{
+local REBASE_PLAN=[[return {
 "branch .lower main@3",
-{"at", ".lower@2", {
+{"at", ".lower",
   "cp lower@3 --commit",
-}
+},
 } --end]]..'\n'
 H:test{'plan_rebase', 'main@2', {main='main/', upper='upper/', lower='lower/'},
 function(r)

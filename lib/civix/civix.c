@@ -167,7 +167,7 @@ static int l_stat(LS* L) {
   *st = malloc(sizeof(STAT));
   if (!*st) { lua_pushnil(L); lua_pushstring(L, "OOM"); return 2; }
   int rc = lua_isnumber(L, 1)
-      ? fstat(lua_tonumber(L, 1), *st)
+      ? fstat(lua_tonumber(L, 1),    *st)
       : stat(luaL_checkstring(L, 1), *st);
   if(rc) { lua_pushnil(L); lua_pushstring(L, SERR); return 2; }
   return 1;

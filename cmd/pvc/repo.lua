@@ -105,11 +105,11 @@ function repo.dumpPlan(f, ind, plan, si)
   for i=si or 1,#plan do local v = plan[i]
     if type(v) == 'string' then f:write(ind, fmt(v), ',\n')
     elseif v[1] == 'at' then
-      f:write(ind, '{"at", ', fmt(v[2]), ', ')
-      if v.done then f:write'done=true, ' end
-      f:write('{\n')
+      f:write(ind, '{"at", ', fmt(v[2]), ',')
+      if v.done then f:write' done=true,' end
+      f:write('\n')
       repo.dumpPlan(f, ind..'  ', v, 3)
-      f:write(ind, '}\n')
+      f:write(ind, '},\n')
     else
       f:write(ind, fmt(v), ',\n')
     end
@@ -206,7 +206,7 @@ getmetatable(Repo).__call = function(T, self)
 end
 
 function Repo:pvc(cmd)
-  if type(cmd) == 'string' then cmd = {cmd} end
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd) end
   local sub = assert(pop(cmd, 1), 'must provide subcommand')
   sub = assertf(require'pvc'[sub], '%s: invalid pvc subcmd', sub)
   cmd.work_tree, cmd.pvc_repo = self.w, self.r
@@ -288,13 +288,12 @@ function Repo:rev(rev) --> rev
   if AT[rev]                 then return self:at() end
   local nrev = rev:match'^@(%d+)$'
   if nrev                    then return asRev(self:atBranch(), nrev) end
-  if rev:find'^/'            then return rev end
   -- tip of some branch
   local br = rev:find'^@?tip$' and self:atBranch()
           or rev:match'^([%w_.]+)@?$' or rev:match'^([%w_.]+)@tip$' 
           or rev:find'^[%w_.]+$' and rev
           or errorf('invalid rev: %q', rev)
-  return br, self:branch(br):tip()
+  return asRev(br, self:branch(br):tip())
 end
 
 --- Get the actual branch name @id (going through bases).
@@ -351,9 +350,8 @@ function Repo:newBranch(name, baseRev) --> Branch
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
-  local rev = asRev(name,baseId); self:_setAt(rev)
+  local rev = asRev(name,baseId);
   notify('created branch %s from %s: %s', name, baseRev, pth.nice(b.dir))
-  notify('now at %s', rev)
   return b
 end
 
@@ -480,15 +478,16 @@ function Repo:commit(desc, diff) --> rev2
     p = updatePath(p);             push(nindex, p)
   end
   table.sort(nindex, function(a, b) return a.p < b.p end)
+  dbg('creating pvc index', nindex)
   local ipath = tmp..snap.PVCINDEX 
   local f = assert(ctx.open(ipath, 'w'))
   for _, p in ipairs(nindex) do f:write(str(p), '\n') end
   f:flush(); f:close()
 
   -- Apply the patch
-  local idiff = assert(pu.diff(
+  local idiff = pu.diff(
     id>0 and base.root..snap.PVCINDEX, id>0 and snap.PVCINDEX,
-    ipath,                             snap.PVCINDEX))
+    ipath,                             snap.PVCINDEX)
   ix.rm(ipath) -- remove, idiff in pu._patch re-updates
   base:copyTo(tmp)
 
@@ -507,14 +506,17 @@ function Repo:commit(desc, diff) --> rev2
   notify('commited %s in %s', rev2, pfinal)
 end
 
+--- Change working tree to reflect rev.
 function Repo:setAt(rev, force)
+  rev = self:rev(rev)
   dbg('setAt', rev, force)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
   local sa, ia; if not force then
     sa = self:snapshot'at'; ia = sa:index()
+    dbg('sa:', sa.root, 'at', self:at())
   end
-  local copy, error = {}, {}
+  local copy, rm, error = {}, {}, {}
   for _, p2 in ipairs(i2) do
     dbg('setAt path', p2.p)
     local p1 = i1[i1[p2.p]]
@@ -532,12 +534,22 @@ function Repo:setAt(rev, force)
     dbg('* copy', copy)
     ::cont::
   end
+  for _, p1 in ipairs(i1) do -- look for files to delete
+    if i2[p1.p] then goto cont end -- exists in both, done above.
+    dbg('setAt deleting', p1.p)
+    local path1 = s1.root..p1.p
+    if not force and (
+      (p1.mtime~=ix.mtime(path1)) or not ix.pathEq(sa.root..p1.p, path1)
+    ) then push(error, p1.p) end
+    push(rm, p1)
+  ::cont::end
   dbg('out of loop', copy, error)
   if #error > 0 then
     errorf('paths are modified:\n%s', concat(error, '\n'))
   end
   dbg('setAt copy', copy)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
+  for _, p in ipairs(rm)   do ix.rm(self.w..p.p)                    end
   self:_setAt(rev)
   notify('now at %s', rev)
 end
@@ -552,6 +564,7 @@ change: %s
 --- Cherry pick revision onto current commit, modifying work tree.
 --- Return the snapshot that was cherry-picked.
 function Repo:cp(rev, paths) --> Snap, error
+  info('cherrypicking %q paths=%q', rev, paths)
   if not paths or ds.isEmpty(paths) then paths = nil end
   local from = self:rev'at'
   local d = self:diff(from, 'local'); if d:hasDiff() then
@@ -564,18 +577,25 @@ function Repo:cp(rev, paths) --> Snap, error
   local fsnap = self:snapshot(asRev(br,id-1))
   local csnap = self:snapshot(rev)
   local tsnap = self:localsnap()
-  local fdir, tdir = fsnap.root, tsnap.root
-  fsnap:map2(tsnap, function(fpath, tpath)
-    fpath, tpath = fpath and fpath.p, tpath and tpath.p
-    if paths and not paths[fpath or tpath]
-       or (fpath or tpath):sub(1,3) == 'PVC' then return end
-    local from, to = fpath and (fdir..fpath), tpath and (tdir..tpath)
-    local chg = csnap.root..(fpath or tpath)
-    local ok, err = pu.merge(to, from, chg)
-    if not ok then
-      conflicts = true
-      ctx.fmtlog:styled('error', sfmt(FAILED_MERGE,
-        to and nice(to), from and nice(from), nice(chg), err), '\n')
+  local fdir, cdir = fsnap.root, csnap.root
+  dbg('cherrypick', fdir, csnap.root)
+  fsnap:map2(csnap, function(fpath, cpath)
+    fpath, cpath = fpath and fpath.p, cpath and cpath.p
+    if paths and not paths[fpath or cpath]
+       -- TODO: use snap.IGNORE_SET
+       or (fpath or cpath):sub(1,3) == 'PVC' then return end
+    local from, chg = fpath and (fdir..fpath), cpath and (cdir..cpath)
+    local to = tsnap.root..(fpath or cpath)
+    trace('cherrypick merge %s', fpath, cpath)
+    if not from    then ix.cp(chg, to)
+    elseif not chg then -- skip
+    else
+      local ok, err = pu.merge(to, from, chg)
+      if not ok then
+        conflicts = true
+        ctx.fmtlog:styled('error', sfmt(FAILED_MERGE,
+          to and nice(to), from and nice(from), nice(chg), err), '\n')
+      end
     end
   end)
   if conflicts then
@@ -658,34 +678,64 @@ function Repo:walk(c)
   repo.Walker(c)(0, c[1], c[2], c[3])
 end
 
+function Repo:dumpPlan(p, ppath)
+  local pth = self:tmp'plan'..snap.PVCPLAN
+  local f = assert(ctx.open(pth, 'w')); f:write'return {\n'
+  repo.dumpPlan(f, '', p)
+  f:write'} --end\n'; f:flush(); f:close()
+  ix.mv(pth, ppath or (self.w..snap.PVCPLAN))
+end
+
+repo.PlanRunner = mty'PlanRunner' {
+  'r [Repo]', 'plan [table]', 'path [string]',
+  'skip [int]: if set, the number of commands to skip. Exits at 0',
+}
+
+function repo.PlanRunner:__call(p, at, si)
+  for i=si or 1,#p do; local v = p[i]
+    dbg('running plan', at, i, v)
+    if type(v) == 'string' and v:find'%-%-done' or v.done then
+      goto cont -- already done
+    elseif self.skip then
+      if type(v) == 'string' or v[1] ~= 'at' then
+        self.skip = self.skip - 1
+        goto acted
+      end -- fallthrough: run 'at' without skip.
+    end
+    if type(v) == 'table' and v[1] == 'at' then
+      self(v, v[2], 3); goto cont
+    end
+    if at then self.r:setAt(assert(at)) end
+    self.r:pvc(v)
+    ::acted::
+    if type(v) == 'string' then p[i] = 'done '..v
+    else                        table.insert(v, 1, 'done') end
+    local f = assert(ctx.open(self.r:tmp'run'..'plan', 'w'))
+    self.r:dumpPlan(self.plan, self.path)
+    if self.skip and self.skip <= 0 then return end
+  ::cont::end
+end
+
 --- Run a plan which by default is PVCPLAN.
 --- [$skip] can be an integer of the number of commands to skip, then exit.
-function Repo:runPlan(plan, skip)
-  plan = plan or dload(self.w..snap.PVCPLAN)
-  local done
-  for i, v in ipairs(plan) do
-    local c = type(v)=='string' and shim.parseStr(v) or v
-    if c.done then goto cont end
-    if c[1] == 'at' then
-      for ci=3,#c do self:at(c[2]); skip = self:runPlan(c[ci], skip) end
-    elseif skip then                skip = skip - 1
-    else                            self:pvc(c) end
-    if type(v) == 'string' then plan[i] = v..' --done'
-    else                        v.done = true end
-    if skip and skip <= 0 then break end
-  ::cont::end
-  return skip
+function Repo:runPlan(skip, si)
+  local ppath = self.w..snap.PVCPLAN
+  local plan = dload(ppath)()
+  repo.PlanRunner{r=self, skip=skip, path=ppath, plan=plan}(plan)
 end
 
 --- Comes after runPlan.
 function Repo:finishPlan()
+  info'finishing plan'
   local dots = {}
-  for dbr, db in self:branches() do
+  for dbr, db in pairs(self:branches()) do
+    dbg('finishing', dbr)
     if not dbr:find'^%.' then goto cont end
     push(dots, dbr)
     local b = self:branch(dbr:sub(2)) -- "real" branch
     local bbr,bid = splitRev(db:base())
     if bbr == b.name then -- move commits.
+      dbg('moving commits')
       for i=bid+1,b:tip() do
         ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i))
       end
@@ -693,12 +743,13 @@ function Repo:finishPlan()
       b:setTip(db:tip())
       ix.rmRecursive(db.dir)
     else -- swap branches
+      dbg('swapping branches')
       ix.rmRecursive(b.dir)
       ix.mv(db.dir, b.dir)
     end
     self._branches[dbr], self._branches[b.name] = nil, nil
   ::cont::end 
-  ix.rm(r.w..snap.PVCPLAN)
+  ix.rm(self.r..snap.PVCPLAN)
   notify('finished branches %s', concat(dots, ', '))
 end
 

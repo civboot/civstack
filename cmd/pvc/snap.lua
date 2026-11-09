@@ -32,7 +32,7 @@ snap.PVCPLAN  = 'PVCPLAN'
 snap.PVCIGNORE = '.pvcignore'
 
 snap.EXCLUDE = {snap.PVCINDEX, snap.PVCPATCH, snap.PVCPLAN}
-snap.EXCLUDE_SET = ds.Set(snap.EXCLUDE)
+snap.EXCLUDE_SET = ds.Set:from(snap.EXCLUDE)
 
 local X = tonumber('111', 8) -- any executable bit
 

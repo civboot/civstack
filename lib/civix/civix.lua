@@ -235,8 +235,7 @@ function M.ftimeEq(a, b)
   return M.statTimeEq(M.stat(a), M.stat(b))
 end
 
-function M.mtime(v) return M.stat(v):mtime() end
-
+function M.mtime(v) return assert(M.stat(v)):modified() end
 
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.

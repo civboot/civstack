@@ -14,7 +14,6 @@ local pT = mty.mod'pvc.testing'
 
 local int         = mty.from'ds  int'
 
-
 --- Create a test harness from testdata.
 pT.Harness = mty'Harness' {
   'branches [dir]: path to dir of [$pvc pull] ready branches.',
@@ -63,8 +62,9 @@ end
 function pT.Harness:patchStr(trev) return pth.read(self:patch(trev)) end
 
 local IGNORE_BRANCH_DIR = {['snap/']=true}
-function pT.Harness:branchDirEq(expectBrName, resultBrDir)
-  T.dirs(self.branches..expectBrName, resultBrDir, IGNORE_BRANCH_DIR)
+function pT.Harness:branchDirEq(expectBrName, resultBrDir, ignore)
+  ignore = ignore and ds.copy(IGNORE_BRANCH_DIR, ignore) or IGNORE_BRANCH_DIR
+  T.dirs(self.branches..expectBrName, resultBrDir, ignore)
 end
 
 return pT

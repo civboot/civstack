@@ -231,10 +231,19 @@ end
 
 --- Usage: [$$pvc branch name [from]]$[{br}]
 --- Start new branch [$name] branching off of [$from].
-pvc.branch = mty.extend(Base, 'branch', {})
+pvc.branch = mty.extend(Base, 'branch', {
+  'checkout [bool]: whether to checkout the branch', checkout=true,
+})
 function pvc.branch:__call()
-  local r = self.__repo
-  r:newBranch(self[1], self[2] or 'at')
+  local r = self.__repo;
+  local br, base = self[1], r:rev(self[2] or 'at')
+  r:newBranch(br, base)
+  if shim.bool(self.checkout) then
+    if r:at() == base then
+      local bbr, bid = splitRev(base)
+      r:_setAt(asRev(br, bid))
+    else r:setAt(self[1]) end
+  end
 end
 
 --- Usage: [$pvc cp rev paths...][{br}]
@@ -246,7 +255,7 @@ pvc.cp = mty.extend(Base, 'cp', {
 function pvc.cp:__call()
   local r = self.__repo; local rev = assert(pop(self), 'must specify rev')
   local desc = self.commit==true and r:desc{rev} or self.commit
-  assert(r:cp(rev, #self>0 and ds.Set(ds.icopy(self))))
+  assert(r:cp(rev, #self>0 and ds.Set:from(self)))
   if desc then r:commit(desc, r:diff('at', 'local')) end
   notify('cherrypicked%s %s', desc and ' and committed' or '', rev)
 end
@@ -283,10 +292,14 @@ pvc.plan = mty.extend(Base, 'squash', {
  ]],
 })
 function pvc.plan:__call()
+  self.run, self.skip = shim.bool(self.run), shim.int(self.skip)
+  self.finish = shim.bool(self.finish)
   local r = self.__repo; local g = r:childGraph()
   if self.finish then return r:finishPlan() end
-  self.skip = shim.int(self.skip)
-  local arg = self[1]; if not self[1] then return self:runPlan() end
+  local arg = self[1]; if not self[1] then
+    dbg'pvc.plan - run only'
+    return self:runPlan()
+  end
   local arg = assert(self[1], 'FIXME: just run')
   local id,br,base = nil, arg:match'^([%w._]+)=(.+)$'
   if br then -- rebase
@@ -298,7 +311,7 @@ function pvc.plan:__call()
   end
   local p = {
     sfmt('branch .%s %s', br, base),
-    {'at', asRev('.'..br,id-1)},
+    {'at', '.'..br},
   }
   r:walk{br,id, p[#p],
     fn=function(depth, br,id, p)
@@ -306,15 +319,11 @@ function pvc.plan:__call()
     end,
     childFn = function(_, par, br,id, p)
       push(p, sfmt('branch .%s %s', br, asRev(par,id)))
-      push(p, {'at', asRev('.'..br,id)})
+      push(p, {'at', '.'..br})
       return p[#p]
     end,
   }
-  local pth = r:tmp'plan'..snap.PVCPLAN; local f = ctx.open(pth, 'w')
-  f:write'{\n'
-  repo.dumpPlan(f, '', p)
-  f:write'} --end\n'; f:flush(); f:close()
-  ix.mv(pth, r.w..snap.PVCPLAN)
+  r:dumpPlan(p)
   self:runPlan()
 end
 
@@ -322,7 +331,7 @@ function pvc.plan:runPlan()
   if not self.run then return end
   local r = self.__repo
   r:runPlan(nil, self.skip)
-  r:finishPlan()
+  if not (self.finish==false) then r:finishPlan() end
 end
 
 if shim.isMain(pvc) then pvc:main(G.arg) end

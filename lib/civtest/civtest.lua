@@ -220,7 +220,8 @@ function M.DirsEq:__call(dir)
   if self.ignore[dir] then return end
   local l1, l2 = BiMap(ix.ls(self.d1..dir)), BiMap(ix.ls(self.d2..dir))
   for _, e1 in ipairs(l1) do
-    local p = dir..e1;    if self.ignore[p] then goto cont end
+    local p = dir..e1;
+    if self.ignore[p] then goto cont end
     self.paths1[p] = true
     if not l2[e1] then push(self.diff, p); goto cont end
     self.paths2[p] = true
@@ -229,7 +230,9 @@ function M.DirsEq:__call(dir)
   ::cont::end
   for _, e2 in ipairs(l2) do -- check for items in only l2
     local p = dir..e2
-    if not self.ignore[p] and not l1[e2] then push(self.diff, p) end
+    if not self.ignore[p] and not l1[e2] then
+      push(self.diff, p); self.paths2[p] = true
+    end
   end
 end
 
@@ -239,8 +242,8 @@ function M.dirs(expect, result, ignore)
   d''; if #d.diff == 0 then return end
   local d1, d2, f = d.d1, d.d2, ctx.fmtlog
   for _, p in ipairs(d.diff) do
-    if not d.paths1[p] or not d.paths2[p] then goto cont end
-    local c1, c2 = pth.read(d1..p), pth.read(d2..pa)
+    local c1 = d.paths1[p] and pth.read(d1..p) or '<DOES NOT EXIST>'
+    local c2 = d.paths2[p] and pth.read(d2..p) or '<DOES NOT EXIST>'
     f:styled('error', 'Content: '..p, '\n')
     showDiff(f, c1, c2)
   ::cont::end
@@ -248,6 +251,7 @@ function M.dirs(expect, result, ignore)
     showDiff(f, d.paths1, d.paths2)
   end
   f:styled('error', sfmt('Dir %s\n!= %s', expect, result), '\n')
+  error(sfmt('Dir %s ~= %s', expect, result))
 end
 
 getmetatable(M).__call = function(_, name)
