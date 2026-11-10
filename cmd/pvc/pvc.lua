@@ -98,6 +98,7 @@ pvc.log = mty.extend(Base, 'status', {
 function pvc.log:__call()
   local r = self.__repo
   local f, br,id = ctx.fmtout, r:splitRev(self[1] or 'at')
+  info('pvc log %s@%s', br,id)
   local c = {br, max(0, id-self.before), rem=self.max}
   function c.fn(depth, br,id)
     local b = r:branch(br)
@@ -219,13 +220,13 @@ pvc.pull = mty.extend(Base, 'pull', {
 })
 function pvc.pull:__call()
   local br, d, r = self[1], self[2], self.__repo
-  local b = r:branch(br)
+  local bdir = r:bdir(br)
   T.path(d, { tip = true, rev = {} })
-  if ix.exists(b.dir) then
-    assertf(self.force, '%s already exists: %s', br, b.dir)
-    ix.rmRecursive(b.dir)
+  if ix.exists(bdir) then
+    assertf(self.force, '%s already exists: %s', br, bdir)
+    ix.rmRecursive(bdir)
   end
-  ix.cpRecursive(d, b.dir, {['snap/'] = -1})
+  ix.cpRecursive(d, bdir, {['snap/'] = -1})
   notify('pulled %s from %s', br, d)
 end
 

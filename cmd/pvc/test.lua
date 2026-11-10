@@ -77,12 +77,6 @@ T'new Repo'; do
   T.eq('/c/.pvc/',      r.r)
 end;
 
-T'Repo.paths'; do
-  local r = R()
-  T.eq('/c/.pvc/@foo/rev/01.p', r:patch'foo@1')
-  T.eq('/c/.pvc/@foo/snap/1/',  r:branch'foo':snap(1))
-end
-
 T'Repo init'; do
   local r = pvc.init {work_tree=D}
   T.path(D, {
@@ -102,6 +96,12 @@ T'Repo init'; do
   ]], pvc.diff{work_tree=D}:patch())
   r:setAt('main', true)
   T.eq('main@0', r:at())
+  T.eq(D..'.pvc/@main/', r:branch'main'.dir)
+  T.eq(D..'.pvc/@main/rev/01.p', r:patch'main@1')
+  T.eq(D..'.pvc/@main/snap/1/',  r:branch'main':snap(1))
+  T.throws('branch "dne" does not exist', function()
+    T.eq(nil, r:branch'dne')
+  end)
 end
 
 local M1_PVCINDEX = [[
@@ -230,40 +230,47 @@ function(r)
   H:branchDirEq('main_merged', r:branch'main'.dir)
   T.eq({'main'}, ds.orderedKeys(r:branches()))
   T.eq(nil, r._branches['.main'])
+  -- TODO: should the plan try to return to the original commit???
+  T.eq('main@4', r:at()) 
 end}
 
-ds.yeet'ok' -- FIXME: um... something is very wrong with output.
-
 local BRANCHES_PLAN = [[return {
-"branch .main main@0",
-{"at", ".main",
-  "cp main@1 --commit",
-  "cp main@2 --commit",
-  "branch .lower main@2",
-  {"at", ".lower",
-    "cp lower@3 --commit",
+"branch .main main@0 --done",
+{"at", ".main", done=true,
+  "cp main@1 --commit --done",
+  "cp main@2 --commit --done",
+  "branch .lower main@2 --done",
+  {"at", ".lower", done=true,
+    "cp lower@3 --commit --done",
   },
-  "branch .upper main@2",
-  {"at", ".upper",
-    "cp upper@3 --commit",
+  "branch .upper main@2 --done",
+  {"at", ".upper", done=true,
+    "cp upper@3 --commit --done",
   },
 },
 } --end]]..'\n'
 H:test{'plan_branches', 'main@1', {main='main/', upper='upper/', lower='lower/'},
 function(r)
-  -- FIXME: run the plan, should result in identical main.
-  r:pvc{'plan', 'main@1', run=false}; T.path(r.w..'PVCPLAN', BRANCHES_PLAN)
+  r:pvc{'plan', 'main@1'}; T.path(r.w..'PVCPLAN', BRANCHES_PLAN)
+  H:branchDirEq('main/',  r:branch'main'.dir)
+  H:branchDirEq('upper/', r:branch'upper'.dir)
+  H:branchDirEq('lower/', r:branch'lower'.dir)
+  T.eq('upper@3', r:at()) 
 end}
 
 local REBASE_PLAN=[[return {
-"branch .lower main@3",
-{"at", ".lower",
-  "cp lower@3 --commit",
+"branch .lower main@3 --done",
+{"at", ".lower", done=true,
+  "cp lower@3 --commit --done",
 },
 } --end]]..'\n'
 H:test{'plan_rebase', 'main@2', {main='main/', upper='upper/', lower='lower/'},
 function(r)
   r:pvc{'cp', 'upper@3', commit=true}
-  -- FIXME: run the plan, will result in new lower_rebased.
-  r:pvc{'plan', 'lower=main@3', run=false}; T.path(r.w..'PVCPLAN', REBASE_PLAN)
+  r:pvc{'plan', 'lower=main@3'}; T.path(r.w..'PVCPLAN', REBASE_PLAN)
+  T.eq('lower@4', r:at())
+  T.path(r.w..'num.txt', NUM_2)
+  H:branchDirEq('main_upper/',  r:branch'main'.dir)
+  H:branchDirEq('upper/', r:branch'upper'.dir) -- unchanged
+  H:branchDirEq('lower_rebased/', r:branch'lower'.dir)
 end}

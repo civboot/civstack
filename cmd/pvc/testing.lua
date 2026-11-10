@@ -22,7 +22,6 @@ pT.Harness = mty'Harness' {
 getmetatable(pT.Harness).__call = function(Ty, self)
   self.branches = pth.canonical(pth.toDir(self.branches))
   self.out      = pth.canonical(pth.toDir(self.out))
-  dbg('harness', self)
   return mty.construct(Ty, self)
 end
 
@@ -45,7 +44,6 @@ function pT.Harness:test(cfg)
   for br, dir in pairs(brs) do
     r:pvc{'pull', br, self.branches..dir}
   end
-  dbg('harness at', rev)
   r:pvc{'at', rev}
   local f = ds.bytearray(); local fm = fmt.Fmt{to=f, style=false}
   ctx:push{stdout=f, fmtout=fm}

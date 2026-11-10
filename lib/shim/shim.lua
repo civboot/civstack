@@ -224,7 +224,6 @@ end
 --- ]$
 function M._main(Cmd, args)
   M.runSetup(args or {})
-  dbg('_main Cmd=%q args=%q', Cmd, args)
   local self, err = Cmd:new(M.parse(args))
   assert(self, err)
   self()

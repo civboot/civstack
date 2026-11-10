@@ -16,9 +16,10 @@ local info = require'ds.log'.info
 M.SUBNAME = ''
 
 local getmt = getmetatable
-local get, BiMap          = mty.from'ds       get BiMap'
-local isDir               = mty.from'ds.path  isDir'
-local push, sfmt = table.insert, string.format
+local get, BiMap          = mty.from'ds      get BiMap'
+local isDir               = mty.from'ds.path isDir'
+local push, concat        = mty.from'table   insert, concat'
+local sfmt                = mty.from'string  format'
 
 local function errordiff(e, r)
   local f = ctx.fmtlog
@@ -220,8 +221,7 @@ function M.DirsEq:__call(dir)
   if self.ignore[dir] then return end
   local l1, l2 = BiMap(ix.ls(self.d1..dir)), BiMap(ix.ls(self.d2..dir))
   for _, e1 in ipairs(l1) do
-    local p = dir..e1;
-    if self.ignore[p] then goto cont end
+    local p = dir..e1; if self.ignore[p] then goto cont end
     self.paths1[p] = true
     if not l2[e1] then push(self.diff, p); goto cont end
     self.paths2[p] = true
@@ -241,7 +241,9 @@ function M.dirs(expect, result, ignore)
   local d = M.DirsEq{d1=expect, d2=result, ignore=ignore}
   d''; if #d.diff == 0 then return end
   local d1, d2, f = d.d1, d.d2, ctx.fmtlog
+  f:styled('warn', 'Found differences '..concat(d.diff, ', '), '\n')
   for _, p in ipairs(d.diff) do
+    if pth.isDir(p) then goto cont end
     local c1 = d.paths1[p] and pth.read(d1..p) or '<DOES NOT EXIST>'
     local c2 = d.paths2[p] and pth.read(d2..p) or '<DOES NOT EXIST>'
     f:styled('error', 'Content: '..p, '\n')

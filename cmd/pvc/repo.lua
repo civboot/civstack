@@ -227,9 +227,13 @@ function Repo:atBranch() --> name
   return assert(self:at():match'^(%w+)@')
 end
 
-function Repo:branch(name) --> Branch
+function Repo:bdir(name) return concat{self.r, '@', name, '/'} end
+
+function Repo:branch(name) --> Branch?
   local b = self._branches[name]; if b then return b end
-  b = Branch{name=name, dir=concat{self.r, '@', name, '/'}}
+  local dir = self:bdir(name)
+  assertf(ix.exists(dir), 'branch %q does not exist', name)
+  b = Branch{name=name, dir=dir}
   self._branches[name] = b
   return b
 end
@@ -336,23 +340,21 @@ function Repo:newBranch(name, baseRev) --> Branch
   assert(name, 'must specify new branch name')
   assert(not repo.RESERVED_NAMES[name], 'reserved branch name: %q', name)
   assert(name:find'^[%w._]+$',          'invalid branch name: %q', name)
-  local b = self:branch(name)
-  assertf(not ix.exists(b.dir), 'branch %s: %s already exists', name, b.dir)
-  dbg('newBranch', name, 'from', baseRev)
+  local bdir = self:bdir(name)
+  assertf(not ix.exists(bdir), 'branch %s: %s already exists', name, bdir)
   baseRev = self:rev(baseRev)
   local base,baseId
-  dbg('  baseRev ->', baseRev)
   if baseRev ~= 'local' then base,baseId = self:splitRev(baseRev) end
   baseId = base and baseId or 0
-  ix.mkTree(b.dir, {
+  ix.mkTree(bdir, {
     tip  = str(baseId),
     base = base and baseRev or nil,
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
   local rev = asRev(name,baseId);
-  notify('created branch %s from %s: %s', name, baseRev, pth.nice(b.dir))
-  return b
+  notify('created branch %s from %s: %s', name, baseRev, pth.nice(bdir))
+  return self:branch(name)
 end
 
 --- Initialize a new repository with main br name (default='main').
@@ -393,7 +395,6 @@ end
 --- Snapshot the br@id by applying patches.
 --- Return the materialized snapshot and the rev.
 function Repo:snapshot(rev) --> Snap
-  dbg('snapshot', rev)
   rev = self:rev(rev); if rev == 'local' then return self:localsnap() end
   local br,id = self:splitRev(rev); local b = self:branch(br)
   assertf(ix.exists(b.dir), 'branch %s does not exist', br)
@@ -408,7 +409,6 @@ function Repo:snapshot(rev) --> Snap
   local fid; do -- fid="from fid", find from closest snapshot.
     if not ix.exists(b._snap) then ix.mkDir(b._snap) end
     local sdirs = ix.ls(b._snap)
-    dbg('sdirs', sdirs)
     if sdirs[1] ~= '0' then table.insert(sdirs, 1, '0') end
     local fi = ds.binarySearch(sdirs, str(id)); assert(fi >= 0, fi)
     fid = ds.closest(id, int(sdirs[fi]) or bid, int(sdirs[fi+1]) or bid)
@@ -478,7 +478,6 @@ function Repo:commit(desc, diff) --> rev2
     p = updatePath(p);             push(nindex, p)
   end
   table.sort(nindex, function(a, b) return a.p < b.p end)
-  dbg('creating pvc index', nindex)
   local ipath = tmp..snap.PVCINDEX 
   local f = assert(ctx.open(ipath, 'w'))
   for _, p in ipairs(nindex) do f:write(str(p), '\n') end
@@ -509,45 +508,36 @@ end
 --- Change working tree to reflect rev.
 function Repo:setAt(rev, force)
   rev = self:rev(rev)
-  dbg('setAt', rev, force)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
   local sa, ia; if not force then
     sa = self:snapshot'at'; ia = sa:index()
-    dbg('sa:', sa.root, 'at', self:at())
   end
   local copy, rm, error = {}, {}, {}
   for _, p2 in ipairs(i2) do
-    dbg('setAt path', p2.p)
     local p1 = i1[i1[p2.p]]
-    dbg('* has p1', p1 and true or false)
     if not p1 then push(copy, p2); goto cont end
     local path1 = s1.root..p1.p
     if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
        or ix.pathEq(path1, s2.root..p2.p)
     then goto cont end -- already equal, skip
-    dbg('* copying', p2.p)
     push(copy, p2);
     if not force and ia[p2.p] and not ix.pathEq(sa.root..p2.p, path1) then
       push(error, p2.p)
     end
-    dbg('* copy', copy)
     ::cont::
   end
   for _, p1 in ipairs(i1) do -- look for files to delete
     if i2[p1.p] then goto cont end -- exists in both, done above.
-    dbg('setAt deleting', p1.p)
     local path1 = s1.root..p1.p
     if not force and (
       (p1.mtime~=ix.mtime(path1)) or not ix.pathEq(sa.root..p1.p, path1)
     ) then push(error, p1.p) end
     push(rm, p1)
   ::cont::end
-  dbg('out of loop', copy, error)
   if #error > 0 then
     errorf('paths are modified:\n%s', concat(error, '\n'))
   end
-  dbg('setAt copy', copy)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
   for _, p in ipairs(rm)   do ix.rm(self.w..p.p)                    end
   self:_setAt(rev)
@@ -578,7 +568,6 @@ function Repo:cp(rev, paths) --> Snap, error
   local csnap = self:snapshot(rev)
   local tsnap = self:localsnap()
   local fdir, cdir = fsnap.root, csnap.root
-  dbg('cherrypick', fdir, csnap.root)
   fsnap:map2(csnap, function(fpath, cpath)
     fpath, cpath = fpath and fpath.p, cpath and cpath.p
     if paths and not paths[fpath or cpath]
@@ -609,7 +598,6 @@ end
 function Repo:squash(br, num, desc)
   local b = self:branch(br);        local tip = b:tip()
   local id = max(0, tip - num + 1); local rev = asRev(br,id)
-  dbg('squash', id, tip)
   -- Make sure no children branch from squashed commits
   for chld, cid in ipairs(self:childGraph()[br]) do
     if type(chld) ~= 'string' then goto cont end
@@ -650,7 +638,7 @@ function repo.Walker:__call(depth, br, id, st)
   local b = r:branch(br)
 
   local brPoints = {} -- id -> {chld}
-  for _, chld in ipairs(chlrn) do
+  for _, chld in ipairs(chlrn or EMPTY) do
     local base = chlrn[chld]; brPoints[base] = brPoints[base] or {}
     push(brPoints[base], chld)
   end
@@ -693,7 +681,6 @@ repo.PlanRunner = mty'PlanRunner' {
 
 function repo.PlanRunner:__call(p, at, si)
   for i=si or 1,#p do; local v = p[i]
-    dbg('running plan', at, i, v)
     if type(v) == 'string' and v:find'%-%-done' or v.done then
       goto cont -- already done
     elseif self.skip then
@@ -703,13 +690,13 @@ function repo.PlanRunner:__call(p, at, si)
       end -- fallthrough: run 'at' without skip.
     end
     if type(v) == 'table' and v[1] == 'at' then
-      self(v, v[2], 3); goto cont
+      self(v, v[2], 3); goto acted
     end
     if at then self.r:setAt(assert(at)) end
     self.r:pvc(v)
     ::acted::
-    if type(v) == 'string' then p[i] = 'done '..v
-    else                        table.insert(v, 1, 'done') end
+    if type(v) == 'string' then p[i] = v..' --done'
+    else                        v.done = true end
     local f = assert(ctx.open(self.r:tmp'run'..'plan', 'w'))
     self.r:dumpPlan(self.plan, self.path)
     if self.skip and self.skip <= 0 then return end
@@ -729,13 +716,11 @@ function Repo:finishPlan()
   info'finishing plan'
   local dots = {}
   for dbr, db in pairs(self:branches()) do
-    dbg('finishing', dbr)
     if not dbr:find'^%.' then goto cont end
     push(dots, dbr)
     local b = self:branch(dbr:sub(2)) -- "real" branch
     local bbr,bid = splitRev(db:base())
     if bbr == b.name then -- move commits.
-      dbg('moving commits')
       for i=bid+1,b:tip() do
         ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i))
       end
@@ -743,7 +728,6 @@ function Repo:finishPlan()
       b:setTip(db:tip())
       ix.rmRecursive(db.dir)
     else -- swap branches
-      dbg('swapping branches')
       ix.rmRecursive(b.dir)
       ix.mv(db.dir, b.dir)
     end
@@ -751,6 +735,7 @@ function Repo:finishPlan()
   ::cont::end 
   ix.rm(self.r..snap.PVCPLAN)
   notify('finished branches %s', concat(dots, ', '))
+  self:setAt(self:at():match'^%.?(.*)@', true)
 end
 
 return repo

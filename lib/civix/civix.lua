@@ -17,6 +17,7 @@ local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
 local Rand            = mty.from'ds.rand  Rand'
 local abs             = mty.from'ds.path  abs'
+local assertf         = mty.from'fmt      assertf'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
 local push, pop = table.insert, table.remove
@@ -240,10 +241,9 @@ function M.mtime(v) return assert(M.stat(v)):modified() end
 --- Return the entries in a dir as a list.
 --- They are sorted to put the directories first.
 function M.ls(dir) --> {str}
-  dir = abs(dir)
-  if not M.isDir(dir) then return dir end
+  local adir = abs(dir); assertf(M.isDir(adir), '%s is not a dir', dir)
   local d, f = {}, {} -- dirs, files
-  for e, ftype in M.dir(dir) do
+  for e, ftype in M.dir(adir) do
     if ftype == 'dir' then push(d, pth.toDir(e))
     else                   push(f, e) end
   end
@@ -369,7 +369,7 @@ function M.monoSec() return M.mono():asSeconds()    end
 -- Core Filesystem
 
 local function qp(p)
-  return fmt.assertf(M.quote(p), 'path cannot contain "\'": %s', p)
+  return assertf(M.quote(p), 'path cannot contain "\'": %s', p)
 end
 
 --- return if the contents of the two paths are equal.
@@ -566,7 +566,7 @@ end
 --- Create a single directory. The parent must exist.
 function M.mkDir(path, parents) --!> nil
   if parents then M.mkDirs(pth(path))
-  else fmt.assertf(mkdir(path), "mkdir failed: %s", path) end
+  else assertf(mkdir(path), "mkdir failed: %s", path) end
 end
 
 --- copy [$from] to [$to], creating the directory structure if necessary.
