@@ -9,20 +9,22 @@ incrementing id. The only fundamental disadvantage (or advantage) of using pvc
 instead of git is that pvc supports only fast-forward merges, which are the
 cleanest and simplest to understand.
 
-
 [{h2 name=basic}Basic Operation]
-The [$pvc] command works very similar to git. Use [$pvc --help] to get
+The [$pvc] command works very similar to git.
+
+Use [$pvc --help] to get
 a full list of available commands. Below are the major ones: [+
 * [*init]: initialize your repo. Be sure to edit [$.pvcignore] with
-  line-separated lua patterns to ignore.
+  line-separated lua patterns to ignore, then commit.
 * [*commit "description"]: commit the current state, creating a
   patch file in the current branch.
 * [*status]: get the current status of your local working tree.
 * [*at branch@id]: checkout a revision.
 * [*branch "name"]: create a new branch.
-* [*squash] for local cleanup, [*rebase] for including changes
-  from your base branch, [*graft] for merging changes into
-  another branch.
+* [*cp branch@id paths...]: cherrypick revision. Optionally specific paths.
+* [*squash <num>]: squash the top <num> commits from tip.
+* [*plan]: swiss-army knife to create editable plan to rebase, reorder,
+  split, squash or otherwise modify commits and commit history.
 ]
 
 [{:h3}pvcignore]
@@ -56,26 +58,9 @@ Snapshots are created by applying patch files in either forward/reverse order to
 an existing snapshot, with the "zero" snapshot being an empty directory.
 
 Any other modification to a branch (e.g squash, rebase, etc) use a simple state
-machine: [+
-* a special [$.branch/] directory is created for the branch and any that depend
-  on it.
-* an [$@.branch/ops] (operations) file is created inside each with the exact 
-  operations that need to be performed (in reverse order) to end up at the
-  intended state.
-* [$pvc fix] automatically attempts to fix all [$@.branches/] from their root to
-  their tip, starting at the base (or whichever is specified). Fixing simply
-  means applying the operations in [$ops], poping the final line after it is
-  complete.
-]
-
-For an example of the above, to rebase (change the base), the .branch's base
-will have the new re-based id and the ops file will be a series of cherry picks
-from the original branch's id 1 to it's tip. To perform a split, the ops file
-just  cherry cherry pick specific files, dropping a commit simply means
-skipping a cherry picks, inserting a commit is cherry picking between two commits,
-etc. Any merge conflicts stop the process, which the user needs to fix and commit
-and then run [$pvc fix] again. However, the user can fix any problems later and
-work on another branch.
+machine controlled by PVCPLAN ([$pvc plan]) which creates [$.branch] (dot branches)
+to store the intermediate state and performs cherry-picks and squashes and finally
+either moves the commits (if base=branch) or swaps with the non-dot branch.
 
 Finally, the entire [$.pvc] directory is tracked by a hidden [$@.META] branch
 as a single series of patches, allowing the user to (soft) reset to a previous

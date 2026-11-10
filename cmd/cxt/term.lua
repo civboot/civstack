@@ -63,26 +63,26 @@ end
 
 local SER_KIND = {
   hidden = ds.noop,
-  token = function(w, node) w.to:write(w:tokenStr(node)) end,
-  p     = function(w, node) w.to:write'\n'               end,
-  br    = function(w, node) w.to:write'\n'               end,
-  table = function(w, node)
+  token = function(w, node, st) w.to:styled(st, w:tokenStr(node)) end,
+  p     = function(w, node, st) w.to:write'\n'                    end,
+  br    = function(w, node, st) w.to:write'\n'                    end,
+  table = function(w, node, st)
     if #node == 0 then return end
     w:level(1)
     for r, row in ipairs(node) do
       w.to:write'\n+ '
       for c, col in ipairs(row) do
         if c ~= 1 then w.to:write'\t' end
-        w:level(1); M.serialize(w, col); w:level(-1)
+        w:level(1); M.serialize(w, col, st); w:level(-1)
       end
     end
     w:level(-1)
   end,
-  list = function(w, node)
+  list = function(w, node, st)
     w:level(1)
     for _, item in ipairs(node) do
       w.to:write'\n* '
-      w:level(1); M.serialize(w, item); w:level(-1)
+      w:level(1); M.serialize(w, item, st); w:level(-1)
     end
     w:level(-1)
   end,
@@ -111,10 +111,11 @@ local function special(w, node, style, str)
 end
 
 -- serialize node to a writer
-function M.serialize(w, node)
+function M.serialize(w, node, style)
   local kind = nodeKind(node)
+  style = M.STYLES[kind] or style
   local fn = SER_KIND[kind]
-  if fn then return fn(w, node) end
+  if fn then return fn(w, node, style) end
   local header = M.HEADER[kind]
   if header then
     w.to:styled('meta', string.rep('#', header))
@@ -126,7 +127,7 @@ function M.serialize(w, node)
   if     node.path then special(w, node, 'path', node.path)
   elseif node.href then special(w, node, 'ref',  node.href)
   else
-    for _, n in ipairs(node) do M.serialize(w, n) end
+    for _, n in ipairs(node) do M.serialize(w, n, style) end
   end
 end
 

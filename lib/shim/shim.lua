@@ -265,7 +265,7 @@ function M._subsdoc(R, d, pre)
     if sub:match'^_' then goto cont end
     local S = rawget(R, sub)
     if M.isCmd(S) then push(subs, sub) end
-    local cmt = select(3, d:anyExtract(S))
+    local cmt = select(3, d:anyExtract(S)) or EMPTY
     d:write('* [*', sub, '] - ', d:firstLine(cmt[1] or ''), '\n')
   ::cont::end
   d:write']\n'

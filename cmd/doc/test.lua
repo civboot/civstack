@@ -20,7 +20,8 @@ function Tm.A:exampleMeth(b) --> c
 end
 
 local Tm_DOC =
-"[{h3 name=TestMod}Mod TestMod]\
+"\
+[{h3 name=TestMod}Mod TestMod]\
 Example module\
 \
 \
@@ -30,6 +31,7 @@ Example module\
 * [{*name=TestMod.exampleFn}fn exampleFn][$(a) -> b][{br}]\
   Example function documentation.\
 ]\
+\
 \
 [{h4 name=TestMod.A}Record A]\
 Example record documentation.\
@@ -114,7 +116,7 @@ end
 
 T'call_doc'; do
   local b = ds.bytearray()
-  doc{require'metaty', to=b}
+  doc{require'metaty', to=b, raw=true}
   T.matches('metaty: simple but effective Lua type system using metatable',
     tostring(b))
 end

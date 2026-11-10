@@ -263,15 +263,16 @@ end
 --- histedit usage:        [$pvc plan branch@id]
 --- Rebase usage:          [$pvc plan br=newBase@id]
 ---
---- Create a PVCPLAN and, if run=true (the default), execute it.
---- If rev or br=newBase (e.g rebase) isn't provided resume an existing plan.
+--- plan is the swiss-army knife to create an editable plan to rebase,
+--- reorder, split, squash or otherwise modify commits and commit history.
+---
+--- Creates a PVCPLAN and, if run=true, executes it. [$run] is default true
+--- for rebases and default false for non-rebsaes. If no rev/rebase is given
+--- then resumes an existing plan.
 ---
 --- A plan is stored in the PVCPLAN file and is simply a series of commands
---- which create new ".branch" branches and cherry pick a series of commits
---- from existing branches into them. They can also squash commits.
----
---- When the plan is done the [$.branch] branches are cleaned up by
---- updating or swapping their non-dot counterparts.
+--- which create new ".branch" branches and cherry pick (cp) a series of
+--- commits. They can also squash commits.
 pvc.plan = mty.extend(Base, 'squash', {
   'run [bool]: set to false to not run the plan', run=true,
   'skip [int]: number of items to skip in a plan. [$run] must be true.',

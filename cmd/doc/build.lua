@@ -49,7 +49,7 @@ local function build(id)
   ix.cp(to, R..ds.only(assert(ds.getp(tgt, readmeOut))))
   to:seek'end'
 
-  local cmd = { to = to }
+  local cmd = { to=to, raw=true }
   for _, modtgt in ipairs(tgt.extra.lua) do
     ds.extend(cmd, tgts[core.tgtname(modtgt)].api)
   end

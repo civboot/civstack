@@ -230,3 +230,8 @@ T'testMetaty'; do
   l:loadPkgs{p}
   l:test({t}, l:build{t})
 end
+
+T'expand#full'; do
+  local l = newCiv()
+  T.eq({'civ:#full'}, l:expandAll{'civ:#full'})
+end
