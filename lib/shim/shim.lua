@@ -194,6 +194,7 @@ function M.constructNew(Cmd, args) --> ok, err?
     end
     local sc = args[1]
     if not sc or not Cmd[sc] then
+      if args.help then return args end
       return nil, sfmt(
         'invalid subcmd %q, valid subcommands are: %s',
         sc or '', table.concat(v, ' '))
@@ -224,8 +225,11 @@ end
 --- ]$
 function M._main(Cmd, args)
   M.runSetup(args or {})
+  dbg('_main Cmd=%q args=%q', Cmd, args)
   local self, err = Cmd:new(M.parse(args))
   assert(self, err)
+  dbg(' * _main self=%q', self)
+  if self.help then return require'doc'{Cmd} end
   self()
 end
 
@@ -250,19 +254,31 @@ function M._subsdoc(R, d, pre)
   d:header(d.modHeader, 'Command '..pre, name)
   -- Comments
   for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
+  -- Subcommands
+  local subs = {}
+
+  d:write'\n'; d:bold'Subcommands'; d:write' [+\n'
   for _, sub in ipairs(R.__attrs) do
-    if sub:match'^_' then goto continue end
+    if sub:match'^_' then goto cont end
     local S = rawget(R, sub)
-    if M.isCmd(S) and not d.done[S] then
+    if M.isCmd(S) then push(subs, sub) end
+    local cmt = select(3, d:anyExtract(S))
+    d:write('* [*', sub, '] - ', (cmt[1] or ''):match'^%s*([^\n]*)', '\n')
+  ::cont::end
+  d:write']\n'
+
+  for _, sub in ipairs(subs) do
+    local S = rawget(R, sub)
+    if not d.done[S] then
       d.done[S] = true
       rawget(S, '__doc')(S, d, pre)
     end
-    ::continue::
   end
   d:endmod(R, 'Functions')
 end
 
 local function namedCmd(name, R)
+  table.insert(R, 1, 'help [bool]: get help')
   R.new    = R.new    or M.constructNew
   R.main   = R.main   or M._main
   R.__doc  = R.__doc  or M._doc

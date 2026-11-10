@@ -11,7 +11,7 @@ P.pvc = lua {
     'snap.lua',
     'unix.lua'
   },
-  dep = { 'civ:lib' },
+  dep = { 'civ:lib', 'civ:cmd/doc' },
   link = {['lua/pvc.lua'] = 'bin/pvc'},
 }
 

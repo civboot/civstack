@@ -36,9 +36,9 @@ lua bootstrap.lua boot-test    # run tests for your system
 # !-- IMPORTANT: run, then do what it says for PATH vars --!
 lua bootstrap.lua install civ:cmd/civ  # install civ
 
-source ~/.bashrc               # load new PATH vars
-civ test civ:.#                # test all targets
-civ install civ:#full          # install main civ software
+source ~/.bashrc    # load new PATH vars
+civ test civ:.#     # test all targets
+civ install :#full  # install main civ software
 ]$
 ["By default, civ software will be put in [$~/.local/civ/]. You can
   modify this by changing [$.civconfig].

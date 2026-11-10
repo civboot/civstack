@@ -2,22 +2,9 @@
 local shim  = require'shim'
 
 --- Usage: [$pvc <subcmd> --help][{br}]
---- This is the [$pvc] command-line tool which can also be called directly from
---- Lua.
+--- Patch-based Version Control.
 ---
---- pvc uses [$rev] (revision) semantics of 'branch@id' where "branch" is a
---- branch name (e.g "main") and id is an incrementing patch id, where later
---- ids are always later patches.
----
---- Special branch names include: [+
---- * 'local' or just '': the local work tree (live code).
---- * 'at': the current branch@id.
---- * 'at@id', '@id' or just 'id': the current branch at a different id.
---- ]
---- Special id names include: [+
---- * 'tip': when used alone, the tip of the current branch.
----   'branch@tip' or just 'branch' mean the tip of the specified branch.
---- ]
+--- Commit, branch and refactor [$rev] (revisions) in the form of `branch@id`.
 local pvc = shim.subcmds'pvc' {}
 
 local mty   = require'metaty'

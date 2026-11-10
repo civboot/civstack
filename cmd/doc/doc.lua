@@ -5,6 +5,7 @@ local shim = require'shim'
 local doc = shim.cmd'doc-cmd' {
   __cmd='doc',
   'to [string|file]: where to write output.',
+  'raw [bool]: if true then get raw cxt, else format for terminal',
 }
 
 local mty = require'metaty'
@@ -15,6 +16,7 @@ local info = require'ds.log'.info
 local warn = require'ds.log'.warn
 local cxt = require'cxt'
 local lines = require'lines'
+local Gap   = require'lines.Gap'
 
 local sfmt, srep = string.format, string.rep
 local push = ds.push
@@ -86,9 +88,9 @@ end
 function doc.Doc:header(lvl, content, name)
   assertf(1 <= lvl and lvl <= 6, 'header lvl %s must be [1-6]', lvl)
   if name then
-    self:write(sfmt('[{h%s name=%s}%s]\n', lvl, name, content))
+    self:write(sfmt('\n[{h%s name=%s}%s]\n', lvl, name, content))
   else
-    self:write(sfmt('[{h%s}%s]\n', lvl, content))
+    self:write(sfmt('\n[{h%s}%s]\n', lvl, content))
   end
 end
 
@@ -239,14 +241,22 @@ end
 
 --- usage: [$doc{'any.symbol', '--to=optionalOutput.cxt'}]
 function doc:__call()
+  self.raw = shim.bool(self.raw)
   info('doc %q', self)
   assert(#self > 0, 'usage: doc any.symbol')
-  local d = doc.Doc{to=assert(shim.file(self.to, ctx.stdlog))}
+  local to = self.to and shim.file(self.to)
+             or self.raw and ctx.stdout
+             or Gap()
+  assertf(self.raw or rawget(getmetatable(to), 'get'),
+    'output to non-raw must be lines-based object: to=%q', to)
+  local d = doc.Doc{to=to}
   for _, obj in ipairs(self) do
     if type(obj) == 'string' then obj = doc.find(obj) end
     local name = G.MOD_NAMES[obj]
     d(name or '(unknown)', obj); d:write'\n'
   end
+  if self.raw then return end
+  require'cxt.term'.convert(to, ctx.fmtout)
 end
 
 if shim.isMain(doc) then doc:main(arg) end
