@@ -6,6 +6,7 @@ local doc = shim.cmd'doc-cmd' {
   __cmd='doc',
   'to [string|file]: where to write output.',
   'raw [bool]: if true then get raw cxt, else format for terminal',
+  'full [bool]: if true then recurse',
 }
 
 local mty = require'metaty'
@@ -50,6 +51,7 @@ doc.Doc = mty'Doc' {
   'to [file]: file to write to.',
   'indent [string]', indent = '  ',
   'done [table]: already documented items',
+  'full [bool]: if true recurse',
   '_level [int]: intent level', _level = 0,
   '_nl [string]',               _nl    = '\n',
 
@@ -75,6 +77,10 @@ end
 
 function doc.Doc:bold(text) self:write(sfmt('[*%s]', text)) end
 function doc.Doc:code(code) self:write(cxt.code(code))      end
+function doc.Doc:firstLine(s)
+  s = s:match'^%s*([^\n]*)'
+  return s:match'^(.*)%[{br}%]$' or s
+end
 
 function doc.Doc:link(link, text)
   if text then self:write(sfmt('[<%s>%s]', link, text))
@@ -239,7 +245,7 @@ function doc.Doc:__call(name, obj, cmts)
   end
 end
 
---- usage: [$doc{'any.symbol', '--to=optionalOutput.cxt'}]
+--- usage: [$doc{'any.symbol', '--to=optionalOutput.cxt', --full}]
 function doc:__call()
   self.raw = shim.bool(self.raw)
   info('doc %q', self)
@@ -249,7 +255,7 @@ function doc:__call()
              or Gap()
   assertf(self.raw or rawget(getmetatable(to), 'get'),
     'output to non-raw must be lines-based object: to=%q', to)
-  local d = doc.Doc{to=to}
+  local d = doc.Doc{to=to, full=shim.bool(self.full)}
   for _, obj in ipairs(self) do
     if type(obj) == 'string' then obj = doc.find(obj) end
     local name = G.MOD_NAMES[obj]

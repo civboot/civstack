@@ -229,7 +229,11 @@ function M._main(Cmd, args)
   local self, err = Cmd:new(M.parse(args))
   assert(self, err)
   dbg(' * _main self=%q', self)
-  if self.help then return require'doc'{Cmd} end
+  if self.help then
+    return require'doc'{
+      getmetatable(self) or Cmd, full=(self.help=='full'),
+    }
+  end
   self()
 end
 
@@ -256,25 +260,26 @@ function M._subsdoc(R, d, pre)
   for _, c in ipairs(cmt or EMPTY) do d:write(c); d:write'\n' end
   -- Subcommands
   local subs = {}
-
   d:write'\n'; d:bold'Subcommands'; d:write' [+\n'
   for _, sub in ipairs(R.__attrs) do
     if sub:match'^_' then goto cont end
     local S = rawget(R, sub)
     if M.isCmd(S) then push(subs, sub) end
     local cmt = select(3, d:anyExtract(S))
-    d:write('* [*', sub, '] - ', (cmt[1] or ''):match'^%s*([^\n]*)', '\n')
+    d:write('* [*', sub, '] - ', d:firstLine(cmt[1] or ''), '\n')
   ::cont::end
   d:write']\n'
 
-  for _, sub in ipairs(subs) do
-    local S = rawget(R, sub)
-    if not d.done[S] then
-      d.done[S] = true
-      rawget(S, '__doc')(S, d, pre)
+  if d.full then
+    for _, sub in ipairs(subs) do
+      local S = rawget(R, sub)
+      if not d.done[S] then
+        d.done[S] = true
+        rawget(S, '__doc')(S, d, pre)
+      end
     end
+    d:endmod(R, 'Functions')
   end
-  d:endmod(R, 'Functions')
 end
 
 local function namedCmd(name, R)
