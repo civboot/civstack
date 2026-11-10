@@ -220,7 +220,6 @@ function M.fninfo(fn) --> name, loc
   local name = MOD_NAMES[fn]; if not name then
     info = debug.getinfo(fn, 'lnS')
     name = info.name
-    print('name', name) 
   end
   local loc = MOD_LOC[fn]; if not loc then
     info = info or debug.getinfo(fn, 'lS'); loc = info.source

@@ -226,8 +226,9 @@ end
 
 function civ.install:__call()
   civ._pre()
-  info('install %q', self)
+  info('%q', self)
   local cv = core.Civ:load(self.config)
+  local f = ctx.fmtlog
   local tgtnames = cv:expandAll(self)
   local D = cv.cfg.installDir
   assert(D, 'must set config.installDir')
@@ -240,14 +241,14 @@ function civ.install:__call()
       return
     end
   end
-  ctx.fmtlog:styled('notify', 'installing in ')
-  ctx.fmtlog:styled('path', D, '\n')
+  f:styled('notify', 'installing in ')
+  f:styled('path', D, '\n')
   civ._build(self, cv, tgtnames)
   ix.rmRecursive(cv.cfg.installDir)
   ix.cpRecursive(cv.cfg.buildDir, cv.cfg.installDir)
-  ctx.fmtlog:styled('notify', 'Installed in '); ctx.fmtlog:styled('path', D, '\n')
+  f:styled('notify', 'Installed in '); ctx.fmtlog:styled('path', D, '\n')
   for _, tgtname in ipairs(tgtnames) do
-    ctx.fmtlog:write(sfmt('  %s\n', tgtname))
+    f:write(sfmt('  %s\n', tgtname))
   end
 end
 
