@@ -54,7 +54,7 @@ T'ff_FF'; do
   local m = ff:new{'a', 'p:b/c', '-b', 'p:-%.ef', 'r:r1/', '--', 'r2/'}
   T.eq(mty.construct(ff, {
     root={'r2/', 'r1/'},
-    cnt={'a', '-b'},
+    contains={'a', '-b'},
     path={HIDE, 'b/c', '-%.ef'},
   }), m)
 
@@ -62,7 +62,7 @@ T'ff_FF'; do
                                 '--', 'root/', '--weird'})
   T.eq(mty.construct(ff, {
     root={'root/', '--weird'},
-    cnt={'a'},
+    contains={'a'},
     path={HIDE, 'dir/'},
     sub = 'b',
   }), m)

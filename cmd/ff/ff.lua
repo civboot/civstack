@@ -3,10 +3,10 @@ local shim = require'shim'
 
 --- Usage: [$ff find_this p:with/path r:at/root s:substitute_with --mut]
 local FF = shim.cmd'ff' {
-  'root   {paths}: list of root paths, i.e. [$r:path1/ r:path2]',
-  'cnt    {pat}: list of patterns to find in the content',
-  'path   {pat} [$p:%.lua] list of file path patterns',
-  'sub [string]: the subsitution string to use with cnt.',
+  'root     {paths}: list of root paths, i.e. [$r:path1/ r:path2]',
+  'contains {pat}: [$foo] or [$c:foo] - list of content patterns to find',
+  'path     {pat} [$p:%.lua] - list of file path patterns',
+  'sub [string]: the subsitution string to use with contains.',
   'mut [bool]: mutate files (used with sub)',
   'dirs [bool]: show all non-excluded directories',
   'content [bool]: if false do not show content (only show paths)',
@@ -39,7 +39,7 @@ local fmtMatch, fmtSub, parseColons
 --- Construct the cmd without executing.
 FF.new = function(T, self) --> ff callable
   self = shim.parseStr(self)
-  for _, k in ipairs{'root', 'cnt', 'path'} do
+  for _, k in ipairs{'root', 'contains', 'path'} do
     self[k] = shim.list(self[k])
   end
   shim.popRaw(self, self.root)
@@ -52,7 +52,7 @@ FF.new = function(T, self) --> ff callable
     assert(self.path, 'must set path pattern with path pathsub')
   else self.content = shim.bool(self.content) end
   if not self.content then
-    assertf(#self.cnt == 0, 'content=false but content search set: %q', self.cnt)
+    assertf(#self.contains == 0, 'content=false but content search set: %q', self.contains)
   end
   assert(not (self.sub and self.pathsub), 'must set only one: sub pathsub')
   if #self.root == 0 then self.root[1] = ctx.CWD end
@@ -98,7 +98,7 @@ function FF:iter() --> iter[path, pty]
   end
 
   -- find pattern or sub in file
-  local cnt, sub = self.cnt, self.sub
+  local cnt, sub = self.contains, self.sub
   if #cnt == 0 then
     it:map(function(p, pty)
       if pty ~= 'dir' then sf:styled('path', nice(p), '\n') end
@@ -191,14 +191,14 @@ function FF:_replace(path, to, pats, sub)
 end
 
 local COLON = {
-  ['r:']='root', ['p:']='path', ['c:']='cnt', ['s:']='sub',
+  ['r:']='root', ['p:']='path', ['c:']='contains', ['s:']='sub',
 }
 --- parse [$c:commands] into t
 function parseColons(args)
   local cmd, si
   for _, str in ipairs(args) do
     si = 1; cmd = COLON[str:sub(si, si+1)]
-    if cmd then si = si + 2 else cmd = 'cnt' end
+    if cmd then si = si + 2 else cmd = 'contains' end
     if cmd == 'sub' then
       assert(not args.sub, 'sub specified twice')
       args.sub = str:sub(si)
