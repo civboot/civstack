@@ -1,7 +1,7 @@
 #!/usr/bin/env -S lua
 local shim = require'shim'
 
---- Usage: [$ff find_this or_this]
+--- Usage: [$ff find_this p:with/path r:at/root s:substitute_with --mut]
 local FF = shim.cmd'ff' {
   'root   {paths}: list of root paths, i.e. [$r:path1/ r:path2]',
   'cnt    {pat}: list of patterns to find in the content',
