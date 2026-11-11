@@ -41,7 +41,7 @@ end
 function M.diff(a,al, b,bl) --> string?
   a, al = diffCheckPath(a, al)
   b, bl = diffCheckPath(b, bl)
-  local s = ix.sh2{
+  local s = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=ctx.stdlog, rc=true}
   local o, e = s.out, s.log
@@ -72,7 +72,7 @@ function M._patch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-N')
   trace('sh%q', args)
-  return ix.sh2(args).out or ''
+  return ix.sh(args).out or ''
 end
 
 --- reverse patch
@@ -80,7 +80,7 @@ function M._rpatch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-R')
   trace('sh%q', args)
-  return ix.sh2(args).out
+  return ix.sh(args).out
 end
 
 --- incorporate all changes that went into going from base to change into to
@@ -93,7 +93,7 @@ function M.merge(to, base, change) --> ok, err
     rc=true,
   }
   info('unix.merge %q', cmd)
-  local sh = ix.sh2(cmd)
+  local sh = ix.sh(cmd)
   trace('merge rc=%i', sh:rc())
   if sh:rc() == 0 then return true end
   return nil, sh.log

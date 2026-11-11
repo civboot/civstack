@@ -91,7 +91,7 @@ function Worker:link(tgt)
   for from, to in pairs(tgt.link or EMPTY) do
     local f, t = O..from, O..to
     info('ln %q -> %q: %q', f, t, pth.relative(t, f))
-    ix.sh2{'ln', '-s', pth.relative(t, f), t}
+    ix.sh{'ln', '-s', pth.relative(t, f), t}
     if not G.NOLIB and select(2, pth.last(pth.dir(t))) == 'bin/' then
       info('chmod a+x', f)
       local f = assert(ctx.open(f))

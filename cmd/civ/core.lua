@@ -489,7 +489,7 @@ function M.Civ:run(stage, tgtname, script, ids)
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
   info('%s cmd: %q', stage, cmd)
-  local s = ix.sh2(cmd)
+  local s = ix.sh(cmd)
   if s:rc() ~= 0 then
     error(ds.Error{msg=sfmt('%s failed with rc=%s', tgtname, s:rc())})
   end

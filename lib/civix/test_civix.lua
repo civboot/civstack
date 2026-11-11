@@ -68,10 +68,10 @@ end
 
 -- FIXME:
 -- T'directShBoot'; do directShTest(B.sh) end
-T'directSh';     do directShTest(M.sh2) end
+T'directSh';     do directShTest(M.sh) end
 
 T'testSh'; do
-  local sh, out, err, s = M.sh2
+  local sh, out, err, s = M.sh
 
   T.eq('/tmp\n', sh{'pwd', CWD='/tmp'}.out)
 

@@ -38,7 +38,7 @@ for _, id in ipairs(w.ids) do
     push(cmd, '-shared')
     lib = w.cfg.buildDir..'lib/'..lib
     ds.extend(cmd, {'-o', lib})
-    ix.sh2(cmd)
+    ix.sh(cmd)
     T.exists(lib)
   end
 end
