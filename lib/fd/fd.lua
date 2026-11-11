@@ -102,7 +102,7 @@ local function finishRunning(self, kind, ...)
 end
 function S.FDT.__index:close()
   finishRunning(self, 'sleep', 1e-4)
-  self:_close();
+  self:_close()
 end
 S.FDT.__close         = S.FDT.__index.close
 S.FDT.__name = 'fd.FDT'

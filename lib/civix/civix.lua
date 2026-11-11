@@ -18,7 +18,7 @@ local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
 local Rand            = mty.from'ds.rand  Rand'
 local abs             = mty.from'ds.path  abs'
-local assertf         = mty.from'fmt      assertf'
+local assertf, format = mty.from'fmt      assertf, format'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
 local push, pop = table.insert, table.remove
@@ -652,9 +652,12 @@ M.Sh = mty'Sh' {
   "env   [list]:   shell's environment {'FOO=bar', ...}",
   "cwd   [string]: current working directory",
   'input [string]: string input (set stdin instead)',
+  'check [bool]: if true (the default) fail on rc=nonzero', check=true,
   -- After finished
   "out [string]: read of stdout after finished",
   "log [string]: read of stderr after finished",
+  -- After check()
+  'status [table]: table of ok/error statusus and number of [$.errors]',
   -- Private. WARNING: env must outlive the _sh subprocess.
   '_sh [userdata]: internal C implemented shell',
   "_prev [Sh]: used for '|' operation.",
@@ -670,6 +673,7 @@ getmetatable(M.Sh).__call = function(T, cmd)
     self.stderr = pk(cmd, 'stderr')
     self.env    = pk(cmd, 'env')
     self.cwd    = pk(cmd, 'cwd')
+    self.check  = pk(cmd, 'check')
     if self.env then
       push(self.env, 'PWD='..(self.cwd or ctx.CWD))
     end
@@ -740,7 +744,11 @@ end
 function M.Sh:_finishInput(fns)
   if self._prev then return self._prev:_finishInput(fns) end
   if self.input then push(fns, function()
-    self.stdin:write(self.input); self.stdin:close()
+    dbg'writing input'
+    self.stdin:write(self.input)
+    dbg'closing'
+    self.stdin:flush(); self.stdin:close()
+    dbg'closed'
   end) end
 end
 
@@ -754,25 +762,43 @@ function M.Sh:finish(fns) --> self
   return self
 end
 
+function M.Sh:_checkStatus(status)
+  if self._prev then self._prev:_checkStatus(status) end
+  if self:rc() == 0 then push(status, format('(ok) %q', self))
+  else
+    status.errors = status.errors + 1
+    push(status, format('(failed rc=%s) %q', self:rc(), self))
+  end
+end
+
+--- Check the status of self and prior Sh pipeline steps.
+--- Use self.status to read the status afterwards.
+function M.Sh:checkStatus(nothrow) --> self
+  local status = {errors=0}; self:_checkStatus(status)
+  self.status = status
+  if not nothrow and status.errors > 0 then
+    error(format('pipeline had errors:\n%q', status))
+  end
+  return self
+end
+
 --- Finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
   fns = fns or {}
-  self:start(); self:finish(fns); if #fns == 0 then return self end
-  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  self:start(); self:finish(fns); if #fns == 0 then --skip
+  elseif ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  self:wait(); self:checkStatus(not self.check)
   return self
 end
 
 --- Create and run the Sh command.
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
+  -- FIXME: remove rcOk
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh = M.Sh(cmd)
-  sh()
-  local out, err = sh.out, sh.log
-  local rc = sh:wait();
-  if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
-  return sh
+  if rcOk then cmd.check = false end
+  return M.Sh(cmd)()
 end
 
 function M.isRoot() return os.getenv'EUID' == '0' end

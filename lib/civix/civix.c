@@ -4,6 +4,8 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -275,6 +277,12 @@ static int l_sh_wait(LS *L) {
   return 0;
 }
 
+static void to_blocking(int fd) {
+  if(fd < 0) return;
+  int flags = fcntl(fd, F_GETFL, 0); if (flags == -1) return;
+  fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
 // (command, argList, envList=nil, stdin, out, err, CWD) -> (sh, r, w)
 // Note: all file-descriptors are integers
 // Note: file descriptors are only returned if they have been created
@@ -320,24 +328,31 @@ static int l_sh(LS *L) {
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
+    fprintf(stderr, "@@ to blocking\n");
+    // to_blocking(ch_w); to_blocking(ch_r); to_blocking(ch_l);
     if(sh->env) {
       char **env = sh->env;
       clearenv();
       while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
+    
     if(ch_w != STDOUT_FILENO) { dup2(ch_w,  STDOUT_FILENO); close(ch_w); }
     else if(ch_w < 0) close(STDOUT_FILENO);
     if(ch_r != STDIN_FILENO)  { dup2(ch_r,  STDIN_FILENO);  close(ch_r); }
     else if (ch_r < 0) close(STDIN_FILENO);
-
     if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
     else if (ch_l < 0) close(STDERR_FILENO);
+    to_blocking(STDOUT_FILENO); to_blocking(STDIN_FILENO); to_blocking(STDERR_FILENO);
+    
+    fprintf(stderr, "@@ running command %s\n", command);
     execvp(command, argv);
     if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
           command, SERR, errno);
+    fprintf(stderr, "@@ command done %s\n", command);
     _exit(1);
   } // else parent
+  // CLOSE(ch_w); CLOSE(ch_r); CLOSE(ch_l) 
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes
   if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
