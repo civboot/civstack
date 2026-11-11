@@ -668,31 +668,31 @@ end
 --- start the shell in the background.
 --- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
-M.Sh.start = function(sh)
+function M.Sh:start()
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
-    sh.args[1], sh.args, sh.env,
-    _fnomaybe(sh.stdin), _fnomaybe(sh.stdout, true),
-    _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO),
-    sh.cwd
+    self.args[1], self.args, self.env,
+    _fnomaybe(self.stdin), _fnomaybe(self.stdout, true),
+    _fnomaybe(self.stderr, fd.sys.STDERR_FILENO),
+    self.cwd
   )
-  sh._sh = assert(ex, 'INTERNAL: lib.sh returned nil')
+  self._sh = assert(ex, 'INTERNAL: lib.sh returned nil')
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
   if _l then l:_setfileno(_l); l:toNonblock() else l = nil end
-  sh.stdin, sh.stdout, sh.stderr = w, r, l
-  return sh
+  self.stdin, self.stdout, self.stderr = w, r, l
+  return self
 end
 
-M.Sh.isDone = function(sh) return sh._sh:isDone() end
-M.Sh.rc     = function(sh) return sh._sh:rc()     end
+function M.Sh:isDone() return self._sh:isDone() end
+function M.Sh:rc()     return self._sh:rc()     end
 
 --- wait for shell to complete, returns return code
-M.Sh.wait = function(sh) --> int
+function M.Sh:wait() --> int
   if ctx.ASYNC then
-    while not sh:isDone() do yield('sleep', 1e-4) end
-  else sh._sh:wait() end
-  return sh:rc()
+    while not self:isDone() do yield('sleep', 1e-4) end
+  else self._sh:wait() end
+  return self:rc()
 end
 
 --- Argument for [<#civix.Sh.finish>].
@@ -702,12 +702,12 @@ M.ShFin = mty'ShFin'{
 }
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
---- stdout/stderr.  All processes are done asynchronously
-M.Sh.finish = function(sh, other) --> out, err
+--- stdout/stderr. All processes are done asynchronously
+function M.Sh:finish(other) --> out, err
   other = M.ShFin(other or {})
-  local inpf = other.stdin  or sh.stdin
-  local outf = other.stdout or sh.stdout
-  local errf = other.stderr or sh.stderr
+  local inpf = other.stdin  or self.stdin
+  local outf = other.stdout or self.stdout
+  local errf = other.stderr or self.stderr
   if not (other.input or outf or errf) then return end
   local fns, out, err = {}
   if other.input then assert(inpf, 'provided input without stdin')
@@ -720,8 +720,8 @@ M.Sh.finish = function(sh, other) --> out, err
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return out, err
 end
-M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
-M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
+function M.Sh:write(...) return self.stdin:write(...) end
+function M.Sh:read(...)  return self.stdout:read(...) end
 
 function M._sh(cmd) --> Sh
   local pk, sh, other = ds.popk, {}, {}

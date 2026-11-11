@@ -159,6 +159,8 @@ function M.noop() end
 --- Function that indicates an API is not supported for a type.
 --- Throws [$error'not supported'].
 function M.nosupport() error'not supported' end
+---- Function that indicates an API is not yet implemented.
+function M.notimpl() error'not yet implemented' end
 --- identity function, return the inputs.
 function M.iden(...) return ... end --> ...
 --- function that always return true.
