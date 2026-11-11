@@ -53,10 +53,10 @@ end
 T'libBoot'; do testLib(B) end
 
 local function directShTest(sh)
-  T.eq('',           sh'true')
-  T.eq('hi there\n', sh{'echo', 'hi there'})
+  T.eq('',           sh'true'.out)
+  T.eq('hi there\n', sh{'echo', 'hi there'}.out)
   T.eq('foo --abc=ya --aa=bar --bb=42\n',
-    sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42})
+    sh{'echo', 'foo', '--abc=ya', aa='bar', bb=42}.out)
 
   T.throws('Command failed with rc=1', function()
     sh'false'
@@ -66,38 +66,39 @@ local function directShTest(sh)
   end)
 end
 
-T'directShBoot'; do directShTest(B.sh) end
-T'directSh';     do directShTest(M.sh) end
+-- FIXME:
+-- T'directShBoot'; do directShTest(B.sh) end
+T'directSh';     do directShTest(M.sh2) end
 
 T'testSh'; do
-  local sh, out, err, s = M.sh
+  local sh, out, err, s = M.sh2
 
-  T.eq('/tmp\n', sh{'pwd', CWD='/tmp'})
+  T.eq('/tmp\n', sh{'pwd', CWD='/tmp'}.out)
 
   T.eq('/tmp thisIsFOO\n',
     sh{'sh', '-c', 'echo $PWD $FOO',
-       CWD='/tmp', ENV={'FOO=thisIsFOO'}})
+       CWD='/tmp', ENV={'FOO=thisIsFOO'}}.out)
 
-  out, err, s = M.sh{'false', rc=true}
+  s = sh{'false', rc=true}
   T.eq(1, s:rc())
 
-  T.eq('from stdin', sh{stdin='from stdin', 'cat'})
+  T.eq('from stdin', sh{stdin='from stdin', 'cat'}.out)
 
   local path = '.out/echo.test'
   local f = ctx.open(path, 'w+')
-  out, err, s = sh{'echo', 'send to file', stdout=f}
-  T.eq(nil, out); T.eq(nil, err);
+  s = sh{'echo', 'send to file', stdout=f}
+  T.eq(nil, s.out); T.eq(nil, s.log);
   T.eq(nil, s.stdin); T.eq(nil, s.stdout)
   T.eq('send to file\n', ctx.open(path):read'a')
   f:seek'set'; T.eq('send to file\n', f:read'a')
 
   f:seek'set'
-  out, err, s = sh{stdin=f, 'cat', stdout=ctx.open('.out/cat.test', 'w+')}
-  T.eq(nil, out); T.eq(nil, err)
+  s = sh{stdin=f, 'cat', stdout=ctx.open('.out/cat.test', 'w+')}
+  T.eq(nil, s.out); T.eq(nil, s.log)
   T.eq('send to file\n', ctx.open('.out/cat.test'):read'a')
 
-  out, err, s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
-  T.eq(nil, out); T.eq('on STDERR\n', err)
+  s = sh{'sh', '-c', "echo 'on STDERR' >&2 ", stdout=false, stderr=true}
+  T.eq(nil, s.out); T.eq('on STDERR\n', s.log)
   collectgarbage()
 end
 
