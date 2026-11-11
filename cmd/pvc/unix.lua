@@ -41,15 +41,16 @@ end
 function M.diff(a,al, b,bl) --> string?
   a, al = diffCheckPath(a, al)
   b, bl = diffCheckPath(b, bl)
-  local o, e, sh = ix.sh{
+  local s = ix.sh2{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
     unified='0', stderr=ctx.stdlog, rc=true}
-  trace('diff rc=%i', sh:rc())
-  if sh:rc() > 1 then
+  local o, e = s.out, s.log
+  trace('diff rc=%i', s:rc())
+  if s:rc() > 1 then
     error('diff failed:\n'..(e or o or '(no std err or out)'))
   end
   if o then
-    if sh:rc() ~= 1 then error('unknown return code: '..sh:rc()) end
+    if s:rc() ~= 1 then error('unknown return code: '..s:rc()) end
     if o:sub(1,3) ~= '---' then
       error(sfmt('non-diff output from diff %q %q:\n%s\n%s',
                                             al,bl,  o,  e))
@@ -71,7 +72,7 @@ function M._patch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-N')
   trace('sh%q', args)
-  return ix.sh(args) or ''
+  return ix.sh2(args).out or ''
 end
 
 --- reverse patch
@@ -79,7 +80,7 @@ function M._rpatch(cwd, path)
   cwd = pth.toDir(cwd)
   local args = patchArgs(cwd, path); push(args, '-R')
   trace('sh%q', args)
-  return ix.sh(args)
+  return ix.sh2(args).out
 end
 
 --- incorporate all changes that went into going from base to change into to
@@ -92,10 +93,10 @@ function M.merge(to, base, change) --> ok, err
     rc=true,
   }
   info('unix.merge %q', cmd)
-  local o, e, sh = ix.sh(cmd)
+  local sh = ix.sh2(cmd)
   trace('merge rc=%i', sh:rc())
   if sh:rc() == 0 then return true end
-  return nil, e
+  return nil, sh.log
 end
 
 return M
