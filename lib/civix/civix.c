@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -38,6 +39,14 @@ typedef struct stat STAT;
 
 static bool l_defaulttrue(LS *L, int index) {
   return lua_isnoneornil(L, index) || lua_toboolean(L, index);
+}
+
+// When an exec succeeds we want to automatically close ALL filedescriptors
+// created for it by sh().
+static int cloexec_pipe(int rw[2]) {
+  if (pipe(rw) != 0) return -1;
+  fcntl(rw[0], F_SETFD, FD_CLOEXEC); fcntl(rw[1], F_SETFD, FD_CLOEXEC);
+  return 0;
 }
 
 // Return a string array with null-terminated end.
@@ -308,22 +317,24 @@ static int l_sh(LS *L) {
   // process stdin
   if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
   else if (lua_toboolean(L, 4)) {
-    createdChR = true; if(pipe(rw)) goto error;
+    createdChR = true; if(cloexec_pipe(rw)) goto error;
     ch_r = rw[0]; pr_w  = rw[1];
   }
   // process stdout
   if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
   else if (lua_toboolean(L, 5)) {
-    createdChW = true; if(pipe(rw)) goto error;
+    createdChW = true; if(cloexec_pipe(rw)) goto error;
     pr_r = rw[0]; ch_w  = rw[1];
   }
   // process stderr
   if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
   else if (lua_toboolean(L, 6)) {
-    createdChL = true; if(pipe(rw)) goto error;
+    createdChL = true; if(cloexec_pipe(rw)) goto error;
     pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
+  fprintf(stderr, "@@ forking %s ch r=%i,%i w=%i,%i l=%i,%i\n",
+    command, ch_r, createdChR, ch_w, createdChW, ch_l, createdChL);
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
@@ -360,8 +371,9 @@ static int l_sh(LS *L) {
   if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
   return 4;
   error:
-    if(createdChW) CLOSE(ch_w); if(createdChR) CLOSE(ch_r);
-    if(createdChL) CLOSE(ch_l);
+    if(createdChW || ch_w > 2) CLOSE(ch_w);
+    if(createdChR || ch_r > 2) CLOSE(ch_r);
+    if(createdChL || ch_l > 2) CLOSE(ch_l);
     if(pr_r) close(pr_r);    if(pr_w) close(pr_w); if(pr_l) close(pr_l);
     luaL_error(L, "failed sh: %s", SERR); return 0;
 }

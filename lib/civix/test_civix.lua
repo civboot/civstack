@@ -250,8 +250,10 @@ T'sh|pipe'; do
   T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r().out)
 
   -- FIXME:
-  -- r = ( Sh{'cat', stdin='bob\njoe\n'} | sed )()
-  -- T.eq('bob -DONE\njoe -DONE\n', r.out)
+  s1 = Sh{'cat', stdin='bob\njoe\n'}
+  T.eq({true, 'bob\njoe\n'}, {s1.stdin, s1.input})
+  r = ( s1 | sed )()
+  T.eq('bob -DONE\njoe -DONE\n', r.out)
 end
 fin = true
 end -- end pipeTest

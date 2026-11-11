@@ -677,11 +677,11 @@ getmetatable(M.Sh).__call = function(T, cmd)
     if self.env then
       push(self.env, 'PWD='..(self.cwd or ctx.CWD))
     end
+    if type(self.stdin) == 'string' then
+      self.stdin, self.input = true, self.stdin
+    end
   end
   self.args = shim.expand(cmd)
-  if type(self.stdin) == 'string' then
-    self.stdin, self.input = true, self.stdin
-  end
   return T:construct(self)
 end
 
@@ -712,6 +712,10 @@ function M.Sh:start() --> self
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
   if _l then l:_setfileno(_l); l:toNonblock() else l = nil end
   self.stdin, self.stdout, self.stderr = w, r, l
+  if self._prev then
+    self._prev.stdout:close()
+    self._prev.stdout = nil
+  end
   return self
 end
 
@@ -785,6 +789,7 @@ end
 --- Finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
+  dbg('Sh() %q', self, self.stdin, self.input)
   fns = fns or {}
   self:start(); self:finish(fns); if #fns == 0 then --skip
   elseif ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
