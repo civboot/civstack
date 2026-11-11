@@ -652,13 +652,14 @@ function M.Lap() return lap.Lap {
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
-  "stdout [file|bool]: shell's stdout              (default=empty)",
-  "stderr [file|bool]: shell's stderr              (default=empty)",
+  "stdout [file|bool]: shell's stdout         (default=empty)",
+  "stderr [file|bool]: shell's stderr         (default=empty)",
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
   '_sh [userdata]: internal C implemented shell',
-  'prev [Sh]',
+  '_input [string]: string input (set stdin instead)',
+  "_prev [Sh]: used for '|' operation.",
 }
 getmetatable(M.Sh).__index = function(sh, k)
   local shv = rawget(sh, '_sh', k)
@@ -675,9 +676,9 @@ end
 --- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
 function M.Sh:start()
-  if self.prev then
-    self.prev:start()
-    self.stdin = assert(self.prev.stdout)
+  if self._prev then
+    self._prev:start()
+    self.stdin = assert(self._prev.stdout)
   end
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
@@ -711,10 +712,10 @@ function M.Sh:read(...)  return self.stdout:read(...) end
 function M.Sh:__bor(cmd) --> Sh
   assert(not self._sh, 'self already started')
   assert(not cmd._sh,  'cmd already started')
-  assert(not cmd.prev, 'cmd already has prev')
+  assert(not cmd._prev, 'cmd already has prev')
   assertNilOrTrue(self.stdout, 'self.stdout misconfigured')
   assertNilOrTrue(cmd.stdin,   'cmd.stdin misconfigured')
-  cmd.prev = self
+  cmd._prev = self
   return M.Sh(cmd)
 end
 
@@ -726,26 +727,22 @@ M.ShFin = mty'ShFin'{
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
-function M.Sh:finish(other) --> out, err
-  other = M.ShFin(other or {})
-  local inpf = other.stdin  or self.stdin
-  local outf = other.stdout or self.stdout
-  local errf = other.stderr or self.stderr
-  if not (other.input or outf or errf) then return end
+function M.Sh:finish() --> out, err
+  local outf = self.stdout
+  local errf = self.stderr
+  if not (self._input or outf or errf) then return end
   local fns, out, err = {}
-  if other.input then assert(inpf, 'provided input without stdin')
-    push(fns, function()
-      inpf:write(other.input); inpf:close()
-    end)
-  end
-  if outf then push(fns, function() out = outf:read'a' end) end
-  if errf then push(fns, function() err = errf:read'a' end) end
+  if self._input then push(fns, function()
+    self.stdin:write(self._input); self.stdin:close()
+  end) end
+  if outf  then push(fns, function() out = outf:read'a'      end) end
+  if errf  then push(fns, function() err = errf:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return out, err
 end
 
 function M._sh(cmd) --> Sh
-  local pk, sh, other = ds.popk, {}, {}
+  local pk, sh = ds.popk, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
     sh.stdin  = pk(cmd, 'stdin')
@@ -760,11 +757,14 @@ function M._sh(cmd) --> Sh
   sh.args = shim.expand(cmd)
   if type(sh.stdin) == 'string' then
     if #sh.stdin > fd.PIPE_BUF then -- may block, use tmpfile
+      -- FIXME: may be unnecessary
       local t = fd.tmpfile(); t:write(sh.stdin); t:seek'set'
       sh.stdin = t
-    else other.input = sh.stdin; sh.stdin = true end
+    else
+      sh.stdin, sh._input = true, sh.stdin
+    end
   end
-  return M.Sh(sh), other
+  return M.Sh(sh)
 end
 
 --- Execute the command in another process via execvp (system shell). Throws an
@@ -791,9 +791,10 @@ end
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh, other = M._sh(cmd)
+  local sh = M._sh(cmd)
+  dbg('_sh%q', sh)
   sh:start()
-  local out, err = sh:finish(other)
+  local out, err = sh:finish()
   local rc = sh:wait();
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
