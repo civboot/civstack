@@ -12,6 +12,7 @@ local Iter = require'ds.Iter'
 local lap  = require'lap'
 local pth  = require'ds.path'
 
+local getmt           = getmetatable
 local max             = mty.from'math     max'
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
@@ -631,22 +632,18 @@ function M.Lap() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
---- Start args on the shell
---- ["Suggestion: use civix.sh instead.]
+--- Run a system shell with arguments to override stdout, env, etc.
 ---
---- [$Sh:start()] kicks off a subprocess which start the shell using the fds
---- you pass in or creating them if you set them to true. Created file
---- descriptors will be stored in the associated name.
+--- [$Sh{'echo', 'foo-bar'}()] or [$Sh'echo foo-bar'()] both create and run
+--- (by calling) the 'echo' system command to print 'foo-bar' to stdout.
 ---
---- ["Why? This means that [$:close()] will only close filedescriptors created
----        by the shell itself, and you won't accidentially close
----        ctx.stdout/etc.]
+--- You can pipe with e.g. [$( Sh{'echo', 'foo-bar'} | Sh'cat' )()]
+--- Note that you must still call [$()] on the final pipe result to run the pipe.
 ---
---- Examples (see civix.sh for more examples): [{table}
---- # Lua                                                   | Bash
---- + [$Sh({'ls', 'foo/bar'}, {stdout=ctx.stdout}):start()]  | [$ls foo/bar]
---- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
---- ]
+--- More complex usage can be done by manually calling [$:start()] and performing
+--- the stdout/stdlog reads yourself. If your shell arguments would conflict
+--- with field names (e.g. [$env]) you can use Sh:construct to manually construct
+--- the object, though note the stdin/input behavior.
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
@@ -655,18 +652,38 @@ M.Sh = mty'Sh' {
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
-  "out [string]: read of stdout after finish()",
-  "log [string]: read of stderr after finish()",
+  'input [string]: string input (set stdin instead)',
+  -- After finished
+  "out [string]: read of stdout after finished",
+  "log [string]: read of stderr after finished",
+  -- Private
   '_sh [userdata]: internal C implemented shell',
-  '_input [string]: string input (set stdin instead)',
   "_prev [Sh]: used for '|' operation.",
 }
-getmetatable(M.Sh).__index = function(sh, k)
-  local shv = rawget(sh, '_sh', k)
-  if shv then return shv end
-  if rawget(sh, '__fields')[k] then return nil end
-  error('unknown field: '..k)
+M.Sh.construct = mty.construct
+getmetatable(M.Sh).__call = function(T, cmd)
+  dbg('Sh', cmd)
+  local pk, self = ds.popk, {}
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
+  else
+    cmd = ds.copy(cmd)
+    self.stdin  = pk(cmd, 'stdin')
+    self.stdout = pk(cmd, 'stdout')
+    self.stderr = pk(cmd, 'stderr')
+    self.env    = pk(cmd, 'ENV')
+    self.cwd    = pk(cmd, 'CWD')
+    if self.env then
+      push(self.env, 'PWD='..(self.cwd or ctx.CWD))
+    end
+  end
+  self.args = shim.expand(cmd)
+  if type(self.stdin) == 'string' then
+    self.stdin, self.input = true, self.stdin
+  end
+  return T:construct(self)
 end
+
+function M.Sh:__fmt(f) f:write'Sh'; f(self.args) end
 
 local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
@@ -678,8 +695,8 @@ end
 function M.Sh:start() --> self
   if self._sh then return self end
   if self._prev then
-    self._prev:start()
-    self.stdin = assert(self._prev.stdout)
+    assert(not self.stdin);
+    self._prev:start(); self.stdin = assert(self._prev.stdout)
   end
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
@@ -711,63 +728,41 @@ function M.Sh:write(...) return self.stdin:write(...) end
 function M.Sh:read(...)  return self.stdout:read(...) end
 
 function M.Sh:__bor(cmd) --> Sh
+  if not getmt(cmd) then cmd = M.Sh(cmd) end
   assert(not self._sh, 'self already started')
   assert(not cmd._sh,  'cmd already started')
   assert(not cmd._prev, 'cmd already has prev')
   assertNilOrTrue(self.stdout, 'self.stdout misconfigured')
   assertNilOrTrue(cmd.stdin,   'cmd.stdin misconfigured')
   cmd._prev = self
-  return M.Sh(cmd)
+  return cmd
 end
 
---- Argument for [<#civix.Sh.finish>].
-M.ShFin = mty'ShFin'{
-  'stdin [file]', 'stdout [file]', 'stderr [file]',
-  "input [string]: write to then close stdin (either self's or shell's)",
-}
-
---- finish files (in sh or other) by writing other.input to stdin and reading
---- stdout/stderr. All processes are done asynchronously
-function M.Sh:__call() --> self
-  self:start()
-  local outf = self.stdout
-  local errf = self.stderr
-  if not (self._input or outf or errf) then return end
-  local fns, out, err = {}
-  if self._input then push(fns, function()
-    self.stdin:write(self._input); self.stdin:close()
+--- Writes self.input of first item in pipe.
+function M.Sh:_finishInput(fns)
+  if self._prev then return self._prev:_finishInput(fns) end
+  if self.input then push(fns, function()
+    self.stdin:write(self.input); self.stdin:close()
   end) end
-  if outf  then push(fns, function() out = outf:read'a'      end) end
-  if errf  then push(fns, function() err = errf:read'a'      end) end 
-  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
-  self.out, self.log = out, err
+end
+
+--- Push fns to finish files (in sh or prev) by writing first input to stdin
+--- and reading last (this) stdout/stderr to out/log.[{br}]
+--- Note: This does not schedule the fns or wait for any to complete.
+function M.Sh:finish(fns) --> self
+  self:_finishInput(fns)
+  if self.stdout  then push(fns, function() self.out = self.stdout:read'a' end) end
+  if self.stderr  then push(fns, function() self.log = self.stderr:read'a' end) end 
   return self
 end
 
-function M._sh(cmd) --> Sh
-  local pk, sh = ds.popk, {}
-  if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
-  else
-    sh.stdin  = pk(cmd, 'stdin')
-    sh.stdout = pk(cmd, 'stdout')
-    sh.stderr = pk(cmd, 'stderr')
-    sh.env    = pk(cmd, 'ENV')
-    sh.cwd    = pk(cmd, 'CWD')
-    if sh.env then
-      push(sh.env, 'PWD='..(sh.cwd or ctx.CWD))
-    end
-  end
-  sh.args = shim.expand(cmd)
-  if type(sh.stdin) == 'string' then
-    if #sh.stdin > fd.PIPE_BUF then -- may block, use tmpfile
-      -- FIXME: may be unnecessary
-      local t = fd.tmpfile(); t:write(sh.stdin); t:seek'set'
-      sh.stdin = t
-    else
-      sh.stdin, sh._input = true, sh.stdin
-    end
-  end
-  return M.Sh(sh)
+--- Finish files (in sh or other) by writing other.input to stdin and reading
+--- stdout/stderr. All processes are done asynchronously
+function M.Sh:__call(fns) --> self
+  fns = fns or {}
+  self:start(); self:finish(fns); if #fns == 0 then return self end
+  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  return self
 end
 
 --- Execute the command in another process via execvp (system shell). Throws an
@@ -794,7 +789,7 @@ end
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh = M._sh(cmd)
+  local sh = M.Sh(cmd)
   sh()
   local out, err = sh.out, sh.log
   local rc = sh:wait();
