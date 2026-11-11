@@ -18,7 +18,7 @@ local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
 local Rand            = mty.from'ds.rand  Rand'
 local abs             = mty.from'ds.path  abs'
-local assertf         = mty.from'fmt      assertf'
+local assertf, format = mty.from'fmt      assertf, format'
 local concat, sfmt = table.concat, string.format
 local sort = table.sort
 local push, pop = table.insert, table.remove
@@ -56,7 +56,7 @@ local function assertNilOrTrue(v, msg) --> v
   return v
 end
 
-B.SH_UNSUPPORTED = {'stdin', 'ENV', 'CWD'}
+B.SH_UNSUPPORTED = {'stdin', 'env', 'cwd'}
 
 local function shError(cmd, out, rc)
   fmt.errorf(
@@ -649,20 +649,21 @@ M.Sh = mty'Sh' {
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
   "stdout [file|bool]: shell's stdout         (default=empty)",
   "stderr [file|bool]: shell's stderr         (default=empty)",
-  -- WARNING: must outlive the subprocess.
-  "env [list]:  shell's environment {'FOO=bar', ...}",
-  "cwd [string]: current working directory",
+  "env   [list]:   shell's environment {'FOO=bar', ...}",
+  "cwd   [string]: current working directory",
   'input [string]: string input (set stdin instead)',
+  'check [bool]: if true (the default) fail on rc=nonzero', check=true,
   -- After finished
   "out [string]: read of stdout after finished",
   "log [string]: read of stderr after finished",
-  -- Private
+  -- After check()
+  'status [table]: table of ok/error statusus and number of [$.errors]',
+  -- Private. WARNING: env must outlive the _sh subprocess.
   '_sh [userdata]: internal C implemented shell',
   "_prev [Sh]: used for '|' operation.",
 }
 M.Sh.construct = mty.construct
 getmetatable(M.Sh).__call = function(T, cmd)
-  dbg('Sh', cmd)
   local pk, self = ds.popk, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
@@ -670,16 +671,17 @@ getmetatable(M.Sh).__call = function(T, cmd)
     self.stdin  = pk(cmd, 'stdin')
     self.stdout = pk(cmd, 'stdout')
     self.stderr = pk(cmd, 'stderr')
-    self.env    = pk(cmd, 'ENV')
-    self.cwd    = pk(cmd, 'CWD')
+    self.env    = pk(cmd, 'env')
+    self.cwd    = pk(cmd, 'cwd')
+    self.check  = pk(cmd, 'check')
     if self.env then
       push(self.env, 'PWD='..(self.cwd or ctx.CWD))
     end
+    if type(self.stdin) == 'string' then
+      self.stdin, self.input = true, self.stdin
+    end
   end
   self.args = shim.expand(cmd)
-  if type(self.stdin) == 'string' then
-    self.stdin, self.input = true, self.stdin
-  end
   return T:construct(self)
 end
 
@@ -710,6 +712,10 @@ function M.Sh:start() --> self
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
   if _l then l:_setfileno(_l); l:toNonblock() else l = nil end
   self.stdin, self.stdout, self.stderr = w, r, l
+  if self._prev then
+    self._prev.stdout:close()
+    self._prev.stdout = nil
+  end
   return self
 end
 
@@ -742,7 +748,11 @@ end
 function M.Sh:_finishInput(fns)
   if self._prev then return self._prev:_finishInput(fns) end
   if self.input then push(fns, function()
-    self.stdin:write(self.input); self.stdin:close()
+    dbg'writing input'
+    self.stdin:write(self.input)
+    dbg'closing'
+    self.stdin:flush(); self.stdin:close()
+    dbg'closed'
   end) end
 end
 
@@ -756,45 +766,43 @@ function M.Sh:finish(fns) --> self
   return self
 end
 
+function M.Sh:_checkStatus(status)
+  if self._prev then self._prev:_checkStatus(status) end
+  if self:rc() == 0 then push(status, format('(ok) %q', self))
+  else
+    status.errors = status.errors + 1
+    push(status, format('(failed rc=%s) %q', self:rc(), self))
+  end
+end
+
+--- Check the status of self and prior Sh pipeline steps.
+--- Use self.status to read the status afterwards.
+function M.Sh:checkStatus(nothrow) --> self
+  local status = {errors=0}; self:_checkStatus(status)
+  self.status = status
+  if not nothrow and status.errors > 0 then
+    error(format('pipeline had errors:\n%q', status))
+  end
+  return self
+end
+
 --- Finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
   fns = fns or {}
-  self:start(); self:finish(fns); if #fns == 0 then return self end
-  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  self:start(); self:finish(fns); if #fns == 0 then --skip
+  elseif ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  self:wait(); self:checkStatus(not self.check)
   return self
 end
 
---- Execute the command in another process via execvp (system shell). Throws an
---- error if the command fails.
----
---- if cmd is a table, the following keys are treated as special. If you need any
---- of these then you must use M.Sh directly (recommendation: use Plumb) [+
---- * [$$stdin[string|file]]$ the process's stdin. If string it will be sent to stdin.
---- * [$$stdout[file]]$ the process's stdout. out will be nil if this is set
---- * [$$stderr[file]]$ the process's stderr (default=ctx.stdlog)
---- * [$$ENV [table]]$ the process's environment.
---- * [$$CWD [table]]$ the process's current directory.
---- * [$$rc [bool]]$ if true allow non-zero return codes (else throw error).
----   You can get the rc with [$sh:rc()] (method on 3rd return argument).
---- ]
----
---- Note: use [$Plumb{...}:run()] if you want to pipe multiple shells together.
---- [{table}
---- # Lua                                  | Bash
---- + [$sh'ls foo/bar']                    | [$ls foo/bar]
---- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
---- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
---- ]
+--- Create and run the Sh command.
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
+  -- FIXME: remove rcOk
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh = M.Sh(cmd)
-  sh()
-  local out, err = sh.out, sh.log
-  local rc = sh:wait();
-  if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
-  return sh
+  if rcOk then cmd.check = false end
+  return M.Sh(cmd)()
 end
 
 function M.isRoot() return os.getenv'EUID' == '0' end

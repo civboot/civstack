@@ -4,6 +4,9 @@
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #include <lua.h>
 #include <lualib.h>
@@ -36,6 +39,14 @@ typedef struct stat STAT;
 
 static bool l_defaulttrue(LS *L, int index) {
   return lua_isnoneornil(L, index) || lua_toboolean(L, index);
+}
+
+// When an exec succeeds we want to automatically close ALL filedescriptors
+// created for it by sh().
+static int cloexec_pipe(int rw[2]) {
+  if (pipe(rw) != 0) return -1;
+  fcntl(rw[0], F_SETFD, FD_CLOEXEC);
+  return fcntl(rw[1], F_SETFD, FD_CLOEXEC);
 }
 
 // Return a string array with null-terminated end.
@@ -275,6 +286,12 @@ static int l_sh_wait(LS *L) {
   return 0;
 }
 
+static void to_blocking(int fd) {
+  if(fd < 0) return;
+  int flags = fcntl(fd, F_GETFL, 0); if (flags == -1) return;
+  fcntl(fd, F_SETFL, flags & ~O_NONBLOCK);
+}
+
 // (command, argList, envList=nil, stdin, out, err, CWD) -> (sh, r, w)
 // Note: all file-descriptors are integers
 // Note: file descriptors are only returned if they have been created
@@ -300,19 +317,19 @@ static int l_sh(LS *L) {
   // process stdin
   if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
   else if (lua_toboolean(L, 4)) {
-    createdChR = true; if(pipe(rw)) goto error;
+    createdChR = true; if(cloexec_pipe(rw)) goto error;
     ch_r = rw[0]; pr_w  = rw[1];
   }
   // process stdout
   if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
   else if (lua_toboolean(L, 5)) {
-    createdChW = true; if(pipe(rw)) goto error;
+    createdChW = true; if(cloexec_pipe(rw)) goto error;
     pr_r = rw[0]; ch_w  = rw[1];
   }
   // process stderr
   if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
   else if (lua_toboolean(L, 6)) {
-    createdChL = true; if(pipe(rw)) goto error;
+    createdChL = true; if(cloexec_pipe(rw)) goto error;
     pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
@@ -320,24 +337,28 @@ static int l_sh(LS *L) {
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
+    // to_blocking(ch_w); to_blocking(ch_r); to_blocking(ch_l);
     if(sh->env) {
       char **env = sh->env;
       clearenv();
       while(*env) { putenv(*env); env += 1; }
     }
     if(cwd) chdir(cwd);
+    
     if(ch_w != STDOUT_FILENO) { dup2(ch_w,  STDOUT_FILENO); close(ch_w); }
     else if(ch_w < 0) close(STDOUT_FILENO);
     if(ch_r != STDIN_FILENO)  { dup2(ch_r,  STDIN_FILENO);  close(ch_r); }
     else if (ch_r < 0) close(STDIN_FILENO);
-
     if(ch_l != STDERR_FILENO) { dup2(ch_l,  STDERR_FILENO); close(ch_l); }
     else if (ch_l < 0) close(STDERR_FILENO);
+    to_blocking(STDOUT_FILENO); to_blocking(STDIN_FILENO); to_blocking(STDERR_FILENO);
+    
     execvp(command, argv);
     if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
           command, SERR, errno);
     _exit(1);
   } // else parent
+  // CLOSE(ch_w); CLOSE(ch_r); CLOSE(ch_l) 
   sh->pid = pid;
   // only return if we created the fileno. Also, close child-side pipes
   if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
@@ -345,8 +366,9 @@ static int l_sh(LS *L) {
   if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
   return 4;
   error:
-    if(createdChW) CLOSE(ch_w); if(createdChR) CLOSE(ch_r);
-    if(createdChL) CLOSE(ch_l);
+    if(createdChW || ch_w > 2) CLOSE(ch_w);
+    if(createdChR || ch_r > 2) CLOSE(ch_r);
+    if(createdChL || ch_l > 2) CLOSE(ch_l);
     if(pr_r) close(pr_r);    if(pr_w) close(pr_w); if(pr_l) close(pr_l);
     luaL_error(L, "failed sh: %s", SERR); return 0;
 }

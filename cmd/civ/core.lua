@@ -485,7 +485,7 @@ function M.Civ:run(stage, tgtname, script, ids)
     script,
     '--config='..self.cfg.path,
     sfmt('--tgtsDb=%stargets.json', self.cfg.buildDir),
-    ENV=self.ENV, rc = true, stdout = ctx.stdout,
+    env=self.ENV, rc = true, stdout = ctx.stdout,
   }
   for _, id in ipairs(ids) do push(cmd, tostring(id)) end
   info('%s cmd: %q', stage, cmd)

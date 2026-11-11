@@ -43,7 +43,7 @@ function M.diff(a,al, b,bl) --> string?
   b, bl = diffCheckPath(b, bl)
   local s = ix.sh{
     'diff', '-N', a, '--label='..al, b, '--label='..bl,
-    unified='0', stderr=ctx.stdlog, rc=true}
+    unified='0', stderr=ctx.stdlog, check=false}
   local o, e = s.out, s.log
   trace('diff rc=%i', s:rc())
   if s:rc() > 1 then
@@ -64,7 +64,7 @@ Solution: Add a newline (or any other content) to the file,
 end
 
 local function patchArgs(cwd, path)
-  return {'patch', '-p0', '-fu', input=pth.abs(path), CWD=cwd}
+  return {'patch', '-p0', '-fu', input=pth.abs(path), cwd=cwd}
 end
 
 --- forward patch
