@@ -64,7 +64,7 @@ local function shError(cmd, out, rc)
 end
 
 -- sh used for bootstrap
-function B.sh(cmd) --> stdout, stderr, fakeSh
+function B.sh(cmd) --> fakeSh
   local rcOk
   if type(cmd) == 'table' then
     rcOk = ds.popk(cmd, 'rc')
@@ -85,26 +85,26 @@ function B.sh(cmd) --> stdout, stderr, fakeSh
   local f = io.popen(cmd, 'r')
   local out, done, why, rc = f:read'*a', f:close()
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
-  return out, --[[stderr]] nil, {rc=function() return rc end}
+  return {out=out, rc=function() return rc end}
 end
 
 --- The current operating system in lowercase
 --- examples: windows, linux, netbsd, etc.
 M.OS = ds.trim(G.OS or os.getenv'OS'
   or (package.config:sub(1,1)=='\\' and 'windows')
-  or assert(B.sh'uname')):lower()
+  or B.sh'uname'.out:lower())
 
 function B.mkdir(dir)
   dir = abs(dir)
   if B.exists(dir) then return false, M.EEXIST, dir..' exists' end
-  local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
+  local sh_ = B.sh{'mkdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'mkdir failed', sh_:rc()
 end
 
 function B.rmdir(dir)
   dir = abs(dir)
-  local out_, _, sh_ = B.sh{'rmdir', dir, rc=true}
+  local sh_ = B.sh{'rmdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'rmdir failed', sh_:rc()
 end
@@ -115,9 +115,9 @@ local DIR_CMD = 'find %s -maxdepth 1 '
 function B.dir(dir) --> iter[entry]
   dir = abs(dir)
   if not pth.isDir(dir) then error('must be a dir/: '..dir) end
-  local out, _, s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
+  local s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
   if s:rc() ~= 0 then return ds.noop end -- empty iter
-  return Iter{ds.split(out, '\n')}:map(function(_, p)
+  return Iter{ds.split(s.out, '\n')}:map(function(_, p)
     if p == '' or p == dir then return end
     return p:sub(#dir+1),
            pth.isDir(p) and M.DIR or M.FILE
@@ -125,15 +125,13 @@ function B.dir(dir) --> iter[entry]
 end
 
 function B.exists(path) --> bool
-  path = abs(path)
-  local _out, _, s = B.sh{'test', '-e', path, rc=true}
-  return s:rc() == 0
+  return B.sh{'test', '-e', abs(path), rc=true}:rc() == 0
 end
 
 function B.pathtype(path)
   path = abs(path)
   if not B.exists(path) then return nil, path..' does not exist' end
-  local _out, _, s = B.sh{'test', '-d', path, rc=true}
+  local s = B.sh{'test', '-d', path, rc=true}
   return (s:rc() == 0) and M.DIR or M.FILE
 end
 
