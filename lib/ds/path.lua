@@ -165,7 +165,7 @@ end
 
 --- Get the canonical path.
 --- This is a shortcut for [$resolve(abs(path))].
-function M.canonical(path) return M.resolve(M.abs(path)) end
+function M.canonical(path, wd) return M.resolve(M.abs(path), wd) end
 
 function M.itemeq(a, b) --> boolean: path items are equal
   return a:match'^/*(.-)/*$' == b:match'^/*(.-)/*$'

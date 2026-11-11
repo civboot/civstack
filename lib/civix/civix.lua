@@ -50,6 +50,11 @@ local function cmdstr(cmd) --> 'cmd'
   return cmd:find'[^%w_.-/]' and sfmt("'%s'", cmd) or cmd
 end
 
+local function assertNilOrTrue(v, msg) --> v
+  assert(v == nil or v == true, msg)
+  return v
+end
+
 B.SH_UNSUPPORTED = {'stdin', 'ENV', 'CWD'}
 
 local function shError(cmd, out, rc)
@@ -647,12 +652,14 @@ function M.Lap() return lap.Lap {
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
-  "stdout [file|bool]: shell's stdout              (default=empty)",
-  "stderr [file|bool]: shell's stderr              (default=empty)",
+  "stdout [file|bool]: shell's stdout         (default=empty)",
+  "stderr [file|bool]: shell's stderr         (default=empty)",
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
   '_sh [userdata]: internal C implemented shell',
+  '_input [string]: string input (set stdin instead)',
+  "_prev [Sh]: used for '|' operation.",
 }
 getmetatable(M.Sh).__index = function(sh, k)
   local shv = rawget(sh, '_sh', k)
@@ -668,31 +675,48 @@ end
 --- start the shell in the background.
 --- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
-M.Sh.start = function(sh)
+function M.Sh:start()
+  if self._prev then
+    self._prev:start()
+    self.stdin = assert(self._prev.stdout)
+  end
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
-    sh.args[1], sh.args, sh.env,
-    _fnomaybe(sh.stdin), _fnomaybe(sh.stdout, true),
-    _fnomaybe(sh.stderr, fd.sys.STDERR_FILENO),
-    sh.cwd
+    self.args[1], self.args, self.env,
+    _fnomaybe(self.stdin), _fnomaybe(self.stdout, true),
+    _fnomaybe(self.stderr, fd.sys.STDERR_FILENO),
+    self.cwd
   )
-  sh._sh = assert(ex, 'INTERNAL: lib.sh returned nil')
+  self._sh = assert(ex, 'INTERNAL: lib.sh returned nil')
   if _r then r:_setfileno(_r); r:toNonblock() else r = nil end
   if _w then w:_setfileno(_w); w:toNonblock() else w = nil end
   if _l then l:_setfileno(_l); l:toNonblock() else l = nil end
-  sh.stdin, sh.stdout, sh.stderr = w, r, l
-  return sh
+  self.stdin, self.stdout, self.stderr = w, r, l
+  return self
 end
 
-M.Sh.isDone = function(sh) return sh._sh:isDone() end
-M.Sh.rc     = function(sh) return sh._sh:rc()     end
+function M.Sh:isDone() return self._sh:isDone() end
+function M.Sh:rc()     return self._sh:rc()     end
 
 --- wait for shell to complete, returns return code
-M.Sh.wait = function(sh) --> int
+function M.Sh:wait() --> int
   if ctx.ASYNC then
-    while not sh:isDone() do yield('sleep', 1e-4) end
-  else sh._sh:wait() end
-  return sh:rc()
+    while not self:isDone() do yield('sleep', 1e-4) end
+  else self._sh:wait() end
+  return self:rc()
+end
+
+function M.Sh:write(...) return self.stdin:write(...) end
+function M.Sh:read(...)  return self.stdout:read(...) end
+
+function M.Sh:__bor(cmd) --> Sh
+  assert(not self._sh, 'self already started')
+  assert(not cmd._sh,  'cmd already started')
+  assert(not cmd._prev, 'cmd already has prev')
+  assertNilOrTrue(self.stdout, 'self.stdout misconfigured')
+  assertNilOrTrue(cmd.stdin,   'cmd.stdin misconfigured')
+  cmd._prev = self
+  return M.Sh(cmd)
 end
 
 --- Argument for [<#civix.Sh.finish>].
@@ -702,29 +726,23 @@ M.ShFin = mty'ShFin'{
 }
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
---- stdout/stderr.  All processes are done asynchronously
-M.Sh.finish = function(sh, other) --> out, err
-  other = M.ShFin(other or {})
-  local inpf = other.stdin  or sh.stdin
-  local outf = other.stdout or sh.stdout
-  local errf = other.stderr or sh.stderr
-  if not (other.input or outf or errf) then return end
+--- stdout/stderr. All processes are done asynchronously
+function M.Sh:finish() --> out, err
+  local outf = self.stdout
+  local errf = self.stderr
+  if not (self._input or outf or errf) then return end
   local fns, out, err = {}
-  if other.input then assert(inpf, 'provided input without stdin')
-    push(fns, function()
-      inpf:write(other.input); inpf:close()
-    end)
-  end
-  if outf then push(fns, function() out = outf:read'a' end) end
-  if errf then push(fns, function() err = errf:read'a' end) end
+  if self._input then push(fns, function()
+    self.stdin:write(self._input); self.stdin:close()
+  end) end
+  if outf  then push(fns, function() out = outf:read'a'      end) end
+  if errf  then push(fns, function() err = errf:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return out, err
 end
-M.Sh.write = function(sh, ...) return sh.stdin:write(...) end
-M.Sh.read  = function(sh, ...) return sh.stdout:read(...) end
 
 function M._sh(cmd) --> Sh
-  local pk, sh, other = ds.popk, {}, {}
+  local pk, sh = ds.popk, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
     sh.stdin  = pk(cmd, 'stdin')
@@ -739,11 +757,14 @@ function M._sh(cmd) --> Sh
   sh.args = shim.expand(cmd)
   if type(sh.stdin) == 'string' then
     if #sh.stdin > fd.PIPE_BUF then -- may block, use tmpfile
+      -- FIXME: may be unnecessary
       local t = fd.tmpfile(); t:write(sh.stdin); t:seek'set'
       sh.stdin = t
-    else other.input = sh.stdin; sh.stdin = true end
+    else
+      sh.stdin, sh._input = true, sh.stdin
+    end
   end
-  return M.Sh(sh), other
+  return M.Sh(sh)
 end
 
 --- Execute the command in another process via execvp (system shell). Throws an
@@ -770,9 +791,10 @@ end
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh, other = M._sh(cmd)
+  local sh = M._sh(cmd)
+  dbg('_sh%q', sh)
   sh:start()
-  local out, err = sh:finish(other)
+  local out, err = sh:finish()
   local rc = sh:wait();
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
