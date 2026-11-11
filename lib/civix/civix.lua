@@ -652,10 +652,12 @@ M.Sh = mty'Sh' {
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
-  "out [string]: read of stdout after finish()",
-  "log [string]: read of stderr after finish()",
+  'input [string]: string input (set stdin instead)',
+  -- After finished
+  "out [string]: read of stdout after finished",
+  "log [string]: read of stderr after finished",
+  -- Private
   '_sh [userdata]: internal C implemented shell',
-  '_input [string]: string input (set stdin instead)',
   "_prev [Sh]: used for '|' operation.",
 }
 M.Sh.construct = mty.construct
@@ -676,7 +678,7 @@ getmetatable(M.Sh).__call = function(T, cmd)
   end
   self.args = shim.expand(cmd)
   if type(self.stdin) == 'string' then
-    self.stdin, self._input = true, self.stdin
+    self.stdin, self.input = true, self.stdin
   end
   return T:construct(self)
 end
@@ -742,10 +744,10 @@ function M.Sh:__call() --> self
   self:start()
   local outf = self.stdout
   local errf = self.stderr
-  if not (self._input or outf or errf) then return end
+  if not (self.input or outf or errf) then return end
   local fns, out, err = {}
-  if self._input then push(fns, function()
-    self.stdin:write(self._input); self.stdin:close()
+  if self.input then push(fns, function()
+    self.stdin:write(self.input); self.stdin:close()
   end) end
   if outf  then push(fns, function() out = outf:read'a'      end) end
   if errf  then push(fns, function() err = errf:read'a'      end) end 
