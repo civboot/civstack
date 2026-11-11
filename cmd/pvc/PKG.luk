@@ -9,7 +9,8 @@ P.pvc = lua {
     'pvc.lua',
     'repo.lua',
     'snap.lua',
-    'unix.lua'
+    'unix.lua',
+    'git.lua',
   },
   dep = { 'civ:lib', 'civ:cmd/doc' },
   link = {['lua/pvc.lua'] = 'bin/pvc'},

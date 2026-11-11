@@ -2,6 +2,7 @@
 local pvc = require'pvc'
 local repo = require'pvc.repo'
 local snap = require'pvc.snap'
+local git = require'pvc.git'
 local pT = require'pvc.testing'
 local T = require'civtest'
 local mty = require'metaty'

@@ -188,7 +188,8 @@ end
 
 --- Base remote object, used by pvc.git and other remotes.
 repo.Remote = mty.extend(repo.Branch, 'Remote', {
-  'repo [pvc.repo.Repo]: the repo this is contained in',
+  'repo [nil]: the Repo this is contained in (populated by Repo)',
+  'ty [string]: type to load, e.g "pvc.git.Git"',
  [[rem[dir]: the remote dir, e.g ".git/".
    Can be absolute or relative to repo.w.]],
 })

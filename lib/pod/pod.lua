@@ -111,8 +111,10 @@ function M.tableToPod(T, pod, t)
 end
 
 BUILTIN_PODDER.table.__toPod = M.tableToPod
-BUILTIN_PODDER.int = BUILTIN_PODDER.integer
-BUILTIN_PODDER.str = BUILTIN_PODDER.string
+BUILTIN_PODDER.int  = BUILTIN_PODDER.integer
+BUILTIN_PODDER.str  = BUILTIN_PODDER.string
+BUILTIN_PODDER.path = BUILTIN_PODDER.string
+BUILTIN_PODDER.dir  = BUILTIN_PODDER.string
 
 for k, p in pairs(BUILTIN_PODDER) do M[k] = p end
 M.nil_ = BUILTIN_PODDER['nil']
