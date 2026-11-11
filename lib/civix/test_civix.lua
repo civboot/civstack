@@ -242,8 +242,7 @@ T'sh|pipe'; do
   local s1 = Sh{args={'echo', 'foo\nbar\nbaz'}}
   local s2 = Sh{args={'sed', 's/$/ -DONE/'}}
   local r = s1 | s2; T.eq(r, s2)
-  r:start()
-  T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r:read'a')
+  T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r().out)
 end
 fin = true
 end -- end pipeTest

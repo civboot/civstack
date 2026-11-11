@@ -743,6 +743,7 @@ function M.Sh:__call() --> self
   if errf  then push(fns, function() err = errf:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   self.out, self.log = out, err
+  return self
 end
 
 function M._sh(cmd) --> Sh
@@ -796,13 +797,15 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh = M._sh(cmd)
-  dbg('_sh%q', sh)
   sh()
   local out, err = sh.out, sh.log
   local rc = sh:wait();
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
 end
+
+function M.sh2(cmd) return select(3, M.sh(cmd)) end
+
 
 function M.isRoot() return os.getenv'EUID' == '0' end
 
