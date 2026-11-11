@@ -738,12 +738,17 @@ function M.Sh:__bor(cmd) --> Sh
   return cmd
 end
 
+--- Writes self.input of first item in pipe.
 function M.Sh:_finishInput(fns)
+  if self._prev then return self._prev:_finishInput(fns) end
   if self.input then push(fns, function()
     self.stdin:write(self.input); self.stdin:close()
   end) end
 end
 
+--- Push fns to finish files (in sh or prev) by writing first input to stdin
+--- and reading last (this) stdout/stderr to out/log.[{br}]
+--- Note: This does not schedule the fns or wait for any to complete.
 function M.Sh:finish(fns) --> self
   self:_finishInput(fns)
   if self.stdout  then push(fns, function() self.out = self.stdout:read'a' end) end
@@ -751,7 +756,7 @@ function M.Sh:finish(fns) --> self
   return self
 end
 
---- finish files (in sh or other) by writing other.input to stdin and reading
+--- Finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
   fns = fns or {}

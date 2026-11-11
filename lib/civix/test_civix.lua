@@ -241,11 +241,15 @@ T.SUBNAME = ''
 local function asyncOnlyTests()
 T'sh|pipe'; do
   local Sh = M.Sh
+  local sed = {'sed', 's/$/ -DONE/'}
   local s1 = Sh{'echo', 'foo\nbar\nbaz'}
-  local s2 = Sh{'sed', 's/$/ -DONE/'}
+  local s2 = Sh(sed)
   T.eq('Sh{"sed", "s/$/ -DONE/"}', fmt(s2))
   local r = s1 | s2; T.eq(r, s2)
   T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r().out)
+
+  r = ( Sh{'cat', stdin='bob\njoe\n'} | sed )()
+  T.eq('bob -DONE\njoe -DONE\n', r.out)
 end
 fin = true
 end -- end pipeTest
