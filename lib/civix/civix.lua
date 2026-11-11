@@ -657,6 +657,8 @@ M.Sh = mty'Sh' {
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
+  "out [string]: read of stdout after finish()",
+  "log [string]: read of stderr after finish()",
   '_sh [userdata]: internal C implemented shell',
   '_input [string]: string input (set stdin instead)',
   "_prev [Sh]: used for '|' operation.",
@@ -672,10 +674,11 @@ local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
   return f and fd.fileno(f) or default
 end
---- start the shell in the background.
+--- start the shell in the background. Noop if already started or done.
 --- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
-function M.Sh:start()
+function M.Sh:start() --> self
+  if self._sh then return self end
   if self._prev then
     self._prev:start()
     self.stdin = assert(self._prev.stdout)
@@ -727,7 +730,8 @@ M.ShFin = mty'ShFin'{
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
-function M.Sh:finish() --> out, err
+function M.Sh:__call() --> self
+  self:start()
   local outf = self.stdout
   local errf = self.stderr
   if not (self._input or outf or errf) then return end
@@ -738,7 +742,7 @@ function M.Sh:finish() --> out, err
   if outf  then push(fns, function() out = outf:read'a'      end) end
   if errf  then push(fns, function() err = errf:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
-  return out, err
+  self.out, self.log = out, err
 end
 
 function M._sh(cmd) --> Sh
@@ -793,8 +797,8 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh = M._sh(cmd)
   dbg('_sh%q', sh)
-  sh:start()
-  local out, err = sh:finish()
+  sh()
+  local out, err = sh.out, sh.log
   local rc = sh:wait();
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
   return out, err, sh
