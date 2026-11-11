@@ -12,6 +12,7 @@ local Iter = require'ds.Iter'
 local lap  = require'lap'
 local pth  = require'ds.path'
 
+local getmt           = getmetatable
 local max             = mty.from'math     max'
 local Duration, Epoch = mty.from'ds.time  Duration,Epoch'
 local trace, info     = mty.from'ds.log   trace, info'
@@ -661,12 +662,37 @@ M.Sh = mty'Sh' {
   '_input [string]: string input (set stdin instead)',
   "_prev [Sh]: used for '|' operation.",
 }
-getmetatable(M.Sh).__index = function(sh, k)
-  local shv = rawget(sh, '_sh', k)
-  if shv then return shv end
-  if rawget(sh, '__fields')[k] then return nil end
-  error('unknown field: '..k)
+M.Sh.construct = mty.construct
+--- Convience function for creating eXecuting shell object.
+---
+--- Provide arguments directly, Sh fields like stdin/etc are
+--- popped off the cmd table and placed on Sh.
+--- Additionally, this handles [$stdin='string'] by setting
+--- [$stdin=true, _input='string'], which sets Sh.out after
+--- calling it.
+getmetatable(M.Sh).__call = function(T, cmd)
+  dbg('Sh', cmd)
+  local pk, self = ds.popk, {}
+  if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
+  else
+    cmd = ds.copy(cmd)
+    self.stdin  = pk(cmd, 'stdin')
+    self.stdout = pk(cmd, 'stdout')
+    self.stderr = pk(cmd, 'stderr')
+    self.env    = pk(cmd, 'ENV')
+    self.cwd    = pk(cmd, 'CWD')
+    if self.env then
+      push(self.env, 'PWD='..(self.cwd or ctx.CWD))
+    end
+  end
+  self.args = shim.expand(cmd)
+  if type(self.stdin) == 'string' then
+    self.stdin, self._input = true, self.stdin
+  end
+  return T:construct(self)
 end
+
+function M.Sh:__fmt(f) f:write'Sh'; f(self.args) end
 
 local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
@@ -711,20 +737,15 @@ function M.Sh:write(...) return self.stdin:write(...) end
 function M.Sh:read(...)  return self.stdout:read(...) end
 
 function M.Sh:__bor(cmd) --> Sh
+  if not getmt(cmd) then cmd = M.Sh(cmd) end
   assert(not self._sh, 'self already started')
   assert(not cmd._sh,  'cmd already started')
   assert(not cmd._prev, 'cmd already has prev')
   assertNilOrTrue(self.stdout, 'self.stdout misconfigured')
   assertNilOrTrue(cmd.stdin,   'cmd.stdin misconfigured')
   cmd._prev = self
-  return M.Sh(cmd)
+  return cmd
 end
-
---- Argument for [<#civix.Sh.finish>].
-M.ShFin = mty'ShFin'{
-  'stdin [file]', 'stdout [file]', 'stderr [file]',
-  "input [string]: write to then close stdin (either self's or shell's)",
-}
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
@@ -742,32 +763,6 @@ function M.Sh:__call() --> self
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   self.out, self.log = out, err
   return self
-end
-
-function M._sh(cmd) --> Sh
-  local pk, sh = ds.popk, {}
-  if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
-  else
-    sh.stdin  = pk(cmd, 'stdin')
-    sh.stdout = pk(cmd, 'stdout')
-    sh.stderr = pk(cmd, 'stderr')
-    sh.env    = pk(cmd, 'ENV')
-    sh.cwd    = pk(cmd, 'CWD')
-    if sh.env then
-      push(sh.env, 'PWD='..(sh.cwd or ctx.CWD))
-    end
-  end
-  sh.args = shim.expand(cmd)
-  if type(sh.stdin) == 'string' then
-    if #sh.stdin > fd.PIPE_BUF then -- may block, use tmpfile
-      -- FIXME: may be unnecessary
-      local t = fd.tmpfile(); t:write(sh.stdin); t:seek'set'
-      sh.stdin = t
-    else
-      sh.stdin, sh._input = true, sh.stdin
-    end
-  end
-  return M.Sh(sh)
 end
 
 --- Execute the command in another process via execvp (system shell). Throws an
@@ -794,7 +789,7 @@ end
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
-  local sh = M._sh(cmd)
+  local sh = M.Sh(cmd)
   sh()
   local out, err = sh.out, sh.log
   local rc = sh:wait();

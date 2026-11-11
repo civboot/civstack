@@ -1,6 +1,7 @@
 local mty = require'metaty'
 local ds = require'ds'
 local pth = require'ds.path'
+local fmt = require'fmt'
 local Iter = require'ds.Iter'
 local T = require'civtest'
 local info = require'ds.log'.info
@@ -240,8 +241,9 @@ T.SUBNAME = ''
 local function asyncOnlyTests()
 T'sh|pipe'; do
   local Sh = M.Sh
-  local s1 = Sh{args={'echo', 'foo\nbar\nbaz'}}
-  local s2 = Sh{args={'sed', 's/$/ -DONE/'}}
+  local s1 = Sh{'echo', 'foo\nbar\nbaz'}
+  local s2 = Sh{'sed', 's/$/ -DONE/'}
+  T.eq('Sh{"sed", "s/$/ -DONE/"}', fmt(s2))
   local r = s1 | s2; T.eq(r, s2)
   T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r().out)
 end
