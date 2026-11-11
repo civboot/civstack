@@ -687,6 +687,12 @@ getmetatable(M.Sh).__call = function(T, cmd)
 end
 
 function M.Sh:__fmt(f) f:write'Sh'; f(self.args) end
+function M.Sh:allOutput() --> {string}
+  local o = {}
+  if self.out then push(o, 'STDOUT:'); push(o, self.out) end
+  if self.log then push(o, 'STDLOG:'); push(o, self.log) end
+  return o
+end
 
 local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
@@ -785,7 +791,9 @@ function M.Sh:checkStatus(nothrow) --> self
   local status = {errors=0}; self:_checkStatus(status)
   self.status = status
   if not nothrow and status.errors > 0 then
-    error(format('pipeline had errors:\n%q', status))
+    error(format('pipeline had errors:\n  %s\n%s',
+                 concat(status, '\n | ') ,
+                 concat(self:allOutput(), '\n')))
   end
   return self
 end

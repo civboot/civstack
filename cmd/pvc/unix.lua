@@ -64,7 +64,7 @@ Solution: Add a newline (or any other content) to the file,
 end
 
 local function patchArgs(cwd, path)
-  return {'patch', '-p0', '-fu', input=pth.abs(path), cwd=cwd}
+  return {'patch', '-p0', '-fu', fuzz=0, input=pth.abs(path), cwd=cwd}
 end
 
 --- forward patch

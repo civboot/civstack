@@ -6,7 +6,6 @@ local shim = require'shim'
 --- [*Cmd usage:] [$lson path/to/file.json][{br}]
 --- The command pretty-prints JSON+ as a lua object.
 ---
----
 --- [*Lib usage:] [$tbl = lson.decode('{1: 2}')][{br}]
 --- As a library it allows de/serialization of JSON+ to/from
 --- Lua values.
@@ -15,6 +14,7 @@ local M = shim.cmd'lson' {}
 local mty = require'metaty'
 local fmt = require'fmt'
 local ds = require'ds'
+local pth = require'ds.path'
 local log = require'ds.log'
 local pod = require'pod'
 local lines = require'lines'
@@ -54,6 +54,16 @@ end
 
 --- Decode a file.
 function M.load(path, ...) return M.decode(lines.load(path), ...) end
+
+--- Dump a value to a file as lson.
+function M.dump(path, v, pretty)
+  pth.write(path, M.lson(v, pretty==nil and true or pretty))
+end
+
+--- Dump a value to a file as json
+function M.jdump(path, v, pretty)
+  pth.write(path, M.json(v, pretty==nil and true or pretty))
+end
 
 ------------------
 -- JSON Encoder

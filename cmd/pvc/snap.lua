@@ -30,6 +30,7 @@ snap.PVCINDEX = 'PVCINDEX'
 snap.PVCPATCH = 'PVCPATCH'
 snap.PVCPLAN  = 'PVCPLAN'
 snap.PVCIGNORE = '.pvcignore'
+snap.GITIGNORE = '.gitignore'
 
 snap.EXCLUDE = {snap.PVCINDEX, snap.PVCPATCH, snap.PVCPLAN}
 snap.EXCLUDE_SET = ds.Set:from(snap.EXCLUDE)

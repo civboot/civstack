@@ -2,6 +2,7 @@
 local pvc = require'pvc'
 local repo = require'pvc.repo'
 local snap = require'pvc.snap'
+local git = require'pvc.git'
 local pT = require'pvc.testing'
 local T = require'civtest'
 local mty = require'metaty'
@@ -88,6 +89,13 @@ T'Repo init'; do
   })
   T.eq(s[[
   --- /dev/null
+  +++ .gitignore
+  @@ -0,0 +1,3 @@
+  +.pvc/
+  +.civ/
+  +.out/
+  
+  --- /dev/null
   +++ .pvcignore
   @@ -0,0 +1,3 @@
   +%.git/
@@ -107,25 +115,33 @@ end
 local M1_PVCINDEX = [[
 --- /dev/null
 +++ PVCINDEX
-@@ -0,0 +1 @@
+@@ -0,0 +1,2 @@
+++x:/.gitignore
 ++x:/.pvcignore
 ]]
+
+local M1_GITIGNORE = [[
+--- /dev/null
++++ .gitignore
+@@ -0,0 +1,3 @@
++.pvc/
++.civ/
++.out/]]
+
 local M1_PVCIGNORE = [[
 --- /dev/null
 +++ .pvcignore
-@@ -0,0 +1,4 @@
+@@ -0,0 +1,3 @@
 +%.git/
 +%.civ/
-+%.out/
-+%.gitignore
-\ No newline at end of file]]
++%.out/]]
 
 T'trimPatch'; do
   local p1 = pth.read(TD..'main/rev/01.p')
-  T.eq('first commit\n\n'..M1_PVCINDEX..'\n'..M1_PVCIGNORE..'\n', p1)
+  T.eq('first commit\n\n'..M1_PVCINDEX..'\n'..M1_GITIGNORE..'\n\n'..M1_PVCIGNORE..'\n', p1)
   local function tp(...) return tostring(snap.trimPatch(...)) end
-  T.eq(M1_PVCINDEX..M1_PVCIGNORE..'\n', tp(p1, {}))
-  T.eq(M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
+  T.eq(M1_PVCINDEX..M1_GITIGNORE..'\n'..M1_PVCIGNORE..'\n', tp(p1, {}))
+  T.eq(M1_GITIGNORE..'\n'..M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
 end
 
 local SKIP = {['.pvc/']=1, PVCINDEX=1}
@@ -135,17 +151,25 @@ local NUM_UP  = 'zero\nfifty\neighty\nninety\none hundred'
 local NUM_LOW = 'zero\nten\ntwenty\nfifty\none hundred'
 local NUM_2   = 'zero\nten\ntwenty\nfifty\neighty\nninety\none hundred'
 
-H:test{'main', 'main@2', {main = 'main/'},
+H:test{'main', 'main@1', {main = 'main/'},
 function(r)
-  T.eq('main@2', r:at())
-  T.eq('main@2', r:pvc'at')
-  T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE..'%.gitignore')
+  T.eq('main@1', r:at()); T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
+  T.dirs(r.w, r:branch'main':snap(1), SKIP)
+  r:pvc'at main@2';       T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
+  T.eq('main@2', r:at()); T.eq('main@2', r:pvc'at')
   T.path(r.w..'num.txt',    NUM_1)
   T.dirs(r.w, r:branch'main':snap(2), SKIP)
 
   r:pvc'at main@0'; T.eq('main@0', r:pvc'at')
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
+
+  -- FIXME:
+  -- r:pvc'at main@2'
+  -- local m = r:branch'main'
+  -- r:pvc{'remote', 'rmain', 'pvc.git.Git', rname='main', init=true}
+  -- r:_setAt('rmain@0');
+  -- r:pvc{'commit', m:desc(1)}
 end}
 
 H:test{'upper', 'main@2', {main = 'main/'},
@@ -205,7 +229,6 @@ function(r)
   T.path(r.w..'num.txt', NUM_2)
   H:branchDirEq('main_squashed', r:branch'main'.dir)
 end}
-
 
 local MAIN_PLAN = [[return {
 "branch .main main@0",

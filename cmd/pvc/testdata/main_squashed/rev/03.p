@@ -4,9 +4,11 @@ lower: add 10,20
 
 --- PVCINDEX
 +++ PVCINDEX
-@@ -1,2 +1,2 @@
+@@ -1,3 +1,3 @@
+-x:1/.gitignore
 -x:1/.pvcignore
 -+x:/num.txt
++x:/.gitignore
 +x:/.pvcignore
 +*x:2/num.txt
 

@@ -13,6 +13,7 @@ local pth   = require'ds.path'
 local ix    = require'civix'
 local lines = require'lines'
 local kev   = require'lines.kev'
+local pod   = require'pod'
 local T     = require'civtest'
 
 local pu    = require'pvc.unix'
@@ -320,6 +321,30 @@ function pvc.plan:__call()
   }
   r:dumpPlan(p)
   self:runPlan()
+end
+
+--- Usage: [$$pvc remote name pvc.git.Git path/to/.git/]$[{br}]
+--- Add a remote branch named "name" of type [$pvc.git.Git]
+--- The path to e.g [$.git/] is optional if the repo is in your
+--- work-tree.
+pvc.remote = mty.extend(Base, 'remote', {
+  'rname [string?]: optional remote branch name (default=name)',
+  'init [bool]: initialize the repo, this is rare outside of testing',
+})
+function pvc.remote:__call() --> Remote
+  dbg('remote', self)
+  local r, name = self.__repo, self[1]
+  local ty = assert(self[2], 'must specify repo type')
+  local b = setmetatable(r:_newBranch(name), nil)
+  b.ty, b.rem, b.rname = ty, self[3], self.rname or name
+  b = assertf(ds.wantpath(b.ty), 'unknown type: %q', b.ty)(b)
+  b.r = r; b:init()
+  dbg('remote branch', b)
+  if not self.init then assert(b:tip(), 'remote tip cannot be found') end
+  ix.mkTree(b.dir, { snap = EMPTY })
+  b.r = nil; b:dump(); b.r = r
+  if self.init then b:create() end
+  return b
 end
 
 if shim.isMain(pvc) then pvc:main(G.arg) end
