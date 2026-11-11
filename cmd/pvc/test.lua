@@ -147,7 +147,11 @@ function(r)
   r:pvc'at main@0'; T.eq('main@0', r:pvc'at')
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
+
+  r:pvc{'remote', 'rmain', 'pvc.git.Git', rname='main', init=true}
 end}
+
+ds.yeet'ok'
 
 H:test{'upper', 'main@2', {main = 'main/'},
 function(r)

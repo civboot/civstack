@@ -197,6 +197,9 @@ function M.toPod(v, podder, pod)
   return podder:__toPod(pod or Pod.DEFAULT, v)
 end
 function M.fromPod(v, poder, pod)
+  if type(poder) == 'string' then
+    poder = assertf(ds.wantpath(poder), 'could not find poder: %q', poder)
+  end
   return (poder or prim):__fromPod(pod or Pod.DEFAULT, v)
 end
 local toPod, fromPod = M.toPod, M.fromPod

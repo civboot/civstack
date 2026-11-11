@@ -10,6 +10,8 @@ local pth   = require'ds.path'
 local ix    = require'civix'
 local lines = require'lines'
 local kev   = require'lines.kev'
+local pod   = require'pod'
+local lson  = require'lson'
 local T     = require'civtest'
 local snap  = require'pvc.snap'
 local pu    = require'pvc.unix'
@@ -120,7 +122,7 @@ end
 -- BRANCH
 
 repo.Branch = mty'Branch' {
-  'name [string]',  'dir [dir]', '_rev [dir]', '_snap [dir]',
+  'name [string]', 'rname [string]', 'dir [dir]', '_rev [dir]', '_snap [dir]',
   '_base [string]', '_tip  [int]',
 }
 local Branch = repo.Branch
@@ -188,18 +190,33 @@ end
 
 --- Base remote object, used by pvc.git and other remotes.
 repo.Remote = mty.extend(repo.Branch, 'Remote', {
-  'repo [nil]: the Repo this is contained in (populated by Repo)',
+  'r [nil]: the Repo this is contained in (populated by Repo)',
   'ty [string]: type to load, e.g "pvc.git.Git"',
  [[rem[dir]: the remote dir, e.g ".git/".
    Can be absolute or relative to repo.w.]],
 })
 local Remote = repo.Remote
+getmetatable(Remote).__call = mty.construct
 
 function Remote.init(self) --> self
   Branch.init(self)
-  self.rem = pth.toDir(pth.canonical(self.rem, self.repo.w))
+  self.rem = pth.toDir(pth.canonical(self.rem, self.r.w))
   return self
 end
+
+--- Dump self to @branch/remote
+function Remote:dump()
+  lson.jdump(self.dir..'remote', pod.toPod(self))
+end
+
+--- Load Remote from path.
+function Remote.load(_T, r, path) --> T+
+  local b = lson.load(path)
+  b = assert(pod.fromPod(b, b.ty))
+  b.r = r; b:init()
+  return b
+end
+
 -- These are generally not supported.
 Remote.fake    = nil
 Remote.newBase = nil
@@ -264,7 +281,8 @@ function Repo:branch(name) --> Branch?
   local b = self._branches[name]; if b then return b end
   local dir = self:bdir(name)
   assertf(ix.exists(dir), 'branch %q does not exist', name)
-  b = Branch{name=name, dir=dir}
+  b = ix.exists(dir..'remote') and Remote:load(self, dir..'remote')
+      or Branch{name=name, dir=dir}
   self._branches[name] = b
   return b
 end
@@ -365,27 +383,33 @@ function Repo:snapshot0(br) --> snap.Snap
   return Snap{p}
 end
 
---- Initialize a new branch.
---- This handles both initial base=nil, id=0 and from base.
-function Repo:newBranch(name, baseRev) --> Branch
+--- Check and create new Branch object (but not dir).
+function Repo:_newBranch(name) --> Branch
   assert(name, 'must specify new branch name')
   assert(not repo.RESERVED_NAMES[name], 'reserved branch name: %q', name)
   assert(name:find'^[%w._]+$',          'invalid branch name: %q', name)
   local bdir = self:bdir(name)
   assertf(not ix.exists(bdir), 'branch %s: %s already exists', name, bdir)
+  return Branch{name=name, dir=bdir}
+end
+
+--- Initialize a new branch.
+--- This handles both initial base=nil, id=0 and from base.
+function Repo:newBranch(name, baseRev) --> Branch
+  local b = self:_newBranch(name)
   baseRev = self:rev(baseRev)
   local base,baseId
   if baseRev ~= 'local' then base,baseId = self:splitRev(baseRev) end
   baseId = base and baseId or 0
-  ix.mkTree(bdir, {
+  ix.mkTree(b.dir, {
     tip  = str(baseId),
     base = base and baseRev or nil,
     rev  = base and EMPTY   or repo.REV0,
     snap = EMPTY,
   }, true)
   local rev = asRev(name,baseId);
-  notify('created branch %s from %s: %s', name, baseRev, pth.nice(bdir))
-  return self:branch(name)
+  notify('created branch %s from %s: %s', name, baseRev, pth.nice(b.dir))
+  return b
 end
 
 --- Initialize a new repository with main br name (default='main').
