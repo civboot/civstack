@@ -187,12 +187,13 @@ end
 -- REPO
 
 --- Base remote object, used by pvc.git and other remotes.
-repo.Remote = mty.extend('Remote', Branch, {
+repo.Remote = mty.extend(repo.Branch, 'Remote', {
   'repo [pvc.repo.Repo]: the repo this is contained in',
  [[rem[dir]: the remote dir, e.g ".git/".
    Can be absolute or relative to repo.w.]],
-}
+})
 local Remote = repo.Remote
+
 function Remote.init(self) --> self
   Branch.init(self)
   self.rem = pth.toDir(pth.canonical(self.rem, self.repo.w))

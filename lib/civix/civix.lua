@@ -722,41 +722,29 @@ end
 M.ShFin = mty'ShFin'{
   'stdin [file]', 'stdout [file]', 'stderr [file]',
   "input [string]: write to then close stdin (either self's or shell's)",
-  '_fns [table]',
 }
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
---- If you are using a chain of functions this should be called on
---- the last one.
-function M.Sh:finish(other, fns) --> out, err
+function M.Sh:finish(other) --> out, err
   other = M.ShFin(other or {})
-  local last = not other._fns
-  other._fns = other._fns or {}
-  local input, inpf, outf, errf
-  if not self.prev then -- first
-    input, inpf = other.input, other.stdin  or self.stdin
-  end
-  if last then
-    outf = other.stdout or self.stdout
-    errf = other.stderr or self.stderr
-  end
-  local out, err = {}
-  if input then assert(inpf, 'provided input without stdin')
-    push(other._fns, function()
-      inpf:write(input); inpf:close()
+  local inpf = other.stdin  or self.stdin
+  local outf = other.stdout or self.stdout
+  local errf = other.stderr or self.stderr
+  if not (other.input or outf or errf) then return end
+  local fns, out, err = {}
+  if other.input then assert(inpf, 'provided input without stdin')
+    push(fns, function()
+      inpf:write(other.input); inpf:close()
     end)
   end
-  if outf then push(other._fns, function() out = outf:read'a' end) end
-  if errf then push(other._fns, function() err = errf:read'a' end) end
-  if last and #output._fns>0 then
-    if ctx.ASYNC then ctx.all(other._fns)
-    else              M.Lap():run(other._fns) end
-  end
-  return out, err, self
+  if outf then push(fns, function() out = outf:read'a' end) end
+  if errf then push(fns, function() err = errf:read'a' end) end
+  if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
+  return out, err
 end
 
-function M._sh(cmd) --> Sh, other
+function M._sh(cmd) --> Sh
   local pk, sh, other = ds.popk, {}, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
@@ -777,14 +765,6 @@ function M._sh(cmd) --> Sh, other
     else other.input = sh.stdin; sh.stdin = true end
   end
   return M.Sh(sh), other
-end
-
---- Convienience method to create Sh like sh.
---- FIXME: this is all wrong... why not just allow Sh.stdin to be
---- a string and handle it in finish rather than deal with this
---- "other" BS???
-function X(cmd) --> Sh
- 
 end
 
 --- Execute the command in another process via execvp (system shell). Throws an

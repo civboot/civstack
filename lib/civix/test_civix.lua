@@ -245,7 +245,6 @@ T'sh|pipe'; do
   r:start()
   T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r:read'a')
 end
-ds.yeet'ok'
 fin = true
 end -- end pipeTest
 
