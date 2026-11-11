@@ -726,6 +726,7 @@ int luaopen_fd_lib(LS *L) {
 
   // poll constants
   setconstfield(L, POLLIN);   setconstfield(L, POLLOUT);
+  setconstfield(L, POLLHUP);
 
   // important errors
   setconstfield(L, EWOULDBLOCK); setconstfield(L, EAGAIN);

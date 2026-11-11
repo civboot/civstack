@@ -11,6 +11,7 @@ local log  = require'ds.log'
 local Iter = require'ds.Iter'
 local lap  = require'lap'
 local pth  = require'ds.path'
+local fdl             = require'fd.lib'
 
 local getmt           = getmetatable
 local max             = mty.from'math     max'
@@ -724,8 +725,13 @@ function M.Sh:rc()     return self._sh:rc()     end
 
 --- wait for shell to complete, returns return code
 function M.Sh:wait() --> int
+  if self._prev then self._prev:wait() end
   if ctx.ASYNC then
-    while not self:isDone() do yield('sleep', 1e-4) end
+    while not self:isDone() do
+      -- yield('poll', self._sh:waitfd(), fdl.POLLHUP)
+      -- assert(self:isDone())
+      yield('sleep', 0e-4)
+    end
   else self._sh:wait() end
   return self:rc()
 end
