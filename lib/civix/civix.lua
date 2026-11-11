@@ -56,7 +56,7 @@ local function assertNilOrTrue(v, msg) --> v
   return v
 end
 
-B.SH_UNSUPPORTED = {'stdin', 'ENV', 'CWD'}
+B.SH_UNSUPPORTED = {'stdin', 'env', 'cwd'}
 
 local function shError(cmd, out, rc)
   fmt.errorf(
@@ -649,20 +649,18 @@ M.Sh = mty'Sh' {
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
   "stdout [file|bool]: shell's stdout         (default=empty)",
   "stderr [file|bool]: shell's stderr         (default=empty)",
-  -- WARNING: must outlive the subprocess.
-  "env [list]:  shell's environment {'FOO=bar', ...}",
-  "cwd [string]: current working directory",
+  "env   [list]:   shell's environment {'FOO=bar', ...}",
+  "cwd   [string]: current working directory",
   'input [string]: string input (set stdin instead)',
   -- After finished
   "out [string]: read of stdout after finished",
   "log [string]: read of stderr after finished",
-  -- Private
+  -- Private. WARNING: env must outlive the _sh subprocess.
   '_sh [userdata]: internal C implemented shell',
   "_prev [Sh]: used for '|' operation.",
 }
 M.Sh.construct = mty.construct
 getmetatable(M.Sh).__call = function(T, cmd)
-  dbg('Sh', cmd)
   local pk, self = ds.popk, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
@@ -670,8 +668,8 @@ getmetatable(M.Sh).__call = function(T, cmd)
     self.stdin  = pk(cmd, 'stdin')
     self.stdout = pk(cmd, 'stdout')
     self.stderr = pk(cmd, 'stderr')
-    self.env    = pk(cmd, 'ENV')
-    self.cwd    = pk(cmd, 'CWD')
+    self.env    = pk(cmd, 'env')
+    self.cwd    = pk(cmd, 'cwd')
     if self.env then
       push(self.env, 'PWD='..(self.cwd or ctx.CWD))
     end
@@ -765,27 +763,7 @@ function M.Sh:__call(fns) --> self
   return self
 end
 
---- Execute the command in another process via execvp (system shell). Throws an
---- error if the command fails.
----
---- if cmd is a table, the following keys are treated as special. If you need any
---- of these then you must use M.Sh directly (recommendation: use Plumb) [+
---- * [$$stdin[string|file]]$ the process's stdin. If string it will be sent to stdin.
---- * [$$stdout[file]]$ the process's stdout. out will be nil if this is set
---- * [$$stderr[file]]$ the process's stderr (default=ctx.stdlog)
---- * [$$ENV [table]]$ the process's environment.
---- * [$$CWD [table]]$ the process's current directory.
---- * [$$rc [bool]]$ if true allow non-zero return codes (else throw error).
----   You can get the rc with [$sh:rc()] (method on 3rd return argument).
---- ]
----
---- Note: use [$Plumb{...}:run()] if you want to pipe multiple shells together.
---- [{table}
---- # Lua                                  | Bash
---- + [$sh'ls foo/bar']                    | [$ls foo/bar]
---- + [$sh{'ls', 'foo/bar', 'dir w spc/'}] | [$ls foo/bar "dir w spc/"]
---- + [$sh{stdin='sent to stdin', 'cat'}]  | [$echo "sent to stdin" | cat]
---- ]
+--- Create and run the Sh command.
 M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end

@@ -74,11 +74,11 @@ T'directSh';     do directShTest(M.sh) end
 T'testSh'; do
   local sh, out, err, s = M.sh
 
-  T.eq('/tmp\n', sh{'pwd', CWD='/tmp'}.out)
+  T.eq('/tmp\n', sh{'pwd', cwd='/tmp'}.out)
 
   T.eq('/tmp thisIsFOO\n',
     sh{'sh', '-c', 'echo $PWD $FOO',
-       CWD='/tmp', ENV={'FOO=thisIsFOO'}}.out)
+       cwd='/tmp', env={'FOO=thisIsFOO'}}.out)
 
   s = sh{'false', rc=true}
   T.eq(1, s:rc())

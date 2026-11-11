@@ -219,7 +219,7 @@ function civ.run:__call()
   civ._build(self, cv, tgtnames)
   table.insert(cmd, 1, cv.cfg.buildDir..bin)
   info('running: %q', cmd)
-  cmd.ENV = cv.ENV
+  cmd.env = cv.ENV
   cmd.stdout = ctx.stdout
   return ix.sh(cmd)
 end
