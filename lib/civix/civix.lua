@@ -738,17 +738,24 @@ function M.Sh:__bor(cmd) --> Sh
   return cmd
 end
 
+function M.Sh:_finishInput(fns)
+  if self.input then push(fns, function()
+    self.stdin:write(self.input); self.stdin:close()
+  end) end
+end
+
+function M.Sh:finish(fns) --> self
+  self:_finishInput(fns)
+  if self.stdout  then push(fns, function() self.out = self.stdout:read'a' end) end
+  if self.stderr  then push(fns, function() self.log = self.stderr:read'a' end) end 
+  return self
+end
+
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
   fns = fns or {}
-  self:start()
-  if not (self.input or self.stdout or self.stderr) then return self end
-  if self.input then push(fns, function()
-    self.stdin:write(self.input); self.stdin:close()
-  end) end
-  if self.stdout  then push(fns, function() self.out = self.stdout:read'a'      end) end
-  if self.stderr  then push(fns, function() self.log = self.stderr:read'a'      end) end 
+  self:start(); self:finish(fns); if #fns == 0 then return self end
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
   return self
 end
