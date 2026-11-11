@@ -133,7 +133,7 @@ function civ.init:__call()
   if not ix.exists(core.BASE_CONFIG) then
     info('creating base config:', core.BASE_CONFIG)
     local luaFlags = ds.splitList(ds.trim(
-      ( ix.sh('pkg-config --cflags --libs '..self.llua) )
+      ix.sh('pkg-config --cflags --libs '..self.llua).out
     ))
     pth.write(core.BASE_CONFIG, fmt.format(BASE_TEMPL,
       ix.OS, core.DIR, core.DIR..'sys/', luaFlags))

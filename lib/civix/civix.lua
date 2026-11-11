@@ -64,7 +64,7 @@ local function shError(cmd, out, rc)
 end
 
 -- sh used for bootstrap
-function B.sh(cmd) --> stdout, stderr, fakeSh
+function B.sh(cmd) --> fakeSh
   local rcOk
   if type(cmd) == 'table' then
     rcOk = ds.popk(cmd, 'rc')
@@ -85,26 +85,26 @@ function B.sh(cmd) --> stdout, stderr, fakeSh
   local f = io.popen(cmd, 'r')
   local out, done, why, rc = f:read'*a', f:close()
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
-  return out, --[[stderr]] nil, {rc=function() return rc end}
+  return {out=out, rc=function() return rc end}
 end
 
 --- The current operating system in lowercase
 --- examples: windows, linux, netbsd, etc.
 M.OS = ds.trim(G.OS or os.getenv'OS'
   or (package.config:sub(1,1)=='\\' and 'windows')
-  or assert(B.sh'uname')):lower()
+  or B.sh'uname'.out:lower())
 
 function B.mkdir(dir)
   dir = abs(dir)
   if B.exists(dir) then return false, M.EEXIST, dir..' exists' end
-  local out_, _, sh_ = B.sh{'mkdir', dir, rc=true}
+  local sh_ = B.sh{'mkdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'mkdir failed', sh_:rc()
 end
 
 function B.rmdir(dir)
   dir = abs(dir)
-  local out_, _, sh_ = B.sh{'rmdir', dir, rc=true}
+  local sh_ = B.sh{'rmdir', dir, rc=true}
   local ok = sh_:rc() == 0; if ok then return ok end
   return ok, 'rmdir failed', sh_:rc()
 end
@@ -115,9 +115,9 @@ local DIR_CMD = 'find %s -maxdepth 1 '
 function B.dir(dir) --> iter[entry]
   dir = abs(dir)
   if not pth.isDir(dir) then error('must be a dir/: '..dir) end
-  local out, _, s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
+  local s = B.sh(sfmt(DIR_CMD, cmdstr(dir:sub(1,-2))))
   if s:rc() ~= 0 then return ds.noop end -- empty iter
-  return Iter{ds.split(out, '\n')}:map(function(_, p)
+  return Iter{ds.split(s.out, '\n')}:map(function(_, p)
     if p == '' or p == dir then return end
     return p:sub(#dir+1),
            pth.isDir(p) and M.DIR or M.FILE
@@ -125,15 +125,13 @@ function B.dir(dir) --> iter[entry]
 end
 
 function B.exists(path) --> bool
-  path = abs(path)
-  local _out, _, s = B.sh{'test', '-e', path, rc=true}
-  return s:rc() == 0
+  return B.sh{'test', '-e', abs(path), rc=true}:rc() == 0
 end
 
 function B.pathtype(path)
   path = abs(path)
   if not B.exists(path) then return nil, path..' does not exist' end
-  local _out, _, s = B.sh{'test', '-d', path, rc=true}
+  local s = B.sh{'test', '-d', path, rc=true}
   return (s:rc() == 0) and M.DIR or M.FILE
 end
 
@@ -142,7 +140,7 @@ if G.NOLIB then
   fdType = ctx.fileType
 
   M.EEXIST = B.EEXIST
-  M.sh     = B.sh
+  M.sh    = B.sh
   M.mkdir  = B.mkdir
   M.rmdir  = B.rmdir
   M.dir    = B.dir
@@ -657,6 +655,8 @@ M.Sh = mty'Sh' {
   -- WARNING: must outlive the subprocess.
   "env [list]:  shell's environment {'FOO=bar', ...}",
   "cwd [string]: current working directory",
+  "out [string]: read of stdout after finish()",
+  "log [string]: read of stderr after finish()",
   '_sh [userdata]: internal C implemented shell',
   '_input [string]: string input (set stdin instead)',
   "_prev [Sh]: used for '|' operation.",
@@ -672,10 +672,11 @@ local function _fnomaybe(f, default)
   if type(f) == 'boolean' then return f end
   return f and fd.fileno(f) or default
 end
---- start the shell in the background.
+--- start the shell in the background. Noop if already started or done.
 --- Example: [$sh{arg1, arg2, stdin=nostdin, stdout=true, stderr=ctx.stdlog}]
 --- ["Note: See Sh for how filedescriptors are set]
-function M.Sh:start()
+function M.Sh:start() --> self
+  if self._sh then return self end
   if self._prev then
     self._prev:start()
     self.stdin = assert(self._prev.stdout)
@@ -727,7 +728,8 @@ M.ShFin = mty'ShFin'{
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
-function M.Sh:finish() --> out, err
+function M.Sh:__call() --> self
+  self:start()
   local outf = self.stdout
   local errf = self.stderr
   if not (self._input or outf or errf) then return end
@@ -738,7 +740,8 @@ function M.Sh:finish() --> out, err
   if outf  then push(fns, function() out = outf:read'a'      end) end
   if errf  then push(fns, function() err = errf:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
-  return out, err
+  self.out, self.log = out, err
+  return self
 end
 
 function M._sh(cmd) --> Sh
@@ -792,12 +795,11 @@ M.sh = rawget(M,'sh') or function(cmd) --> out, err, Sh
   trace('sh%q', cmd)
   local rcOk; if type(cmd) == 'table' then rcOk = ds.popk(cmd, 'rc') end
   local sh = M._sh(cmd)
-  dbg('_sh%q', sh)
-  sh:start()
-  local out, err = sh:finish()
+  sh()
+  local out, err = sh.out, sh.log
   local rc = sh:wait();
   if not rcOk and rc ~= 0 then shError(cmd, out, rc) end
-  return out, err, sh
+  return sh
 end
 
 function M.isRoot() return os.getenv'EUID' == '0' end
