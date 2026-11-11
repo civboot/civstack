@@ -41,8 +41,18 @@ static bool l_defaulttrue(LS *L, int index) {
   return lua_isnoneornil(L, index) || lua_toboolean(L, index);
 }
 
-// When an exec succeeds we want to automatically close ALL filedescriptors
-// created for it by sh().
+// pipe to send writer to exec (reader is CLOEXEC).
+static int pipe_wexec(int rw[2]) {
+  if (pipe(rw) != 0) return -1;
+  return fcntl(rw[0], F_SETFD, FD_CLOEXEC);
+}
+
+// pipe to send reader to exec (writer is CLOEXEC).
+static int pipe_rexec(int rw[2]) {
+  if (pipe(rw) != 0) return -1;
+  return fcntl(rw[1], F_SETFD, FD_CLOEXEC);
+}
+
 static int cloexec_pipe(int rw[2]) {
   if (pipe(rw) != 0) return -1;
   fcntl(rw[0], F_SETFD, FD_CLOEXEC);
@@ -246,6 +256,7 @@ const char* SH_META  = "civix.Sh";
 struct sh {
   pid_t pid; char** env; // note: env only set if needs freeing
   int rc; // return code of wait
+  int wait; // wait fno
 };
 
 // wait for pid to be complete. Set pid to 0 when done.
@@ -286,6 +297,12 @@ static int l_sh_wait(LS *L) {
   return 0;
 }
 
+// fd to poll on for wait.
+static int l_sh_waitfd(LS *L) {
+  lua_pushinteger(L, tolsh(L)->wait);
+  return 1;
+}
+
 static void to_blocking(int fd) {
   if(fd < 0) return;
   int flags = fcntl(fd, F_GETFL, 0); if (flags == -1) return;
@@ -305,39 +322,40 @@ static int l_sh(LS *L) {
 
   struct sh* sh = (struct sh*)lua_newuserdata(L, sizeof(struct sh));
   ASSERT(L, sh, "OOM");
-  *sh = (struct sh) {0};
+  *sh = (struct sh) { .rc = -1, .wait = -1 };
   luaL_setmetatable(L, SH_META);
   if(!lua_isnoneornil(L, 3)) {
     sh->env = checkstringarray(L, 3, &_unused);
   }
-
+  
   // ch_r=child-read, pr_w=parent-write, etc
-  int rw[2];
+  int rw[2]; int waitrw[2] = {-1, -1};
   int ch_r = -1, ch_w = -1; int pr_r = -1, pr_w = -1, pr_l = -1, ch_l = -1;
+  if(pipe_wexec(waitrw)) goto error;
   // process stdin
   if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
   else if (lua_toboolean(L, 4)) {
-    createdChR = true; if(cloexec_pipe(rw)) goto error;
+    createdChR = true; if(pipe_rexec(rw)) goto error;
     ch_r = rw[0]; pr_w  = rw[1];
   }
   // process stdout
   if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
   else if (lua_toboolean(L, 5)) {
-    createdChW = true; if(cloexec_pipe(rw)) goto error;
+    createdChW = true; if(pipe_wexec(rw)) goto error;
     pr_r = rw[0]; ch_w  = rw[1];
   }
   // process stderr
   if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
   else if (lua_toboolean(L, 6)) {
-    createdChL = true; if(cloexec_pipe(rw)) goto error;
+    createdChL = true; if(pipe_wexec(rw)) goto error;
     pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
+    close(waitrw[0]);
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
-    // to_blocking(ch_w); to_blocking(ch_r); to_blocking(ch_l);
     if(sh->env) {
       char **env = sh->env;
       clearenv();
@@ -358,14 +376,16 @@ static int l_sh(LS *L) {
           command, SERR, errno);
     _exit(1);
   } // else parent
-  // CLOSE(ch_w); CLOSE(ch_r); CLOSE(ch_l) 
   sh->pid = pid;
+  close(waitrw[1]); waitrw[1] = 0;
+  sh->wait = waitrw[0];
   // only return if we created the fileno. Also, close child-side pipes
   if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
   if(createdChR) { close(ch_r); lua_pushinteger(L, pr_w); } else lua_pushnil(L);
   if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
   return 4;
   error:
+    if(waitrw[0]) close(waitrw[0]); if(waitrw[1]) close(waitrw[1]);
     if(createdChW || ch_w > 2) CLOSE(ch_w);
     if(createdChR || ch_r > 2) CLOSE(ch_r);
     if(createdChL || ch_l > 2) CLOSE(ch_l);
@@ -412,6 +432,7 @@ int luaopen_civix_lib(LS *L) {
     lua_createtable(L, 0, 3); // __index table
       L_setmethod(L, "isDone", l_sh_isDone);
       L_setmethod(L, "wait",   l_sh_wait);
+      L_setmethod(L, "waitfd", l_sh_waitfd);
       L_setmethod(L, "rc",     l_sh_rc);
     lua_setfield(L, -2, "__index");
   lua_setfield(L, -2, "Sh");
