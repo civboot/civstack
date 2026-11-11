@@ -726,12 +726,10 @@ function M.Sh:rc()     return self._sh:rc()     end
 --- wait for shell to complete, returns return code
 function M.Sh:wait() --> int
   if self._prev then self._prev:wait() end
+  if self:isDone() then return self:rc() end
   if ctx.ASYNC then
-    while not self:isDone() do
-      -- yield('poll', self._sh:waitfd(), fdl.POLLHUP)
-      -- assert(self:isDone())
-      yield('sleep', 0e-4)
-    end
+    yield('poll', self._sh:waitfd(), fdl.POLLHUP)
+    self._sh:wait() -- can be microseconds between fd close and cleanup.
   else self._sh:wait() end
   return self:rc()
 end

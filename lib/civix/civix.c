@@ -261,17 +261,14 @@ struct sh {
 
 // wait for pid to be complete. Set pid to 0 when done.
 struct sh* sh_wait(struct sh* sh, int flags) {
-  fprintf(stderr, "@@ sh_wait %i\n", sh->pid);
   if(sh->pid) {
     siginfo_t infop = {0};
     if(waitid(P_PID, sh->pid, &infop, WEXITED | flags)) {
       fprintf(stderr, "ERROR: waitid failed (%s [%i])\n", SERR, errno);
       return sh;
     }
-    fprintf(stderr, "@@ -> pid=%i, status=%i\n", infop.si_pid, infop.si_status);
     if(infop.si_pid) {
       sh->pid = 0; sh->rc = infop.si_status;
-      fprintf(stderr, "@@ -> rc=%i\n", sh->rc);
     }
   }
   return sh;
@@ -331,34 +328,33 @@ static int l_sh(LS *L) {
     sh->env = checkstringarray(L, 3, &_unused);
   }
   
-  
   // ch_r=child-read, pr_w=parent-write, etc
-  int rw[2]; // int wait[2] = {0};
+  int rw[2]; int waitrw[2] = {-1, -1};
   int ch_r = -1, ch_w = -1; int pr_r = -1, pr_w = -1, pr_l = -1, ch_l = -1;
-  // if(pipe_wexec(wait)) goto error;
+  if(pipe_wexec(waitrw)) goto error;
   // process stdin
   if(lua_isinteger(L, 4)) ch_r = lua_tointeger(L, 4);
   else if (lua_toboolean(L, 4)) {
-    createdChR = true; if(cloexec_pipe(rw)) goto error;
+    createdChR = true; if(pipe_rexec(rw)) goto error;
     ch_r = rw[0]; pr_w  = rw[1];
   }
   // process stdout
   if(lua_isinteger(L, 5)) ch_w = lua_tointeger(L, 5);
   else if (lua_toboolean(L, 5)) {
-    createdChW = true; if(cloexec_pipe(rw)) goto error;
+    createdChW = true; if(pipe_wexec(rw)) goto error;
     pr_r = rw[0]; ch_w  = rw[1];
   }
   // process stderr
   if(lua_isinteger(L, 6)) ch_l = lua_tointeger(L, 6);
   else if (lua_toboolean(L, 6)) {
-    createdChL = true; if(cloexec_pipe(rw)) goto error;
+    createdChL = true; if(pipe_wexec(rw)) goto error;
     pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
-    // close(wait[0]);
+    close(waitrw[0]);
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
     if(sh->env) {
       char **env = sh->env;
@@ -381,15 +377,15 @@ static int l_sh(LS *L) {
     _exit(1);
   } // else parent
   sh->pid = pid;
-  // close(wait[1]); wait[1] = 0;
-  // sh->wait = wait[0];
+  close(waitrw[1]); waitrw[1] = 0;
+  sh->wait = waitrw[0];
   // only return if we created the fileno. Also, close child-side pipes
   if(createdChW) { close(ch_w); lua_pushinteger(L, pr_r); } else lua_pushnil(L);
   if(createdChR) { close(ch_r); lua_pushinteger(L, pr_w); } else lua_pushnil(L);
   if(createdChL) { close(ch_l); lua_pushinteger(L, pr_l); } else lua_pushnil(L);
   return 4;
   error:
-    // if(wait[0]) close(wait[0]); if(wait[1]) close(wait[1]);
+    if(waitrw[0]) close(waitrw[0]); if(waitrw[1]) close(waitrw[1]);
     if(createdChW || ch_w > 2) CLOSE(ch_w);
     if(createdChR || ch_r > 2) CLOSE(ch_r);
     if(createdChL || ch_l > 2) CLOSE(ch_l);
