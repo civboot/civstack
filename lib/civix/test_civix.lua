@@ -160,7 +160,7 @@ T'walk'; do
   end
   local expect = {".out/civix/", ".out/civix/a.txt", ".out/civix/b/"}
   T.eq(expect, Iter{w}:listen(skipB):keysTo())
-  
+
   w = M.Walk{d}
   T.eq(
     {".out/civix/", ".out/civix/a.txt"},
@@ -169,7 +169,7 @@ T'walk'; do
 
   T.eq({".out/civix/", ".out/civix/a.txt", ".out/civix/b/"},
        Iter{M.Walk{d, maxDepth=0}}:keysTo{})
-  
+
   T.eq({".out/civix/", ".out/civix/a.txt", ".out/civix/b/",
         ".out/civix/b/b1.txt", ".out/civix/b/b2.txt"},
        Iter{M.Walk{d, maxDepth=1}}:keysTo{})
@@ -235,6 +235,23 @@ T.SUBNAME = '[ioAsync]'
 fin=false; ixt.runAsyncTest(tests); assert(fin)
 
 T.SUBNAME = ''
+
+local function asyncOnlyTests()
+T'sh|pipe'; do
+  local Sh = M.Sh
+  local s1 = Sh{args={'echo', 'foo\nbar\nbaz'}}
+  local s2 = Sh{args={'sed', 's/$/ -DONE/'}}
+  local r = s1 | s2; T.eq(r, s2)
+  r:start()
+  T.eq('foo -DONE\nbar -DONE\nbaz -DONE\n', r:read'a')
+end
+ds.yeet'ok'
+fin = true
+end -- end pipeTest
+
+fin=false; ixt.runAsyncTest(asyncOnlyTests); assert(fin)
+
+
 
 -- TODO: consider re-working and enabling
 -- T.fd_perf = function()

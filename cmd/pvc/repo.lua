@@ -124,11 +124,14 @@ repo.Branch = mty'Branch' {
   '_base [string]', '_tip  [int]',
 }
 local Branch = repo.Branch
-getmetatable(Branch).__call = function(T, self)
+function Branch.init(self) --> self
   assert(self.name and self.dir)
   self.dir = pth.canonical(pth.toDir(assert(self.dir)))
   self._rev, self._snap = self.dir..'rev/', self.dir..'snap/'
-  return construct(T, self)
+  return self
+end
+getmetatable(Branch).__call = function(T, self)
+  return construct(T, T.init(self))
 end
 
 --- Usage: [$Branch:fake{name='bar', _base='foo@12', _tip=4}][{br}]
@@ -179,6 +182,32 @@ function Branch:desc(c) --> {line}
   f:close()
   return t
 end
+
+-----------------------------------
+-- REPO
+
+--- Base remote object, used by pvc.git and other remotes.
+repo.Remote = mty.extend('Remote', Branch, {
+  'repo [pvc.repo.Repo]: the repo this is contained in',
+ [[rem[dir]: the remote dir, e.g ".git/".
+   Can be absolute or relative to repo.w.]],
+}
+local Remote = repo.Remote
+function Remote.init(self) --> self
+  Branch.init(self)
+  self.rem = pth.toDir(pth.canonical(self.rem, self.repo.w))
+  return self
+end
+-- These are generally not supported.
+Remote.fake    = nil
+Remote.newBase = nil
+Remote.setTip  = nil
+Remote.patch   = nil
+-- These must be overriden to return a real value.
+Remote.base    = ds.notimpl
+Remote.tip     = ds.notimpl 
+Remote.snap    = ds.notimpl
+Remote.desc    = ds.notimpl
 
 -----------------------------------
 -- REPO

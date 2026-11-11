@@ -280,6 +280,12 @@ pvc.plan = mty.extend(Base, 'squash', {
    If false, never finish the plan even after successful run.
  ]],
 })
+function pvc.plan:runPlan()
+  if not self.run then return end
+  local r = self.__repo
+  r:runPlan(nil, self.skip)
+  if not (self.finish==false) then r:finishPlan() end
+end
 function pvc.plan:__call()
   self.run, self.skip = shim.bool(self.run), shim.int(self.skip)
   self.finish = shim.bool(self.finish)
@@ -314,13 +320,6 @@ function pvc.plan:__call()
   }
   r:dumpPlan(p)
   self:runPlan()
-end
-
-function pvc.plan:runPlan()
-  if not self.run then return end
-  local r = self.__repo
-  r:runPlan(nil, self.skip)
-  if not (self.finish==false) then r:finishPlan() end
 end
 
 if shim.isMain(pvc) then pvc:main(G.arg) end
