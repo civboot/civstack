@@ -632,22 +632,18 @@ function M.Lap() return lap.Lap {
   sleepFn=M.sleep, monoFn=M.monoSec, pollList=fd.PollList(),
 }end
 
---- Start args on the shell
---- ["Suggestion: use civix.sh instead.]
+--- Run a system shell with arguments to override stdout, env, etc.
 ---
---- [$Sh:start()] kicks off a subprocess which start the shell using the fds
---- you pass in or creating them if you set them to true. Created file
---- descriptors will be stored in the associated name.
+--- [$Sh{'echo', 'foo-bar'}()] or [$Sh'echo foo-bar'()] both create and run
+--- (by calling) the 'echo' system command to print 'foo-bar' to stdout.
 ---
---- ["Why? This means that [$:close()] will only close filedescriptors created
----        by the shell itself, and you won't accidentially close
----        ctx.stdout/etc.]
+--- You can pipe with e.g. [$( Sh{'echo', 'foo-bar'} | Sh'cat' )()]
+--- Note that you must still call [$()] on the final pipe result to run the pipe.
 ---
---- Examples (see civix.sh for more examples): [{table}
---- # Lua                                                   | Bash
---- + [$Sh({'ls', 'foo/bar'}, {stdout=ctx.stdout}):start()]  | [$ls foo/bar]
---- + [$v = Sh{'ls foo/bar', stdout=true}:start():read'a']  | [$v=$(ls foo/bar)]
---- ]
+--- More complex usage can be done by manually calling [$:start()] and performing
+--- the stdout/stdlog reads yourself. If your shell arguments would conflict
+--- with field names (e.g. [$env]) you can use Sh:construct to manually construct
+--- the object, though note the stdin/input behavior.
 M.Sh = mty'Sh' {
   "args [table]: arguments to pass to shell",
   "stdin  [file|bool]: shell's stdin to send  (default=empty)",
@@ -663,13 +659,6 @@ M.Sh = mty'Sh' {
   "_prev [Sh]: used for '|' operation.",
 }
 M.Sh.construct = mty.construct
---- Convience function for creating eXecuting shell object.
----
---- Provide arguments directly, Sh fields like stdin/etc are
---- popped off the cmd table and placed on Sh.
---- Additionally, this handles [$stdin='string'] by setting
---- [$stdin=true, _input='string'], which sets Sh.out after
---- calling it.
 getmetatable(M.Sh).__call = function(T, cmd)
   dbg('Sh', cmd)
   local pk, self = ds.popk, {}
