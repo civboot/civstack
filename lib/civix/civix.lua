@@ -789,7 +789,6 @@ end
 --- Finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
 function M.Sh:__call(fns) --> self
-  dbg('Sh() %q', self, self.stdin, self.input)
   fns = fns or {}
   self:start(); self:finish(fns); if #fns == 0 then --skip
   elseif ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end

@@ -45,8 +45,8 @@ static bool l_defaulttrue(LS *L, int index) {
 // created for it by sh().
 static int cloexec_pipe(int rw[2]) {
   if (pipe(rw) != 0) return -1;
-  fcntl(rw[0], F_SETFD, FD_CLOEXEC); fcntl(rw[1], F_SETFD, FD_CLOEXEC);
-  return 0;
+  fcntl(rw[0], F_SETFD, FD_CLOEXEC);
+  return fcntl(rw[1], F_SETFD, FD_CLOEXEC);
 }
 
 // Return a string array with null-terminated end.
@@ -333,13 +333,10 @@ static int l_sh(LS *L) {
     pr_l = rw[0]; ch_l  = rw[1];
   }
   const char* cwd = luaL_optstring(L, 7, NULL);
-  fprintf(stderr, "@@ forking %s ch r=%i,%i w=%i,%i l=%i,%i\n",
-    command, ch_r, createdChR, ch_w, createdChW, ch_l, createdChL);
 
   int pid = fork(); if(pid == -1) goto error;
   else if(pid == 0) { // child
     CLOSE(pr_r); CLOSE(pr_w); CLOSE(pr_l);
-    fprintf(stderr, "@@ to blocking\n");
     // to_blocking(ch_w); to_blocking(ch_r); to_blocking(ch_l);
     if(sh->env) {
       char **env = sh->env;
@@ -356,11 +353,9 @@ static int l_sh(LS *L) {
     else if (ch_l < 0) close(STDERR_FILENO);
     to_blocking(STDOUT_FILENO); to_blocking(STDIN_FILENO); to_blocking(STDERR_FILENO);
     
-    fprintf(stderr, "@@ running command %s\n", command);
     execvp(command, argv);
     if(errno) fprintf(stderr, "execvp\"%s\"(%s [%i])\n",
           command, SERR, errno);
-    fprintf(stderr, "@@ command done %s\n", command);
     _exit(1);
   } // else parent
   // CLOSE(ch_w); CLOSE(ch_r); CLOSE(ch_l) 

@@ -9,6 +9,7 @@ local fmt = require'fmt'
 local ds = require'ds'
 local heap = require'ds.heap'
 
+local info, trace = mty.from'ds.log  info, trace'
 local setmt = setmetatable
 local sfmt = string.format
 local push, concat = table.insert, table.concat
@@ -69,7 +70,7 @@ function M._async.schedule(fn, ...)
   local cor = create(fn)
   LAP_READY[cor] = 'scheduled'
   LAP_CORS[cor] = fn
-  log.trace('schedule %s [%q]', cor, fn)
+  trace('schedule %s [%q]', cor, fn)
   return cor
 end
 
@@ -78,11 +79,11 @@ function M.scheduleTraced(name, fn, _noMore)
   local fninfo = sfmt('%q:%s', name, select(2,mty.fninfo(fn)))
   local cor = ctx.schedule(function()
     local gc = setmt({}, {__gc=function() if fninfo then 
-      log.info("COR GC %s: garbage collected before finish", fninfo)
+      info("COR GC %s: garbage collected before finish", fninfo)
     end end})
-    log.info('COR starting %s', fninfo)
+    info('COR starting %s', fninfo)
     local ok, err, b,c = ds.try(fn);
-    log.info('COR finished %s: %q', fninfo, ok and 'ok' or err)
+    info('COR finished %s: %q', fninfo, ok and 'ok' or err)
     fninfo = nil;
     if not ok then error(err) end
     return ok, err, b,c
@@ -419,9 +420,9 @@ function M.Lap:run(fns, setup, teardown)
   teardown()
   if errors then
     errors = M.formatCorErrors(errors)
-    log.info('coroutine errors: %s', errors)
+    info('coroutine errors: %s', errors)
     error(errors)
-  else log.info('Lap:run done. ready=%q, pm=%q', LAP_READY, self.pollMap) end
+  else trace('Lap:run done. ready=%q, pm=%q', LAP_READY, self.pollMap) end
   return self, errors
 end
 --- (overrideable) function to use in order to sleep.
@@ -436,7 +437,7 @@ local DEAD_ERROR = 'coroutine %q (fn=%q) is dead and cannot be resumed.'
 --- Executes a single coroutine, used inside [$:run()]
 function M.Lap:execute(cor, note) --> errstr?
   if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
-    log.trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
+    trace("execute %s %s %q [%q]", cor, status(cor), note, LAP_CORS[cor])
   end
   if status(cor) == 'dead' then
     log.warn(DEAD_ERROR, cor, LAP_CORS[cor],
@@ -492,7 +493,7 @@ function M.Lap:__call()
     for _, fileno in ipairs(pl:ready(sleep)) do
       local cor = ds.popk(pm, fileno); pl:remove(fileno)
       if LOGLEVEL >= TRACE and LAP_TRACE[cor] then
-        log.trace('scheduling fileno=%s %q', fileno, LAP_CORS[cor])
+        trace('scheduling fileno=%s %q', fileno, LAP_CORS[cor])
       end
       LAP_READY[cor] = 'poll'
     end

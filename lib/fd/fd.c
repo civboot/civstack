@@ -87,7 +87,6 @@ void FD_free(FD* fd) {
 
 void FD_close(FD* fd) {
   if(fd->fileno >= 0) {
-    fprintf(stderr, "@@ close %i\n", fd->fileno);
     close(fd->fileno); fd->fileno = -1;
   }
   FD_free(fd);
@@ -487,7 +486,6 @@ static int l_FDT_close(LS* L) {
   FDT* fdt = toFDT(L); assertReady(L, &fdt->fd, "close");
   fdt->meth = FD_close; fdt->fd.code = FD_RUNNING;
   EV_POST(fdt);
-  fprintf(stderr, "@@ closing\n");
   return 0;
 }
 void FDT_destroy(FDT* fdt) {
