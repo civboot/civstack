@@ -140,7 +140,7 @@ if G.NOLIB then
   fdType = ctx.fileType
 
   M.EEXIST = B.EEXIST
-  M.sh     = B.sh
+  M.sh2    = B.sh
   M.mkdir  = B.mkdir
   M.rmdir  = B.rmdir
   M.dir    = B.dir
@@ -270,7 +270,7 @@ end
 --- a string (path) or a file descriptor.
 function M.cp(from, to)
   if type(from) == 'string' and type(to) == 'string' then
-    M.sh{'cp', from, to}
+    M.sh2{'cp', from, to}
     return
   end
   local fd, fc, td, tc -- f:from, t:to, d:descriptor, c:close
