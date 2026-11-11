@@ -695,8 +695,8 @@ end
 function M.Sh:start() --> self
   if self._sh then return self end
   if self._prev then
-    self._prev:start()
-    self.stdin = assert(self._prev.stdout)
+    assert(not self.stdin);
+    self._prev:start(); self.stdin = assert(self._prev.stdout)
   end
   local r, w, l = fd.newFD(), fd.newFD(), fd.newFD()
   local ex, _r, _w, _l = lib.sh(
@@ -740,19 +740,16 @@ end
 
 --- finish files (in sh or other) by writing other.input to stdin and reading
 --- stdout/stderr. All processes are done asynchronously
-function M.Sh:__call() --> self
+function M.Sh:__call(fns) --> self
+  fns = fns or {}
   self:start()
-  local outf = self.stdout
-  local errf = self.stderr
-  if not (self.input or outf or errf) then return end
-  local fns, out, err = {}
+  if not (self.input or self.stdout or self.stderr) then return self end
   if self.input then push(fns, function()
     self.stdin:write(self.input); self.stdin:close()
   end) end
-  if outf  then push(fns, function() out = outf:read'a'      end) end
-  if errf  then push(fns, function() err = errf:read'a'      end) end 
+  if self.stdout  then push(fns, function() self.out = self.stdout:read'a'      end) end
+  if self.stderr  then push(fns, function() self.log = self.stderr:read'a'      end) end 
   if ctx.ASYNC then ctx.all(fns) else M.Lap():run(fns) end
-  self.out, self.log = out, err
   return self
 end
 
