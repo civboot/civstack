@@ -2,8 +2,10 @@ num.txt: first commit
 
 --- PVCINDEX
 +++ PVCINDEX
-@@ -1 +1,2 @@
+@@ -1,2 +1,3 @@
+-+x:/.gitignore
 -+x:/.pvcignore
++x:1/.gitignore
 +x:1/.pvcignore
 ++x:/num.txt
 

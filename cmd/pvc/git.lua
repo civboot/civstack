@@ -23,9 +23,8 @@ local Git = git.Git
 
 --- Create Sh of git subcmd.
 function Git:git(subcmd) --> Sh
-  return Sh(ds.extend(
-    {'git', '--git-dir='..self.rem, '--work-tree='..self.r.w},
-    subcmd))
+  dbg('Git:git', self.r.w)
+  return Sh(ds.extend({'git', cwd=self.r.w}, subcmd))
 end
 
 --- Get the id of a hash or name
@@ -58,6 +57,9 @@ function Git:commit(desc)
 end
 
 -- Only used for testing.
-function Git:create() self:git{'init', '-b', self.rname}() end
+function Git:create()
+  dbg'git create'
+  self:git{'init', '-b', self.rname}()
+end
 
 return git

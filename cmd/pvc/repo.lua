@@ -45,6 +45,11 @@ repo.INIT_PVCIGNORE = [[
 %.civ/
 %.out/
 ]]
+repo.INIT_GITIGNORE = [[
+.pvc/
+.civ/
+.out/
+]]
 repo.REV0  = {['00.p'] = 'zero patch'}
 
 --- reserved branch names
@@ -126,6 +131,7 @@ repo.Branch = mty'Branch' {
   '_base [string]', '_tip  [int]',
 }
 local Branch = repo.Branch
+function Branch:isRemote() return false end
 function Branch.init(self) --> self
   assert(self.name and self.dir)
   self.dir = pth.canonical(pth.toDir(assert(self.dir)))
@@ -196,11 +202,14 @@ repo.Remote = mty.extend(repo.Branch, 'Remote', {
    Can be absolute or relative to repo.w.]],
 })
 local Remote = repo.Remote
+function Remote:isRemote() return true end
 getmetatable(Remote).__call = mty.construct
 
-function Remote.init(self) --> self
+function Remote:init() --> self
+  dbg('Remote:init', self)
   Branch.init(self)
   self.rem = pth.toDir(pth.canonical(self.rem, self.r.w))
+  dbg('Remote rem', self.rem)
   return self
 end
 
@@ -427,6 +436,11 @@ function Repo:init(br) --> self
     pth.write(ign, repo.INIT_PVCIGNORE)
     notify('created initial %s', ign)
   end
+  ign = self.w..snap.GITIGNORE
+  if not ix.exists(ign) then
+    pth.write(ign, repo.INIT_GITIGNORE)
+    notify('created initial %s', ign)
+  end
   return self
 end
 
@@ -504,6 +518,8 @@ function Repo:commit(desc, diff) --> rev2
     * stash -> [$pvc at tip] -> unstash -> commit.
     * prune: move or delete downstream changes.
   ]])end
+  -- FIXME: stop taking 'diff' since commit here can't.
+  if b:isRemote() then b:commit(desc) end
   local rev2 = asRev(br, id+1)
   trace('start commit from %s to %s', rev, rev2)
   local snap2 = b:snap(id+1)

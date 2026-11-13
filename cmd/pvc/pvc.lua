@@ -332,16 +332,18 @@ pvc.remote = mty.extend(Base, 'remote', {
   'init [bool]: initialize the repo, this is rare outside of testing',
 })
 function pvc.remote:__call() --> Remote
+  dbg('remote', self)
   local r, name = self.__repo, self[1]
   local ty = assert(self[2], 'must specify repo type')
   local b = setmetatable(r:_newBranch(name), nil)
   b.ty, b.rem, b.rname = ty, self[3], self.rname or name
   b = assertf(ds.wantpath(b.ty), 'unknown type: %q', b.ty)(b)
   b.r = r; b:init()
+  dbg('remote branch', b)
   if not self.init then assert(b:tip(), 'remote tip cannot be found') end
   ix.mkTree(b.dir, { snap = EMPTY })
   b.r = nil; b:dump(); b.r = r
-  if self.init then b:create(); assert(b:tip(), 'init failed') end
+  if self.init then b:create() end
   return b
 end
 
