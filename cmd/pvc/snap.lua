@@ -103,7 +103,7 @@ snap.Path = mty'Path' {
   'm [bool]: modified',
   'x [bool]: executable',
   'mtime [int]: modification time',
-  'id [int]: last id modified in',
+  'id [int]: last id modified in. Is nil if created in curent change.',
   'p [path]: the path value',
 }
 Path = snap.Path
@@ -114,13 +114,11 @@ function Path:__tostring() return concat{
   ':', self.id or '', '/', self.p,
 }end
 
+--- Return whether the path was modified in any way.
+function Path:modified() return self.c or self.d or self.m end
+
 function Path:cleaned() --> Path
   return Path{x=self.x, id=self.id, p=self.p}
-end
-
-function Path:updateId(id) --> Path
-  if self.m or self.c then self.id = id end
-  return self
 end
 
 local function strNil(s) return (s~='') and true or nil end

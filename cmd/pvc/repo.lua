@@ -518,7 +518,6 @@ function Repo:commit(desc, diff) --> rev2
     * stash -> [$pvc at tip] -> unstash -> commit.
     * prune: move or delete downstream changes.
   ]])end
-  -- FIXME: stop taking 'diff' since commit here can't.
   if b:isRemote() then b:commit(desc) end
   local rev2 = asRev(br, id+1)
   trace('start commit from %s to %s', rev, rev2)
@@ -528,6 +527,9 @@ function Repo:commit(desc, diff) --> rev2
   local bindex = base:index()
   local tmp    = self:tmp(rev2)
 
+  -- note: updatePath happens from PREVIOUS state of path.
+  -- Therefore, id will always be changed on the NEXT patch,
+  -- this patch only sets d/c/m (and last id if prev was d/c/m).
   local function updatePath(p)
     p = p:cleaned()
     local ip = bindex[bindex[p.p]]

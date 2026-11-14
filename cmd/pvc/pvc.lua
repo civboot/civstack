@@ -187,17 +187,20 @@ end
 --- Usage: [$pvc upload branchName path/to/dir]
 --- Backs up the branch to the directory, making a complete copy of the
 --- rev/ and metadata files but not copying snapshots.[{br}]
---- TODO: support upload to remote repo.
 pvc.upload = mty.extend(Base, 'upload', {
   'force [bool]: if true delete any existing directories.',
 })
 function pvc.upload:__call()
   local br, d, r = self[1], self[2], self.__repo
-  if ix.exists(d) then
-    assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
+  local b = r:branch(br)
+  if d then -- simple directory upload
+    if ix.exists(d) then
+      assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
+    end
+    ix.cpRecursive(b.dir, d, {['snap/'] = -1})
+    notify('uploaded %s to directory %s', br, d)
   end
-  ix.cpRecursive(r:branch(br).dir, d, {['snap/'] = -1})
-  notify('uploaded %s to %s', br, d)
+  error'FIXME: upload to remote'
 end
 
 --- Usage: [$pvc pull branchName path/to/dir]
