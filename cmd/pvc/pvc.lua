@@ -159,12 +159,14 @@ end
 --- ["[$at branch@id] is called a "checkout" in other version
 ---   control systems.]
 pvc.at = mty.extend(Base, 'at', {
-  [[force [bool]: overwrite local changes]],
+  'force [bool]: overwrite local changes',
+  'direct [bool]: set at without changing working tree',
 })
 function pvc.at:__call()
   local w, r, f = self.work_tree, self.__repo, self.force
   local rev = f and (self[1] or r:at()) or self[1]
   if not rev then ctx.stdout:write(r:at(), '\n'); return r:at() end
+  if self.direct then return r:_setAt(rev) end
   r:setAt(rev, f); return rev
 end
 
@@ -241,10 +243,15 @@ end
 --- Start new branch [$name] branching off of [$from].
 pvc.branch = mty.extend(Base, 'branch', {
   'checkout [bool]: whether to checkout the branch', checkout=true,
+  'delete [bool]: delete the branch instead of creating it',
 })
 function pvc.branch:__call()
   local r = self.__repo;
   local br, base = self[1], r:rev(self[2] or 'at')
+  if self.delete then
+    assertf(br ~= r:atBranch(), 'cannot delete branch %s while at it', br)
+    return ix.rmRecursive(r:branch(br).dir)
+  end
   r:newBranch(br, base)
   if shim.bool(self.checkout) then
     if r:at() == base then
@@ -279,11 +286,11 @@ function pvc.squash:__call()
   r:squash(r:splitRev'at', num, --[[desc]]self[2])
 end
 
---- Usage: [$pvc drop <num>][{br}]
+--- Usage: [$pvc drop <num|branch>][{br}]
 --- Drop some number of commits from current branch's tip.
 pvc.drop = mty.extend(Base, 'drop', {})
 function pvc.drop:__call()
-
+  self.__repo:drop(assertf(int(self[1]), '%s must be int', self[1]))
 end
 
 

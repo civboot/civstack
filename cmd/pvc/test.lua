@@ -151,9 +151,8 @@ local NUM_UP  = 'zero\nfifty\neighty\nninety\none hundred'
 local NUM_LOW = 'zero\nten\ntwenty\nfifty\none hundred'
 local NUM_2   = 'zero\nten\ntwenty\nfifty\neighty\nninety\none hundred'
 
---- Removes main@1 replacing with gmain@1
+--- Replaces main@1 with gmain@1 and deletes @main/
 local function setupGit(r)
-  r:pvc{'remote', 'gmain', 'pvc.git.Git', rname='main', init=true}
   local b, g = r:branch'main', r:branch'gmain'
   g:commit'main@1';
   for i=0,1 do ix.rmRecursive(b:snap(i)); ix.rm(b:patch(i)) end
@@ -163,7 +162,7 @@ end
 
 local GMAIN
 
-H:test{'main', 'main@1', {main = 'main/'},
+H:test{'main', 'main@1', {main = 'main/', bmain = 'main/'},
 function(r)
   T.eq('main@1', r:at()); T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
   T.dirs(r.w, r:branch'main':snap(1), SKIP)
@@ -176,8 +175,23 @@ function(r)
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
 
-  -- Now switch main base to git.
-  r:pvc'at main@1'; setupGit(r)
+  -- create gmain with single commit (main@1), delete main and recreate it.
+  r:pvc'at main@1'
+  r:pvc{'remote', 'gmain', 'pvc.git.Git', rname='main', init=true}
+  r:branch'gmain':commit'main@1'; r:pvc'at gmain@1 --direct'
+  r:pvc'branch main --delete'
+  T.path(r.r..'@main/', false)
+  r:pvc'branch main'; 
+  T.path(r.r..'@main/', {base='gmain@1', tip='1'})
+  local s1 = r:snapshot'gmain@1'
+  T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
+
+  -- commit from (backup) bmain@2
+  T.eq('main@1', r:at()); r:pvc'cp bmain@2 --commit'
+  H:branchDirEq('main_gitbase', r:branch'main'.dir) 
+  ds.yeet'ok'
+
+  r:pvc'at main@1'; setupGit(r) r:pvc'at gmain@1 --direct'
   local s1 = r:snapshot'gmain@1'
   T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
   r:pvc'at main@2'; T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
@@ -192,7 +206,6 @@ function(r)
   r:pvc{'cp', 'gmain@2', commit=true}; T.path(r.w..'num.txt', NUM_1)
   H:branchDirEq('main_gitbase', r:branch'main'.dir) 
 end}
-
 
 H:test{'upper', 'main@2', {main = 'main/'},
 function(r)
