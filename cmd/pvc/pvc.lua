@@ -198,9 +198,22 @@ function pvc.upload:__call()
       assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
     end
     ix.cpRecursive(b.dir, d, {['snap/'] = -1})
-    notify('uploaded %s to directory %s', br, d)
+    return notify('uploaded %s to directory %s', br, d)
   end
-  error'FIXME: upload to remote'
+  local bbr, bid = splitRev(b:base()); local bb = r:branch(bbr)
+  assertf(bb:isRemote(), 'cannot upload to non-remote branch %q', bbr.name)
+  local tdrop
+  if bb:tip() < b:tip() then tdrop=true; bb:reset(b:tip() end
+  for i = bid+1,b:tip() do
+    if bb:identical(i, asRev(br,i)) then bid = i
+    else goto different end
+  end
+  return notify('remote base %s already identical to %s%s', bbr, br,
+    tdrop and sfmt(' (except dropped commits after %s)', b:tip()) or '')
+  ::different::
+  bb:reset(bid)
+  for i = bid+1,b:tip() do bb:commit(asRev(br,i)) end
+  return notify('remote base %s updated %s -> %s', bbr, bid, b:tip())
 end
 
 --- Usage: [$pvc pull branchName path/to/dir]
