@@ -187,17 +187,36 @@ end
 --- Usage: [$pvc upload branchName path/to/dir]
 --- Backs up the branch to the directory, making a complete copy of the
 --- rev/ and metadata files but not copying snapshots.[{br}]
---- TODO: support upload to remote repo.
 pvc.upload = mty.extend(Base, 'upload', {
   'force [bool]: if true delete any existing directories.',
 })
 function pvc.upload:__call()
-  local br, d, r = self[1], self[2], self.__repo
-  if ix.exists(d) then
-    assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
+  local r = self.__repo
+  local br, d = self[1] or r:atBranch(), self[2]
+  local b = r:branch(br)
+  if d then -- simple directory upload
+    if ix.exists(d) then
+      assertf(self.force, 'already exists: %s', d); ix.rmRecursive(d)
+    end
+    ix.cpRecursive(b.dir, d, {['snap/'] = -1})
+    return notify('uploaded %s to directory %s', br, d)
   end
-  ix.cpRecursive(r:branch(br).dir, d, {['snap/'] = -1})
-  notify('uploaded %s to %s', br, d)
+  local rbr, rid = splitRev(b:base()); local rb = r:branch(rbr)
+  assertf(rb:isRemote(), 'cannot upload to non-remote branch %q', rbr.name)
+  local rtip, tdrop = rb:tip(), false
+  dbg('tips', rb:tip(), b:tip())
+  if rtip > b:tip() then tdrop=true; rb:reset(b:tip()); rtip = b:tip() end
+  for i = rid+1,b:tip() do
+    if i > rtip                         then goto different
+    elseif rb:identical(i, asRev(br,i)) then rid = i
+    else                                     goto different end
+  end
+  do return notify('remote base %s already identical to %s%s', rbr, br,
+    tdrop and sfmt(' (except dropped commits after %s)', b:tip()) or '') end
+  ::different::
+  rb:reset(rid)
+  for i = rid+1,b:tip() do rb:commit(asRev(br,i)) end
+  return notify('remote base %s updated %s -> %s', rbr, rid, b:tip())
 end
 
 --- Usage: [$pvc pull branchName path/to/dir]

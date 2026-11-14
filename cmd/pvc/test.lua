@@ -144,12 +144,22 @@ T'trimPatch'; do
   T.eq(M1_GITIGNORE..'\n'..M1_PVCIGNORE..'\n',              tp(p1, {PVCINDEX=1}))
 end
 
-local SKIP = {['.pvc/']=1, PVCINDEX=1}
+local SKIP = {['.git/']=1, ['.pvc/']=1, PVCINDEX=1}
 
 local NUM_1   = 'zero\nfifty\none hundred'
 local NUM_UP  = 'zero\nfifty\neighty\nninety\none hundred'
 local NUM_LOW = 'zero\nten\ntwenty\nfifty\none hundred'
 local NUM_2   = 'zero\nten\ntwenty\nfifty\neighty\nninety\none hundred'
+
+--- Removes main@1 replacing with gmain@1
+local function setupGit(r)
+  r:pvc{'remote', 'gmain', 'pvc.git.Git', rname='main', init=true}
+  local b, g = r:branch'main', r:branch'gmain'
+  g:commit'main@1';
+  for i=0,1 do ix.rmRecursive(b:snap(i)); ix.rm(b:patch(i)) end
+  b:setBase'gmain@1'
+  return g
+end
 
 H:test{'main', 'main@1', {main = 'main/'},
 function(r)
@@ -164,12 +174,17 @@ function(r)
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
 
-  -- FIXME:
-  -- r:pvc'at main@2'
-  -- local m = r:branch'main'
-  -- r:pvc{'remote', 'rmain', 'pvc.git.Git', rname='main', init=true}
-  -- r:_setAt('rmain@0');
-  -- r:pvc{'commit', m:desc(1)}
+  -- Now switch to git
+  r:pvc'at main@1'; setupGit(r)
+  local s1 = r:snapshot'gmain@1'
+  T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
+  r:pvc'at main@2'; T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
+  T.path(r.w..'num.txt',    NUM_1)
+  T.dirs(r.w, r:branch'main':snap(2), SKIP)
+
+  r:pvc'upload' -- upload main@2 to git's rmain@2
+  local g2 = r:branch'gmain':snap(2); T.path(g2..'num.txt', NUM_1)
+  T.dirs(r:branch'main':snap(2), g2, SKIP)
 end}
 
 H:test{'upper', 'main@2', {main = 'main/'},
