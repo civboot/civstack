@@ -161,6 +161,8 @@ local function setupGit(r)
   return g
 end
 
+local GMAIN
+
 H:test{'main', 'main@1', {main = 'main/'},
 function(r)
   T.eq('main@1', r:at()); T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
@@ -174,7 +176,7 @@ function(r)
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
 
-  -- Now switch to git
+  -- Now switch main base to git.
   r:pvc'at main@1'; setupGit(r)
   local s1 = r:snapshot'gmain@1'
   T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
@@ -186,14 +188,11 @@ function(r)
   local g2 = r:branch'gmain':snap(2); T.path(g2..'num.txt', NUM_1)
   T.dirs(r:branch'main':snap(2), g2, SKIP)
 
-  -- FIXME: drop main@2 and re-commit it.
-  r:drop('main', 1)
-  r:pvc{'patch', H:patch'main@2'}; T.path(r.w..'num.txt', NUM_1)
-  r:pvc{'commit', 'num.txt: first commit'}
-  H:branchDirEq('main', r:branch'main'.dir) 
+  r:drop('main', 1); T.eq('main@1', r:at())
+  r:pvc{'cp', 'gmain@2', commit=true}; T.path(r.w..'num.txt', NUM_1)
+  H:branchDirEq('main_gitbase', r:branch'main'.dir) 
 end}
 
-ds.yeet'ok'
 
 H:test{'upper', 'main@2', {main = 'main/'},
 function(r)

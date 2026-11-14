@@ -55,6 +55,12 @@ function Git:_hash(id) --> string
   return ds.trim(cmd().out)
 end
 
+function Git:desc(c)
+  local h = self:_hash(assert(c[1], 'must provide id'))
+  local d = self:git{'show', '-s', '--format=%B', h}().out
+  return repo.descHelper(c, d)
+end
+
 function Git:_wt(dir) return '--work-tree='..(dir or self.r.w) end
 
 --- Create the snapshot of a git id.
@@ -67,7 +73,7 @@ function Git:snap(id) --> path
   local icmd = self:git{'ls-tree', '--full-tree', '-r', '--name-only', hash}
   local idx = {}; for _, p in ds.split(icmd().out, '\n') do
     if p ~= '' then push(idx, sfmt(':%s/%s', id, p)) end
-  end; ds.sort(idx)
+  end; ds.sort(idx); push(idx, '')
   dbg('Git:snap idx', id, idx)
   lines.dump(idx, t..snap.PVCINDEX)
   ix.mv(t, p)

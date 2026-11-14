@@ -686,7 +686,10 @@ getmetatable(M.Sh).__call = function(T, cmd)
   return T:construct(self)
 end
 
-function M.Sh:__fmt(f) f:write'Sh'; f(self.args) end
+function M.Sh:__fmt(f)
+   f:write'Sh['; if self.cwd then f:write('CWD=', pth.nice(self.cwd), ' ') end
+   f(self.args); f:write']'
+end
 function M.Sh:allOutput() --> {string}
   local o = {}
   if self.out then push(o, 'STDOUT:'); push(o, self.out) end

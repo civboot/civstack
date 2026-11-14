@@ -123,6 +123,17 @@ function repo.dumpPlan(f, ind, plan, si)
   end
 end
 
+--- Given Repo:desc config and the desc string, return the desc.
+--- This is used for Remote impls.
+function repo.descHelper(c, desc)
+  local d = {}; for _, ln in ds.split(desc, '\n') do
+    push(d, ln); if c.max and #d >= c.max then break end
+  end
+  while d[#d] == '' do pop(d) end
+  dbg('desc helper', d)
+  return d
+end
+
 -----------------------------------
 -- BRANCH
 
@@ -562,6 +573,7 @@ function Repo:commit(desc, diff) --> rev2
   local idiff = pu.diff(
     id>0 and base.root..snap.PVCINDEX, id>0 and snap.PVCINDEX,
     ipath,                             snap.PVCINDEX)
+  dbg('IDIFF\n%s', idiff)
   ix.rm(ipath) -- remove, idiff in pu._patch re-updates
   base:copyTo(tmp)
 
