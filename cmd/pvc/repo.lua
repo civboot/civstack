@@ -141,6 +141,8 @@ end
 getmetatable(Branch).__call = function(T, self)
   return construct(T, T.init(self))
 end
+function Branch:__tostring() return sfmt('Branch{%s}', self.name) end
+function Branch:__fmt(f) f:write(self:__tostring()) end
 
 --- Usage: [$Branch:fake{name='bar', _base='foo@12', _tip=4}][{br}]
 --- Used for testing.
@@ -580,15 +582,19 @@ end
 
 --- Change working tree to reflect rev.
 function Repo:setAt(rev, force)
+  dbg('Repo:setAt', rev, force)
   rev = self:rev(rev)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
+  dbg('Repo:setAt i1', i1)
+  dbg('Repo:setAt i2', i2)
   local sa, ia; if not force then
     sa = self:snapshot'at'; ia = sa:index()
   end
   local copy, rm, error = {}, {}, {}
   for _, p2 in ipairs(i2) do
     local p1 = i1[i1[p2.p]]
+    dbg('* i2 paths', p1, p2, p1 and p1.p, p2 and p2.p)
     if not p1 then push(copy, p2); goto cont end
     local path1 = s1.root..p1.p
     if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
@@ -602,6 +608,7 @@ function Repo:setAt(rev, force)
   end
   for _, p1 in ipairs(i1) do -- look for files to delete
     if i2[p1.p] then goto cont end -- exists in both, done above.
+    dbg('* i1 paths', p1)
     local path1 = s1.root..p1.p
     if not force and (
       (p1.mtime~=ix.mtime(path1)) or not ix.pathEq(sa.root..p1.p, path1)
@@ -611,6 +618,7 @@ function Repo:setAt(rev, force)
   if #error > 0 then
     errorf('paths are modified:\n%s', concat(error, '\n'))
   end
+  dbg('Repo:setAt copy=%q rm=%q', copy, rm)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
   for _, p in ipairs(rm)   do ix.rm(self.w..p.p)                    end
   self:_setAt(rev)
@@ -667,8 +675,8 @@ function Repo:cp(rev, paths) --> Snap, error
   return csnap
 end
 
---- Squash the top num commits of branch into a single commit.
-function Repo:squash(br, num, desc)
+--- Check mutating number of items from tip, return the lower id and Branch.
+function Repo:checkMutateNum(br, num) --> id, Branch
   local b = self:branch(br);        local tip = b:tip()
   local id = max(0, tip - num + 1); local rev = asRev(br,id)
   -- Make sure no children branch from squashed commits
@@ -676,20 +684,34 @@ function Repo:squash(br, num, desc)
     if type(chld) ~= 'string' then goto cont end
     if cid >= id then errorf('%s branches at %s:%s', chld, b.name, cid) end
   ::cont::end
+  return id, b
+end
+
+function Repo:drop(br, num)
+  local id, b = self:checkMutateNum(br, num); id = max(1,id)
+  self:setAt(asRev(br, id-1))
+  dbg('drop removing', b, id, b:tip())
+  for i=id,b:tip() do ix.rmRecursive(b:snap(i)); ix.rm(b:patch(i)) end
+  b:setTip(id-1); self:setAt(asRev(br, id-1))
+end
+
+--- Squash the top num commits of branch into a single commit.
+function Repo:squash(br, num, desc)
+  local id, b = self:checkMutateNum(br, num)
   if not desc then
-    desc = {}; for i=id,tip do ds.extend(desc, b:desc{i}) end
+    desc = {}; for i=id,b:tip() do ds.extend(desc, b:desc{i}) end
     desc = concat(desc, '\n')
   end
   self:setAt(asRev(br,id-1))
-  local trev = asRev(br,tip); local tmp = self:tmp(trev); ix.rmdir(tmp)
+  local trev = asRev(br,b:tip()); local tmp = self:tmp(trev); ix.rmdir(tmp)
   local s2 = self:snapshot(trev)
   ix.mv(s2.root, tmp); s2 = Snap{tmp}
 
   -- remove patches and snapshots, then commit squashed
-  for i=id,tip do ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i)) end
+  for i=id,b:tip() do ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i)) end
   b:setTip(id-1); self:_setAt(asRev(br,id-1))
   self:commit(desc, self:localsnap():diff(s2))
-  self:setAt(rev, true)
+  self:setAt(asRev(br,id), true)
   notify('squashed %s of %s into ', num, trev)
 end
 

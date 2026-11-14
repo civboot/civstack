@@ -185,7 +185,15 @@ function(r)
   r:pvc'upload' -- upload main@2 to git's rmain@2
   local g2 = r:branch'gmain':snap(2); T.path(g2..'num.txt', NUM_1)
   T.dirs(r:branch'main':snap(2), g2, SKIP)
+
+  -- FIXME: drop main@2 and re-commit it.
+  r:drop('main', 1)
+  r:pvc{'patch', H:patch'main@2'}; T.path(r.w..'num.txt', NUM_1)
+  r:pvc{'commit', 'num.txt: first commit'}
+  H:branchDirEq('main', r:branch'main'.dir) 
 end}
+
+ds.yeet'ok'
 
 H:test{'upper', 'main@2', {main = 'main/'},
 function(r)

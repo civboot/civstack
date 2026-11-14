@@ -5,8 +5,10 @@ local git = mty.mod'pvc.git'
 
 local ds = require'ds'
 local pth = require'ds.path'
+local lines = require'lines'
 local pod = require'pod'
 local ix  = require'civix'
+local snap = require'pvc.snap'
 local repo = require'pvc.repo'
 
 local push           = mty.from'table     insert'
@@ -40,7 +42,7 @@ end
 function Git:tip() return self:_id(self.rname) end
 
 -- FIXME:
-function Git:base() return nil end
+function Git:base() return false end
 
 --- Get the hash of a "git id"
 function Git:_hash(id) --> string
@@ -62,6 +64,12 @@ function Git:snap(id) --> path
   local hash = self:_hash(id)
   local t = self.r:tmp(asRev(self.rname,id))
   local _ = ( self:git{'archive', hash} | {'tar', '-x', '-C', t} )()
+  local icmd = self:git{'ls-tree', '--full-tree', '-r', '--name-only', hash}
+  local idx = {}; for _, p in ds.split(icmd().out, '\n') do
+    if p ~= '' then push(idx, sfmt(':%s/%s', id, p)) end
+  end; ds.sort(idx)
+  dbg('Git:snap idx', id, idx)
+  lines.dump(idx, t..snap.PVCINDEX)
   ix.mv(t, p)
   return p
 end

@@ -279,6 +279,13 @@ function pvc.squash:__call()
   r:squash(r:splitRev'at', num, --[[desc]]self[2])
 end
 
+--- Usage: [$pvc drop <num>][{br}]
+--- Drop some number of commits from current branch's tip.
+pvc.drop = mty.extend(Base, 'drop', {})
+function pvc.drop:__call()
+
+end
+
 
 --- histedit usage:        [$pvc plan branch@id]
 --- Rebase usage:          [$pvc plan br=newBase@id]
@@ -363,6 +370,8 @@ function pvc.remote:__call() --> Remote
   ix.mkTree(b.dir, { snap = EMPTY })
   b.r = nil; b:dump(); b.r = r
   if self.init then b:create() end
+  notify('created remote branch %s of type %s%s', name, ty,
+          self.rname and ' tracking '..self.rname)
   return b
 end
 

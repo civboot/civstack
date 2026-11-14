@@ -108,6 +108,7 @@ snap.Path = mty'Path' {
 }
 Path = snap.Path
 
+function Path:__fmt(f) f:write(self:__tostring()) end
 function Path:__tostring() return concat{
   self.c and '+' or '', self.d and '-' or '',  self.m and '*' or '',
   self.x and 'x' or '', self.mtime or '',
