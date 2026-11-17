@@ -325,7 +325,9 @@ function repo._childGraph(branches)
     g[base] = g[base] or {}
     g[base][name] = bid; push(g[base], name)
   end
+  dbg('_childGraph:', g)
   for _, ch in pairs(g) do
+    dbg('sorting', ch)
     table.sort(ch, function(a, b) return ch[a] < ch[b] end)
   end
   return g

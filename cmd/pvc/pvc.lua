@@ -325,8 +325,9 @@ end
 function pvc.plan:__call()
   self.run, self.skip = shim.bool(self.run), shim.int(self.skip)
   self.finish = shim.bool(self.finish)
-  local r = self.__repo; local g = r:childGraph()
+  local r = self.__repo
   if self.finish then return r:finishPlan() end
+  local g = r:childGraph()
   local arg = self[1]; if not self[1] then
     dbg'pvc.plan - run only'
     return self:runPlan()
