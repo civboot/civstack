@@ -232,11 +232,11 @@ function Remote:dump()
 end
 
 --- Load Remote from path.
-function Remote.load(_T, r, path) --> T+
-  local b = lson.load(path)
+function Remote.load(_T, r, name, dir) --> T+
+  local b = lson.load(dir..'remote')
   b = assert(pod.fromPod(b, b.ty))
-  b.r = r; b:init()
-  return b
+  b.r, b.name, b.dir = r, name, dir
+  return b:init()
 end
 
 -- These are generally not supported.
@@ -294,16 +294,17 @@ function Repo:at() return ds.trim(pth.read(self.atPath)) end --> rev
 function Repo:_setAt(rev) pth.write(self.atPath, rev) end
 
 function Repo:atBranch() --> name
-  return assert(self:at():match'^(%w+)@')
+  return assert(self:at():match'^([._%w]+)@')
 end
 
 function Repo:bdir(name) return concat{self.r, '@', name, '/'} end
 
 function Repo:branch(name) --> Branch?
   local b = self._branches[name]; if b then return b end
+  dbg('Repo:branch getting name', name)
   local dir = self:bdir(name)
   assertf(ix.exists(dir), 'branch %q does not exist', name)
-  b = ix.exists(dir..'remote') and Remote:load(self, dir..'remote')
+  b = ix.exists(dir..'remote') and Remote:load(self, name, dir)
       or Branch{name=name, dir=dir}
   self._branches[name] = b
   return b
@@ -439,11 +440,12 @@ function Repo:init(br) --> self
   br = br or 'main'
   if ix.exists(self.r) then error(self.r..' already exists') end
   ix.mkTree(self.r, { 
-    at = asRev(br,0),
     index = '',
     tmp = {},
   }, true)
+  if br == '' then return end
   self:newBranch(br, nil)
+  self:_setAt(asRev(br,0))
   local ign = self.w..snap.PVCIGNORE
   if not ix.exists(ign) then
     pth.write(ign, repo.INIT_PVCIGNORE)
@@ -479,7 +481,8 @@ end
 function Repo:snapshot(rev) --> Snap
   rev = self:rev(rev); if rev == 'local' then return self:localsnap() end
   local br,id = self:splitRev(rev); local b = self:branch(br)
-  assertf(ix.exists(b.dir), 'branch %s does not exist', br)
+  dbg('snapshot:', br,id,b)
+  assertf(ix.exists(b.dir), 'branch %s does not exist (%s)', br, b.dir)
   local bbr,bid=nil,0; if b:base() then bbr,bid = splitRev(b:base()) end
   if id <= bid then
     return not bbr and assert(id==0) and self:snapshot0(br)
@@ -836,12 +839,17 @@ function Repo:finishPlan()
       ix.rmRecursive(db.dir)
     else -- swap branches
       ix.rmRecursive(b.dir)
+      dbg('moving', db.dir, b.dir)
       ix.mv(db.dir, b.dir)
     end
+    dbg('clearing', dbr, b.name)
     self._branches[dbr], self._branches[b.name] = nil, nil
+    dbg('branch', b.name, self:branch(b.name))
   ::cont::end 
   ix.rm(self.r..snap.PVCPLAN)
   notify('finished branches %s', concat(dots, ', '))
+  dbg('branches:', self._branches)
+  dbg('branches():', self:branches())
   self:setAt(self:at():match'^%.?(.*)@', true)
 end
 

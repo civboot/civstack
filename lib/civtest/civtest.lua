@@ -152,7 +152,7 @@ end
 function M.exists(path)
   path = pth.canonical(path)
   if not require'civix'.exists(path) then error(
-    'does not exist: '..path
+    'does not exist: '..pth.nice(path)
   )end
 end
 

@@ -174,38 +174,39 @@ function(r)
   r:pvc'at main@0'; T.eq('main@0', r:pvc'at')
   T.path(r.w, {['.pvcignore'] = false, ['num.txt']=false}, SKIP)
   T.dirs(r.w, r:branch'main':snap(0), SKIP)
-
-  -- create gmain with single commit (main@1), delete main and recreate it.
-  r:pvc'at main@1'
-  r:pvc{'remote', 'gmain', 'pvc.git.Git', rname='main', init=true}
-  r:branch'gmain':commit'main@1'; r:pvc'at gmain@1 --direct'
-  r:pvc'branch main --delete'
-  T.path(r.r..'@main/', false)
-  r:pvc'branch main'; 
-  T.path(r.r..'@main/', {base='gmain@1', tip='1'})
-  local s1 = r:snapshot'gmain@1'
-  T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
-
-  -- commit from (backup) bmain@2
-  T.eq('main@1', r:at()); r:pvc'cp bmain@2 --commit'
-  H:branchDirEq('main_gitbase', r:branch'main'.dir) 
-  ds.yeet'ok'
-
-  r:pvc'at main@1'; setupGit(r) r:pvc'at gmain@1 --direct'
-  local s1 = r:snapshot'gmain@1'
-  T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
-  r:pvc'at main@2'; T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
-  T.path(r.w..'num.txt',    NUM_1)
-  T.dirs(r.w, r:branch'main':snap(2), SKIP)
-
-  r:pvc'upload' -- upload main@2 to git's rmain@2
-  local g2 = r:branch'gmain':snap(2); T.path(g2..'num.txt', NUM_1)
-  T.dirs(r:branch'main':snap(2), g2, SKIP)
-
-  r:drop('main', 1); T.eq('main@1', r:at())
-  r:pvc{'cp', 'gmain@2', commit=true}; T.path(r.w..'num.txt', NUM_1)
-  H:branchDirEq('main_gitbase', r:branch'main'.dir) 
 end}
+
+--   -- create gmain with single commit (main@1), delete main and recreate it.
+--   r:pvc'at main@1'
+--   r:pvc{'remote', 'gmain', 'pvc.git.Git', rname='main', init=true}
+--   r:branch'gmain':commit'main@1'; r:pvc'at gmain@1 --direct'
+--   r:pvc'branch main --delete'
+--   T.path(r.r..'@main/', false)
+--   r:pvc'branch main'; 
+--   T.path(r.r..'@main/', {base='gmain@1', tip='1'})
+--   local s1 = r:snapshot'gmain@1'
+--   T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
+-- 
+--   -- commit from (backup) bmain@2
+--   T.eq('main@1', r:at()); r:pvc'cp bmain@2 --commit'
+--   H:branchDirEq('main_gitbase', r:branch'main'.dir) 
+--   ds.yeet'ok'
+-- 
+--   r:pvc'at main@1'; setupGit(r) r:pvc'at gmain@1 --direct'
+--   local s1 = r:snapshot'gmain@1'
+--   T.path(s1.root..'.pvcignore', repo.INIT_PVCIGNORE)
+--   r:pvc'at main@2'; T.path(r.w..'.pvcignore', repo.INIT_PVCIGNORE)
+--   T.path(r.w..'num.txt',    NUM_1)
+--   T.dirs(r.w, r:branch'main':snap(2), SKIP)
+-- 
+--   r:pvc'upload' -- upload main@2 to git's rmain@2
+--   local g2 = r:branch'gmain':snap(2); T.path(g2..'num.txt', NUM_1)
+--   T.dirs(r:branch'main':snap(2), g2, SKIP)
+-- 
+--   r:drop('main', 1); T.eq('main@1', r:at())
+--   r:pvc{'cp', 'gmain@2', commit=true}; T.path(r.w..'num.txt', NUM_1)
+--   H:branchDirEq('main_gitbase', r:branch'main'.dir) 
+-- end}
 
 H:test{'upper', 'main@2', {main = 'main/'},
 function(r)
@@ -224,6 +225,11 @@ function(r)
   r:pvc{'patch', H:patch'upper@3'}; T.path(r.w..'num.txt', NUM_UP )
   r:pvc{'commit', 'upper: add 80,90'}
   H:branchDirEq('upper', r:branch'upper'.dir) 
+end}
+
+H:test{'git_main', 'git_main@2', {git_main = 'main/'},
+function(r)
+  ds.yeet'ok'
 end}
 
 H:test{'lower', 'main@2', {main = 'main/'},

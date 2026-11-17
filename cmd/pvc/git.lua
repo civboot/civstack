@@ -31,12 +31,13 @@ end
 --- Run a git subcommand.
 --- Note: this sets git-dir
 function Git:git(subcmd) --> Sh
-  return Sh(ds.extend({'git', '--git-dir='..self.rem}, subcmd))
+  return Sh(ds.merge({'git', '--git-dir='..self.rem}, subcmd))
 end
 
 --- Get the id of a hash or name
 function Git:_id(hashOrName) --> int
-  return int(self:git{'rev-list', '--count', hashOrName, check=false}().out)
+  local s = self:git{'rev-list', '--count', hashOrName, check=false}()
+  return s.rc == 0 and int(s.out) or 0
 end
 
 function Git:tip() return self:_id(self.rname) end
@@ -47,10 +48,10 @@ function Git:base() return false end
 --- Get the hash of a "git id"
 function Git:_hash(id) --> string
   dbg('git hash', id)
-  if type(id) == 'string' then return id end
+  if id == 0 or type(id) == 'string' then return id end
   local tip = self:tip()
   dbg('  hash id=%s tip=%s', id, tip)
-  assertf(id <= tip, 'id > tip=%s', tip)
+  assertf(id <= tip, 'id > tip (%s > %s)', id, tip)
   local cmd = self:git{'rev-parse', sfmt('%s~%s', self.rname, tip-id)}
   return ds.trim(cmd().out)
 end

@@ -665,6 +665,7 @@ M.Sh = mty'Sh' {
 }
 M.Sh.construct = mty.construct
 getmetatable(M.Sh).__call = function(T, cmd)
+  dbg('Sh.__call', cmd)
   local pk, self = ds.popk, {}
   if type(cmd) == 'string' then cmd = shim.parseStr(cmd)
   else
@@ -675,6 +676,7 @@ getmetatable(M.Sh).__call = function(T, cmd)
     self.env    = pk(cmd, 'env')
     self.cwd    = pk(cmd, 'cwd')
     self.check  = pk(cmd, 'check')
+    dbg('* check=%q', self.check)
     if self.env then
       push(self.env, 'PWD='..(self.cwd or ctx.CWD))
     end
@@ -794,6 +796,7 @@ function M.Sh:checkStatus(nothrow) --> self
   local status = {errors=0}; self:_checkStatus(status)
   self.status = status
   if not nothrow and status.errors > 0 then
+    dbg('check status throwing', nothrow, self.check)
     error(format('pipeline had errors:\n  %s\n%s',
                  concat(status, '\n | ') ,
                  concat(self:allOutput(), '\n')))

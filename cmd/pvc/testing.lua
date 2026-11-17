@@ -12,6 +12,7 @@ local snap = require'pvc.snap'
 --- pvc testing utilities.
 local pT = mty.mod'pvc.testing'
 
+local sfmt        = mty.from'string  format'
 local int         = mty.from'ds  int'
 
 --- Create a test harness from testdata.
@@ -39,10 +40,19 @@ function pT.Harness:test(cfg)
   T(name)
   local r = repo.Repo{w=self.out..name}
   ix.rmRecursive(r.w)
-  r:pvc{'init'}
+  r:pvc'init'
   ix.rmRecursive(r.r..'@main/'); ix.rm(r.w..'.pvcignore')
   for br, dir in pairs(brs) do
+    dbg('Harness:test init', br, dir)
     r:pvc{'pull', br, self.branches..dir}
+    if br:find'^git_' then
+      local dbr = '.'..br
+      r:pvc{'at', br..'@0', direct=true}
+      r:pvc{'remote', dbr, 'pvc.git.Git', rname=br:match'^git_(.*)', init=true}
+      pth.write(sfmt('%s@%s/base', r.r, br), dbr..'@0')
+      r:pvc'upload'
+      r:pvc{'plan', finish=true}
+    end
   end
   r:pvc{'at', rev}
   local f = ds.bytearray(); local fm = fmt.Fmt{to=f, style=false}
