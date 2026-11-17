@@ -12,6 +12,7 @@ local snap = require'pvc.snap'
 --- pvc testing utilities.
 local pT = mty.mod'pvc.testing'
 
+local asRev       = mty.from'pvc.repo asRev'
 local sfmt        = mty.from'string  format'
 local int         = mty.from'ds  int'
 
@@ -46,11 +47,15 @@ function pT.Harness:test(cfg)
     dbg('Harness:test init', br, dir)
     r:pvc{'pull', br, self.branches..dir}
     if br:find'^git_' then
+      r:_setAt(asRev(br,0))
+      dbg('gitifying', br, 'at', rev)
+      r:pvc{'at', rev}
       local dbr = '.'..br
       r:pvc{'at', br..'@0', direct=true}
       r:pvc{'remote', dbr, 'pvc.git.Git', rname=br:match'^git_(.*)', init=true}
-      pth.write(sfmt('%s@%s/base', r.r, br), dbr..'@0')
+      r:branch(br):setBase(dbr..'@0')
       r:pvc'upload'
+      ds.yeet'planned'
       r:pvc{'plan', finish=true}
     end
   end

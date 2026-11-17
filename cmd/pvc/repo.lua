@@ -130,7 +130,6 @@ function repo.descHelper(c, desc)
     push(d, ln); if c.max and #d >= c.max then break end
   end
   while d[#d] == '' do pop(d) end
-  dbg('desc helper', d)
   return d
 end
 
@@ -219,10 +218,8 @@ function Remote:isRemote() return true end
 getmetatable(Remote).__call = mty.construct
 
 function Remote:init() --> self
-  dbg('Remote:init', self)
   Branch.init(self)
   self.rem = pth.toDir(pth.canonical(self.rem, self.r.w))
-  dbg('Remote rem', self.rem)
   return self
 end
 
@@ -300,8 +297,8 @@ end
 function Repo:bdir(name) return concat{self.r, '@', name, '/'} end
 
 function Repo:branch(name) --> Branch?
+  dbg('Repo:branch', name)
   local b = self._branches[name]; if b then return b end
-  dbg('Repo:branch getting name', name)
   local dir = self:bdir(name)
   assertf(ix.exists(dir), 'branch %q does not exist', name)
   b = ix.exists(dir..'remote') and Remote:load(self, name, dir)
@@ -480,8 +477,8 @@ end
 --- Return the materialized snapshot and the rev.
 function Repo:snapshot(rev) --> Snap
   rev = self:rev(rev); if rev == 'local' then return self:localsnap() end
+  dbg(':snapshot', rev)
   local br,id = self:splitRev(rev); local b = self:branch(br)
-  dbg('snapshot:', br,id,b)
   assertf(ix.exists(b.dir), 'branch %s does not exist (%s)', br, b.dir)
   local bbr,bid=nil,0; if b:base() then bbr,bid = splitRev(b:base()) end
   if id <= bid then
@@ -576,7 +573,6 @@ function Repo:commit(desc, diff) --> rev2
   local idiff = pu.diff(
     id>0 and base.root..snap.PVCINDEX, id>0 and snap.PVCINDEX,
     ipath,                             snap.PVCINDEX)
-  dbg('IDIFF\n%s', idiff)
   ix.rm(ipath) -- remove, idiff in pu._patch re-updates
   base:copyTo(tmp)
 
@@ -597,19 +593,16 @@ end
 
 --- Change working tree to reflect rev.
 function Repo:setAt(rev, force)
-  dbg('Repo:setAt', rev, force)
   rev = self:rev(rev)
+  dbg(':setAt', rev)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
-  dbg('Repo:setAt i1', i1)
-  dbg('Repo:setAt i2', i2)
   local sa, ia; if not force then
     sa = self:snapshot'at'; ia = sa:index()
   end
   local copy, rm, error = {}, {}, {}
   for _, p2 in ipairs(i2) do
     local p1 = i1[i1[p2.p]]
-    dbg('* i2 paths', p1, p2, p1 and p1.p, p2 and p2.p)
     if not p1 then push(copy, p2); goto cont end
     local path1 = s1.root..p1.p
     if (p1:cleaned()==p2 and p1.mtime==ix.mtime(path1))
@@ -623,7 +616,6 @@ function Repo:setAt(rev, force)
   end
   for _, p1 in ipairs(i1) do -- look for files to delete
     if i2[p1.p] then goto cont end -- exists in both, done above.
-    dbg('* i1 paths', p1)
     local path1 = s1.root..p1.p
     if not force and (
       (p1.mtime~=ix.mtime(path1)) or not ix.pathEq(sa.root..p1.p, path1)
@@ -633,7 +625,6 @@ function Repo:setAt(rev, force)
   if #error > 0 then
     errorf('paths are modified:\n%s', concat(error, '\n'))
   end
-  dbg('Repo:setAt copy=%q rm=%q', copy, rm)
   for _, p in ipairs(copy) do ix.forceCp(s2.root..p.p, self.w..p.p) end
   for _, p in ipairs(rm)   do ix.rm(self.w..p.p)                    end
   self:_setAt(rev)
@@ -705,7 +696,6 @@ end
 function Repo:drop(br, num)
   local id, b = self:checkMutateNum(br, num); id = max(1,id)
   self:setAt(asRev(br, id-1))
-  dbg('drop removing', b, id, b:tip())
   for i=id,b:tip() do ix.rmRecursive(b:snap(i)); ix.rm(b:patch(i)) end
   b:setTip(id-1); self:setAt(asRev(br, id-1))
 end
@@ -839,17 +829,12 @@ function Repo:finishPlan()
       ix.rmRecursive(db.dir)
     else -- swap branches
       ix.rmRecursive(b.dir)
-      dbg('moving', db.dir, b.dir)
       ix.mv(db.dir, b.dir)
     end
-    dbg('clearing', dbr, b.name)
     self._branches[dbr], self._branches[b.name] = nil, nil
-    dbg('branch', b.name, self:branch(b.name))
   ::cont::end 
   ix.rm(self.r..snap.PVCPLAN)
   notify('finished branches %s', concat(dots, ', '))
-  dbg('branches:', self._branches)
-  dbg('branches():', self:branches())
   self:setAt(self:at():match'^%.?(.*)@', true)
 end
 

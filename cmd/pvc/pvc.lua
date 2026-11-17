@@ -166,6 +166,7 @@ function pvc.at:__call()
   local w, r, f = self.work_tree, self.__repo, self.force
   local rev = f and (self[1] or r:at()) or self[1]
   if not rev then ctx.stdout:write(r:at(), '\n'); return r:at() end
+  dbg('pvc.at', rev, self)
   if self.direct then return r:_setAt(rev) end
   r:setAt(rev, f); return rev
 end
@@ -203,6 +204,7 @@ function pvc.upload:__call()
     ix.cpRecursive(b.dir, d, {['snap/'] = -1})
     return notify('uploaded %s to directory %s', br, d)
   end
+  dbg('pvc upload %q base=%q', b, b:base())
   local rbr, rid = splitRev(b:base()); local rb = r:branch(rbr)
   assertf(rb:isRemote(), 'cannot upload to non-remote branch %q', rbr.name)
   local rtip, tdrop = rb:tip(), false
