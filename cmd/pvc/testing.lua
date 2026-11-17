@@ -55,7 +55,6 @@ function pT.Harness:test(cfg)
       r:pvc{'remote', dbr, 'pvc.git.Git', rname=br:match'^git_(.*)', init=true}
       r:branch(br):setBase(dbr..'@0')
       r:pvc'upload'
-      ds.yeet'planned'
       r:pvc{'plan', finish=true}
     end
   end
