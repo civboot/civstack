@@ -821,6 +821,7 @@ function Repo:finishPlan()
     local b = self:branch(dbr:sub(2)) -- "real" branch
     local bbr,bid = splitRev(db:base())
     if bbr == b.name then -- move commits.
+      info('finish: moving commits %s@%s:%s to %s', dbr, bid+1, db:tip(), br)
       for i=bid+1,b:tip() do
         ix.rm(b:patch(i)); ix.rmRecursive(b:snap(i))
       end
@@ -828,6 +829,7 @@ function Repo:finishPlan()
       b:setTip(db:tip())
       ix.rmRecursive(db.dir)
     else -- swap branches
+      info('finish: swapping branch %s -> %s', dbr, b.name)
       ix.rmRecursive(b.dir)
       ix.mv(db.dir, b.dir)
     end

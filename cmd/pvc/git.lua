@@ -37,7 +37,7 @@ end
 --- Get the id of a hash or name
 function Git:_id(hashOrName) --> int
   local s = self:git{'rev-list', '--count', hashOrName, check=false}()
-  return s.rc == 0 and int(s.out) or 0
+  return s:rc() == 0 and int(s.out) or 0
 end
 
 function Git:tip() return self:_id(self.rname) end

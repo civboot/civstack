@@ -227,10 +227,15 @@ function(r)
   H:branchDirEq('upper', r:branch'upper'.dir) 
 end}
 
-H:test{'git_main', 'git_main@2', {git_main = 'main/'},
+H:test{'git_upper', 'git_main@2', {git_main = 'main/', check = 'main/'},
 function(r)
-  ds.yeet'ok'
+  for i=0,2 do
+    info('Testing id=%s', i)
+    T.dirs(r:snapshot('check@'..i).root, r:snapshot('git_main@'..i).root, SKIP)
+  end
+  T.dirs(r:snapshot'check@2'.root, r:localsnap().root, SKIP)
 end}
+
 
 H:test{'lower', 'main@2', {main = 'main/'},
 function(r)
