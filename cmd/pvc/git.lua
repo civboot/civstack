@@ -47,10 +47,8 @@ function Git:base() return false end
 
 --- Get the hash of a "git id"
 function Git:_hash(id) --> string
-  dbg('git hash', id)
   if id == 0 or type(id) == 'string' then return id end
   local tip = self:tip()
-  dbg('  hash id=%s tip=%s', id, tip)
   assertf(id <= tip, 'id > tip (%s > %s)', id, tip)
   local cmd = self:git{'rev-parse', sfmt('%s~%s', self.rname, tip-id)}
   return ds.trim(cmd().out)
@@ -75,7 +73,6 @@ function Git:snap(id) --> path
   local idx = {}; for _, p in ds.split(icmd().out, '\n') do
     if p ~= '' then push(idx, sfmt(':%s/%s', id, p)) end
   end; ds.sort(idx); push(idx, '')
-  dbg('Git:snap idx', id, idx)
   lines.dump(idx, t..snap.PVCINDEX)
   ix.mv(t, p)
   return p
@@ -83,7 +80,6 @@ end
 
 --- Return true if id and rev are identical (no diff).
 function Git:identical(id, rev) --> bool
-  dbg('git identical', id, rev)
   local s = self.r:snapshot(rev); local wt = self:_wt(s.root)
   local cmd = self:git{wt, 'diff', '--quiet', self:_hash(id), check=false}
   pushPaths(s, cmd.args)
@@ -93,7 +89,6 @@ end
 --- Commit rev to git. Note: this is blind, it is the caller's job
 --- to ensure rev-1 is already the git rname branch's tip (e.g with reset)
 function Git:commit(rev, desc)
-  dbg('Git:commit %s desc=%q', rev, desc)
   local s = self.r:snapshot(rev)
   desc = desc or self.r:desc{rev}
   local wt = self:_wt(s.root)

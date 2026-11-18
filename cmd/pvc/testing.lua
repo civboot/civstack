@@ -12,9 +12,10 @@ local snap = require'pvc.snap'
 --- pvc testing utilities.
 local pT = mty.mod'pvc.testing'
 
-local asRev       = mty.from'pvc.repo asRev'
 local sfmt        = mty.from'string  format'
+local assertf     = mty.from'fmt assertf'
 local int         = mty.from'ds  int'
+local asRev       = mty.from'pvc.repo asRev'
 
 --- Create a test harness from testdata.
 pT.Harness = mty'Harness' {
@@ -44,18 +45,17 @@ function pT.Harness:test(cfg)
   r:pvc'init'
   ix.rmRecursive(r.r..'@main/'); ix.rm(r.w..'.pvcignore')
   for br, dir in pairs(brs) do
-    dbg('Harness:test init', br, dir)
     r:pvc{'pull', br, self.branches..dir}
     if br:find'^git_' then
-      r:_setAt(asRev(br,0))
-      dbg('gitifying', br, 'at', rev)
-      r:pvc{'at', rev}
+      assertf(not r:branch(br):base(), 'git %s (%s) has base', br, dir)
       local dbr = '.'..br
+      r:_setAt(asRev(br,0)); r:pvc{'at', br} -- force contents at tip
       r:pvc{'at', br..'@0', direct=true}
+      -- Create git dot-clone and upload to it.
       r:pvc{'remote', dbr, 'pvc.git.Git', rname=br:match'^git_(.*)', init=true}
       r:branch(br):setBase(dbr..'@0')
-      r:pvc'upload'
-      r:pvc{'plan', finish=true}
+      r:pvc'upload'; r:pvc{'plan', finish=true}
+      r:pvc{'at', br} -- finish by ensuring state is same.
     end
   end
   r:pvc{'at', rev}

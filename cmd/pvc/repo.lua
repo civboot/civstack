@@ -297,7 +297,6 @@ end
 function Repo:bdir(name) return concat{self.r, '@', name, '/'} end
 
 function Repo:branch(name) --> Branch?
-  dbg('Repo:branch', name)
   local b = self._branches[name]; if b then return b end
   local dir = self:bdir(name)
   assertf(ix.exists(dir), 'branch %q does not exist', name)
@@ -325,9 +324,7 @@ function repo._childGraph(branches)
     g[base] = g[base] or {}
     g[base][name] = bid; push(g[base], name)
   end
-  dbg('_childGraph:', g)
   for _, ch in pairs(g) do
-    dbg('sorting', ch)
     table.sort(ch, function(a, b) return ch[a] < ch[b] end)
   end
   return g
@@ -479,7 +476,6 @@ end
 --- Return the materialized snapshot and the rev.
 function Repo:snapshot(rev) --> Snap
   rev = self:rev(rev); if rev == 'local' then return self:localsnap() end
-  dbg(':snapshot', rev)
   local br,id = self:splitRev(rev); local b = self:branch(br)
   assertf(ix.exists(b.dir), 'branch %s does not exist (%s)', br, b.dir)
   local bbr,bid=nil,0; if b:base() then bbr,bid = splitRev(b:base()) end
@@ -586,7 +582,7 @@ function Repo:commit(desc, diff) --> rev2
   f:flush(); f:close()
 
   pu._patch(tmp, ppath)
-  local pfinal = self:patch(rev2); ix.cp(ppath, pfinal)
+  local pfinal = self:patch(rev2); ix.mv(ppath, pfinal)
   ix.mv(tmp, snap2)
   self:_setAt(rev2)
   b:setTip(id+1)
@@ -596,7 +592,6 @@ end
 --- Change working tree to reflect rev.
 function Repo:setAt(rev, force)
   rev = self:rev(rev)
-  dbg(':setAt', rev)
   local w, s1, s2 = self.w, self:localsnap(), self:snapshot(rev)
   local i1, i2 = s1:index(), s2:index()
   local sa, ia; if not force then

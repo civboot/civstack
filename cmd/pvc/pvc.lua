@@ -166,7 +166,6 @@ function pvc.at:__call()
   local w, r, f = self.work_tree, self.__repo, self.force
   local rev = f and (self[1] or r:at()) or self[1]
   if not rev then ctx.stdout:write(r:at(), '\n'); return r:at() end
-  dbg('pvc.at', rev, self)
   if self.direct then return r:_setAt(rev) end
   r:setAt(rev, f); return rev
 end
@@ -204,11 +203,9 @@ function pvc.upload:__call()
     ix.cpRecursive(b.dir, d, {['snap/'] = -1})
     return notify('uploaded %s to directory %s', br, d)
   end
-  dbg('pvc upload %q base=%q', b, b:base())
   local rbr, rid = splitRev(b:base()); local rb = r:branch(rbr)
   assertf(rb:isRemote(), 'cannot upload to non-remote branch %q', rbr.name)
   local rtip, tdrop = rb:tip(), false
-  dbg('tips', rb:tip(), b:tip())
   if rtip > b:tip() then tdrop=true; rb:reset(b:tip()); rtip = b:tip() end
   for i = rid+1,b:tip() do
     if i > rtip                         then goto different
@@ -329,7 +326,6 @@ function pvc.plan:__call()
   if self.finish then return r:finishPlan() end
   local g = r:childGraph()
   local arg = self[1]; if not self[1] then
-    dbg'pvc.plan - run only'
     return self:runPlan()
   end
   local arg = assert(self[1], 'FIXME: just run')
@@ -368,14 +364,12 @@ pvc.remote = mty.extend(Base, 'remote', {
   'init [bool]: initialize the repo, this is rare outside of testing',
 })
 function pvc.remote:__call() --> Remote
-  dbg('remote', self)
   local r, name = self.__repo, self[1]
   local ty = assert(self[2], 'must specify repo type')
   local b = setmetatable(r:_newBranch(name), nil)
   b.ty, b.rem, b.rname = ty, self[3], self.rname or name
   b = assertf(ds.wantpath(b.ty), 'unknown type: %q', b.ty)(b)
   b.r = r; b:init()
-  dbg('remote branch', b)
   if not self.init then assert(b:tip(), 'remote tip cannot be found') end
   ix.mkTree(b.dir, { snap = EMPTY })
   b.r = nil; b:dump(); b.r = r

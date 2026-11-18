@@ -230,16 +230,14 @@ end}
 H:test{'git_upper', 'git_main@2',
 {git_main = 'main/', main = 'main/', upper_old = 'upper/'},
 function(r)
-  for i=0,2 do
+  --[[Verify full git_main consistency]]; for i=0,2 do
     info('Testing id=%s', i)
     T.dirs(r:snapshot('main@'..i).root, r:snapshot('git_main@'..i).root, SKIP)
   end
-  dbg'testing snaps 0-2 successful'
   T.dirs(r:snapshot'main@2'.root, r:localsnap().root, SKIP)
   r:pvc'branch upper'
   r:pvc'cp upper_old@3 --commit'
   T.dirs(r:snapshot'upper_old@3'.root, r:snapshot'upper@3'.root, SKIP)
-  ds.yeet(r.w)
 end}
 
 
