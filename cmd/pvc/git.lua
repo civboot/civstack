@@ -11,7 +11,7 @@ local ix  = require'civix'
 local snap = require'pvc.snap'
 local repo = require'pvc.repo'
 
-local push           = mty.from'table     insert'
+local push, concat   = mty.from'table     insert, concat'
 local Sh             = mty.from'civix     Sh'
 local sfmt           = mty.from'string    format'
 local assertf        = mty.from'fmt       assertf'
@@ -92,8 +92,10 @@ end
 
 --- Commit rev to git. Note: this is blind, it is the caller's job
 --- to ensure rev-1 is already the git rname branch's tip (e.g with reset)
-function Git:commit(rev)
-  local s, desc = self.r:snapshot(rev), self.r:desc{rev}
+function Git:commit(rev, desc)
+  dbg('Git:commit %s desc=%q', rev, desc)
+  local s = self.r:snapshot(rev)
+  desc = desc or self.r:desc{rev}
   local wt = self:_wt(s.root)
   local sh = self:git{wt, 'add'}; for _, path in ipairs(s:index()) do if path:modified() then
     push(sh.args, path.p)

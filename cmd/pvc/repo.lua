@@ -533,7 +533,7 @@ function Repo:commit(desc, diff) --> rev2
     * stash -> [$pvc at tip] -> unstash -> commit.
     * prune: move or delete downstream changes.
   ]])end
-  if b:isRemote() then b:commit(desc) end
+  assertf(not b:isRemote(), 'cannot direct commit to remote %q', b)
   local rev2 = asRev(br, id+1)
   trace('start commit from %s to %s', rev, rev2)
   local snap2 = b:snap(id+1)
